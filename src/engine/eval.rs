@@ -6,7 +6,7 @@ pub fn evaluate(board: &Board) -> i32 {
     let mut black_score = 0;
 
     for pt in Piece::ALL {
-        for square in board.pieces(pt) {
+        for mut square in board.pieces(pt) {
             let piece_val = match pt {
                 Piece::Pawn => 100,
                 Piece::Knight => 320,
@@ -17,9 +17,9 @@ pub fn evaluate(board: &Board) -> i32 {
             };
 
             let color = board.color_on(square).unwrap();
-            // Flip rank for PSQT if black
-            if color == Color::Black {
-                square.flip_rank();
+            // Flip rank for PSQT if white
+            if color == Color::White {
+                square = square.flip_rank();
             }
 
             // get square index for PSQT
@@ -42,10 +42,8 @@ pub fn evaluate(board: &Board) -> i32 {
         }
     }
 
-    let color: i32 = match board.side_to_move() {
-        Color::White => 1,
-        Color::Black => -1,
+    match board.side_to_move() {
+        Color::White => return white_score - black_score,
+        Color::Black => return (white_score - black_score) * -1,
     };
-
-    return (white_score - black_score) * color;
 }

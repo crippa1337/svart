@@ -1,3 +1,4 @@
-pub(crate) mod eval;
+pub mod eval;
 mod psqt;
-mod search;
+pub mod search;
+mod tt;

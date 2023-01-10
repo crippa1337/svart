@@ -1,30 +1,21 @@
-use cozy_chess::*;
 mod constants;
 mod engine;
+mod uci;
 
 use constants::*;
-use engine::{eval, search::*};
+use cozy_chess::*;
+use engine::search::*;
 
 fn main() {
-    // Start position
-    let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    let mut board = fen.parse::<Board>().unwrap();
-    let mut search = Search::new();
-    while board.status() == GameStatus::Ongoing {
-        do_da_search(&mut board, &mut search, 6, true);
-    }
-
-    println!("Game over!");
-    println!("Status: {:?}", board.status());
-    println!("Winner: {}", board.side_to_move());
+    uci::main_loop();
 }
 
-fn do_da_search(board: &mut Board, search: &mut Search, depth: u8, verbose: bool) {
+fn test_search(board: &mut Board, search: &mut Search, depth: u8, verbose: bool) {
     let start = std::time::Instant::now();
     let (score, mv) = search.absearch(&board, -INFINITY, INFINITY, depth, 0);
     let elapsed = start.elapsed();
     if verbose {
-        println!("Time: {:?}", elapsed);
+        println!("----------\nTime: {:?}", elapsed);
         println!("Depth: {depth}");
         println!("Score: {score}");
         println!("Nodes: {}", search.nodes);

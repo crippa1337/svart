@@ -1,5 +1,3 @@
-use cozy_chess::{Move, Square};
-
 pub const MAX_PLY: i32 = 64;
 
 pub const INFINITY: i32 = 99999;

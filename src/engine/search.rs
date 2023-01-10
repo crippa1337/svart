@@ -35,9 +35,10 @@ impl Search {
         let root = if ply == 0 { true } else { false };
         let hash_key = board.hash();
         if !root {
-            if self.is_repetition(hash_key) {
-                return (-5, None);
-            }
+            // TODO
+            // if self.is_repetition(hash_key) {
+            //     return (-5, None);
+            // }
 
             if board.halfmove_clock() >= 100 {
                 return (0, None);
@@ -134,7 +135,7 @@ impl Search {
         }
 
         // Calculate bound and save to TT
-        let mut bound = Flag::NONEBOUND;
+        let bound: Flag;
         if best_score >= beta {
             bound = Flag::LOWERBOUND;
         } else {
@@ -154,20 +155,5 @@ impl Search {
         );
 
         return (best_score, best_move);
-    }
-
-    fn is_repetition(&self, key: u64) -> bool {
-        let mut count = 0;
-        for hash in self.hash_history.iter() {
-            if *hash == key {
-                count += 1;
-            }
-        }
-
-        // Three-fold repetition
-        if count >= 3 {
-            return true;
-        }
-        return false;
     }
 }

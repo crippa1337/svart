@@ -1,11 +1,8 @@
 use crate::{
-    constants::{INFINITY, MAX_PLY},
+    constants::{mated_in, INFINITY, MATE, MAX_PLY},
     engine::search::Search,
 };
 use cozy_chess::{Board, Move};
-
-const NAME: &str = concat!("chessy ", env!("CARGO_PKG_VERSION"));
-const AUTHOR: &str = "crippa";
 
 pub fn main_loop() {
     let mut board = Board::default();
@@ -37,6 +34,10 @@ pub fn main_loop() {
         } else {
             'main: loop {
                 match words[0] {
+                    "uci" => {
+                        id();
+                        println!("uciok");
+                    }
                     "isready" => {
                         println!("readyok");
                         break 'main;
@@ -50,10 +51,10 @@ pub fn main_loop() {
                         if words[1] == "startpos" {
                             board = Board::startpos();
                             board_set = true;
-                        } else {
+                        } else if words[1] == "fen" {
                             // Put together the split fen string
                             let mut fen = String::new();
-                            for i in 1..words.len() {
+                            for i in 2..words.len() {
                                 if words[i] == "moves" {
                                     break;
                                 }
@@ -68,28 +69,57 @@ pub fn main_loop() {
                                 Err(_) => (),
                             }
                         }
+
+                        if words.iter().any(|&x| x == "moves") && board_set {
+                            for i in
+                                words.iter().position(|&x| x == "moves").unwrap() + 1..words.len()
+                            {
+                                board.play(words[i].parse().unwrap());
+                            }
+                        }
                         break 'main;
                     }
                     "go" => {
                         if board_set {
-                            // TODO add infinite
+                            let depth: u8;
                             if words.iter().any(|&x| x == "depth") {
-                                let depth = words
+                                depth = words
                                     [words.iter().position(|&x| x == "depth").unwrap() + 1]
                                     .parse::<u8>()
                                     .unwrap();
-                                let start = std::time::Instant::now();
-                                let score = search.absearch(&board, -INFINITY, INFINITY, depth, 0);
-                                let elapsed = start.elapsed();
-                                println!(
-                                    "info depth {depth} cp {score} nodes {} nps {} {}",
-                                    search.nodes,
-                                    (search.nodes as f64 / elapsed.as_secs_f64()).round(),
-                                    show_pv(&search.pv_table),
-                                );
-                                println!("bestmove {}", search.pv_table[0][0].unwrap().to_string());
-                                search.nodes = 0;
+                            } else if words.iter().any(|&x| x == "infinite") {
+                                depth = 6;
+                            } else {
+                                break 'main;
                             }
+
+                            let start = std::time::Instant::now();
+                            let mut score = search.absearch(&board, -INFINITY, INFINITY, depth, 0);
+                            let elapsed = start.elapsed();
+
+                            let mut print_score = String::new();
+                            // check mate score
+                            if score > MATE - MAX_PLY {
+                                let plies_to_mate = MATE - score;
+                                let moves_to_mate = (plies_to_mate + 1) / 2;
+                                if score > 0 {
+                                    score = moves_to_mate;
+                                } else {
+                                    score = -moves_to_mate;
+                                }
+                                print_score = format!("mate {}", score);
+                            } else {
+                                print_score = format!("cps {}", score);
+                            }
+
+                            println!(
+                                "info depth {depth} {print_score} nodes {} nps {} {}",
+                                search.nodes,
+                                (search.nodes as f64 / elapsed.as_secs_f64()).round(),
+                                show_pv(&search.pv_table),
+                            );
+                            println!("bestmove {}", search.pv_table[0][0].unwrap().to_string());
+                            search.nodes = 0;
                         }
                         break 'main;
                     }
@@ -112,17 +142,14 @@ fn id() {
 
 fn show_pv(pv_table: &[[Option<Move>; MAX_PLY as usize]; MAX_PLY as usize]) -> String {
     let mut pv = String::new();
-    let mut move_num = 0;
     for i in 0..MAX_PLY {
-        move_num += 1;
         if let Some(mv) = pv_table[0][i as usize] {
-            pv.push_str(&move_num.to_string());
-            pv.push_str(". ");
             pv.push_str(&mv.to_string());
             pv.push(' ');
         } else {
             break;
         }
     }
-    pv
+
+    return pv;
 }

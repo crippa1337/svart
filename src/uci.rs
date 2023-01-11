@@ -116,7 +116,7 @@ pub fn main_loop() {
                                 "info depth {depth} {print_score} nodes {} nps {} {}",
                                 search.nodes,
                                 (search.nodes as f64 / elapsed.as_secs_f64()).round(),
-                                show_pv(&search.pv_table),
+                                show_pv(&search),
                             );
                             println!("bestmove {}", search.pv_table[0][0].unwrap().to_string());
                             search.nodes = 0;
@@ -140,15 +140,14 @@ fn id() {
     println!("id author crippa");
 }
 
-fn show_pv(pv_table: &[[Option<Move>; MAX_PLY as usize]; MAX_PLY as usize]) -> String {
+fn show_pv(search: &Search) -> String {
     let mut pv = String::new();
-    for i in 0..MAX_PLY {
-        if let Some(mv) = pv_table[0][i as usize] {
-            pv.push_str(&mv.to_string());
-            pv.push(' ');
-        } else {
+    for i in 0..search.pv_length[0] {
+        if search.pv_table[0][i as usize].is_none() {
             break;
         }
+        pv.push_str(&search.pv_table[0][i as usize].unwrap().to_string());
+        pv.push(' ');
     }
 
     return pv;

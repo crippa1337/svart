@@ -1,4 +1,4 @@
-use crate::engine::psqt;
+use crate::{constants, engine::psqt};
 use cozy_chess::{Board, Color, Piece};
 
 pub fn evaluate(board: &Board) -> i32 {
@@ -7,22 +7,16 @@ pub fn evaluate(board: &Board) -> i32 {
 
     for pt in Piece::ALL {
         for mut square in board.pieces(pt) {
-            let piece_val = match pt {
-                Piece::Pawn => 100,
-                Piece::Knight => 320,
-                Piece::Bishop => 330,
-                Piece::Rook => 500,
-                Piece::Queen => 900,
-                Piece::King => 2000,
-            };
+            let piece_val = constants::piece_val(pt);
 
             let color = board.color_on(square).unwrap();
+
             // Flip rank for PSQT if white
             if color == Color::White {
                 square = square.flip_rank();
             }
 
-            // get square index for PSQT
+            // get square index for PSQT - https://www.chessprogramming.org/Square_Mapping_Considerations#Deduction_on_Files_and_Ranks
             let square_index = square as usize;
             let rank = square_index / 8;
             let file = square_index % 8;

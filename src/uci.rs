@@ -1,63 +1,108 @@
-use crate::engine::search::Search;
-use cozy_chess::Board;
-use std::io::{self, BufRead};
-use std::str::FromStr;
-use vampirc_uci::{parse, parse_one};
-use vampirc_uci::{MessageList, Serializable, UciMessage, UciTimeControl};
+use crate::{
+    constants::{INFINITY, MAX_PLY},
+    engine::search::Search,
+};
+use cozy_chess::{Board, Move};
 
 const NAME: &str = concat!("chessy ", env!("CARGO_PKG_VERSION"));
 const AUTHOR: &str = "crippa";
 
 pub fn main_loop() {
-    let mut board: Board;
+    let mut board = Board::default();
     let mut search: Search = Search::new();
+    let mut uci_set = false;
+    let mut board_set = false;
 
-    'main: loop {
-        for line in io::stdin().lock().lines() {
-            let msg: UciMessage = parse_one(&line.unwrap());
-            match msg {
-                UciMessage::Uci => {
-                    send_message(UciMessage::Id {
-                        name: Some(NAME.to_string()),
-                        author: Some(AUTHOR.to_string()),
-                    });
-                    send_message(UciMessage::id_author(AUTHOR));
-                    send_message(UciMessage::UciOk);
+    'input: loop {
+        let mut line = String::new();
+        std::io::stdin().read_line(&mut line).unwrap();
+        line = line.trim().to_string();
+        let words: Vec<&str> = line.split_whitespace().collect();
+        if words.len() == 0 {
+            continue;
+        }
+
+        if !uci_set {
+            match words[0] {
+                "uci" => {
+                    id();
+                    println!("uciok");
+                    uci_set = true;
                 }
-                UciMessage::IsReady => {
-                    send_message(UciMessage::ReadyOk);
+                "quit" => {
+                    break;
                 }
-                UciMessage::UciNewGame => {}
-                UciMessage::Position {
-                    startpos,
-                    fen,
-                    moves,
-                } => {
-                    if startpos {
-                        println!("startpos");
+                _ => (),
+            }
+        } else {
+            'main: loop {
+                match words[0] {
+                    "isready" => {
+                        println!("readyok");
+                        break 'main;
+                    }
+                    "ucinewgame" => {
                         board = Board::startpos();
-                    } else if fen.is_some() {
-                        board = Board::from_str(fen.unwrap().as_str()).unwrap();
+                        board_set = true;
+                        break 'main;
+                    }
+                    "position" => {
+                        if words[1] == "startpos" {
+                            board = Board::startpos();
+                            board_set = true;
+                        } else {
+                            // Put together the split fen string
+                            let mut fen = String::new();
+                            for i in 1..words.len() {
+                                if words[i] == "moves" {
+                                    break;
+                                }
+                                fen.push_str(words[i]);
+                                fen.push(' ');
+                            }
+                            match Board::from_fen(fen.trim(), false) {
+                                Ok(b) => {
+                                    board = b;
+                                    board_set = true;
+                                }
+                                Err(_) => (),
+                            }
+                        }
+                        break 'main;
+                    }
+                    "go" => {
+                        if board_set {
+                            // TODO add infinite
+                            if words.iter().any(|&x| x == "depth") {
+                                let depth = words
+                                    [words.iter().position(|&x| x == "depth").unwrap() + 1]
+                                    .parse::<u8>()
+                                    .unwrap();
+                                let start = std::time::Instant::now();
+                                let score = search.absearch(&board, -INFINITY, INFINITY, depth, 0);
+                                let elapsed = start.elapsed();
+                                println!(
+                                    "info depth {depth} cp {score} nodes {} nps {} {}",
+                                    search.nodes,
+                                    (search.nodes as f64 / elapsed.as_secs_f64()).round(),
+                                    show_pv(&search.pv_table),
+                                );
+                                println!("bestmove {}", search.pv_table[0][0].unwrap().to_string());
+                                search.nodes = 0;
+                            }
+                        }
+                        break 'main;
+                    }
+                    "quit" => {
+                        break 'input;
+                    }
+                    _ => {
+                        break 'main;
                     }
                 }
-                UciMessage::Go {
-                    time_control,
-                    search_control,
-                } => {}
-                UciMessage::Stop => {}
-                UciMessage::PonderHit => {}
-                UciMessage::Quit => {
-                    break 'main;
-                }
-                _ => {}
             }
         }
     }
-}
-
-fn send_message(message: UciMessage) {
-    println!("{}", message);
-    std::io::Write::flush(&mut std::io::stdout()).unwrap();
 }
 
 fn id() {
@@ -65,4 +110,19 @@ fn id() {
     println!("id author crippa");
 }
 
-fn options() {}
+fn show_pv(pv_table: &[[Option<Move>; MAX_PLY as usize]; MAX_PLY as usize]) -> String {
+    let mut pv = String::new();
+    let mut move_num = 0;
+    for i in 0..MAX_PLY {
+        move_num += 1;
+        if let Some(mv) = pv_table[0][i as usize] {
+            pv.push_str(&move_num.to_string());
+            pv.push_str(". ");
+            pv.push_str(&mv.to_string());
+            pv.push(' ');
+        } else {
+            break;
+        }
+    }
+    pv
+}

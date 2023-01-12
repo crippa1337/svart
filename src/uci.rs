@@ -95,33 +95,7 @@ pub fn main_loop() {
                                 break 'main;
                             }
 
-                            let start = std::time::Instant::now();
-                            let mut score = search.absearch(&board, -INFINITY, INFINITY, depth, 0);
-                            let elapsed = start.elapsed();
-
-                            let print_score: String;
-                            // check mate score
-                            if score > MATE - MAX_PLY {
-                                let plies_to_mate = MATE - score;
-                                let moves_to_mate = (plies_to_mate + 1) / 2;
-                                if score > 0 {
-                                    score = moves_to_mate;
-                                } else {
-                                    score = -moves_to_mate;
-                                }
-                                print_score = format!("mate {}", score);
-                            } else {
-                                print_score = format!("cps {}", score);
-                            }
-
-                            println!(
-                                "info depth {depth} {print_score} nodes {} nps {} {}",
-                                search.nodes,
-                                (search.nodes as f64 / elapsed.as_secs_f64()).round(),
-                                show_pv(&search),
-                            );
-                            println!("bestmove {}", search.pv_table[0][0].unwrap().to_string());
-                            search.nodes = 0;
+                            go(&board, &mut search, depth);
                         }
                         break 'main;
                     }
@@ -185,4 +159,34 @@ fn check_castling_move(board: &Board, mv: Move) -> Move {
     }
 
     return mv;
+}
+
+fn go(board: &Board, search: &mut Search, depth: u8) {
+    let start = std::time::Instant::now();
+    let mut score = search.absearch(&board, -INFINITY, INFINITY, depth, 0);
+    let elapsed = start.elapsed();
+
+    let print_score: String;
+    // check mate score
+    if score > MATE - MAX_PLY {
+        let plies_to_mate = MATE - score;
+        let moves_to_mate = (plies_to_mate + 1) / 2;
+        if score > 0 {
+            score = moves_to_mate;
+        } else {
+            score = -moves_to_mate;
+        }
+        print_score = format!("mate {}", score);
+    } else {
+        print_score = format!("cps {}", score);
+    }
+
+    println!(
+        "info depth {depth} {print_score} nodes {} nps {} {}",
+        search.nodes,
+        (search.nodes as f64 / elapsed.as_secs_f64()).round(),
+        show_pv(&search),
+    );
+    println!("bestmove {}", search.pv_table[0][0].unwrap().to_string());
+    search.nodes = 0;
 }

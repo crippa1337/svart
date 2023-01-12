@@ -1,5 +1,5 @@
 use crate::{constants::*, engine::eval};
-use cozy_chess::{BitBoard, Board, Move, Piece, Square};
+use cozy_chess::{BitBoard, Board, GameStatus, Move, Piece, Square};
 
 use super::tt::{Flag, TranspositionTable};
 
@@ -8,7 +8,6 @@ pub struct Search {
     pub pv_table: [[Option<Move>; MAX_PLY as usize]; MAX_PLY as usize],
     pub transposition_table: TranspositionTable,
     pub nodes: u32,
-    hash_history: Vec<u64>,
 }
 
 impl Search {
@@ -18,7 +17,6 @@ impl Search {
             pv_table: [[None; MAX_PLY as usize]; MAX_PLY as usize],
             transposition_table: TranspositionTable::new(),
             nodes: 0,
-            hash_history: Vec::new(),
         };
     }
 
@@ -137,6 +135,7 @@ impl Search {
         mut beta: i32,
         depth: u8,
         ply: i32,
+        hash_history: &mut Vec<u64>,
     ) -> i32 {
         if ply >= MAX_PLY {
             return eval::evaluate(board);
@@ -145,13 +144,22 @@ impl Search {
         // init PV
         self.pv_length[ply as usize] = ply;
 
+        let history_key = board.hash_without_ep();
         let root = if ply == 0 { true } else { false };
         if !root {
-            // TODO
-            // if self.is_repetition(hash_key) {
-            //     return (-5, None);
-            // }
+            // Check for draw by 50 move rule
+            let mut counter = 0;
+            for key in hash_history.iter() {
+                if *key == history_key {
+                    counter += 1;
+                }
 
+                if counter >= 3 {
+                    return 0;
+                }
+            }
+
+            // Return 0 for draw by 50-move rule
             if board.halfmove_clock() >= 100 {
                 return 0;
             }
@@ -217,9 +225,9 @@ impl Search {
             self.nodes += 1;
             moves_done += 1;
 
-            self.hash_history.push(hash_key);
-            let score = -self.absearch(&new_board, -beta, -alpha, depth - 1, ply + 1);
-            self.hash_history.pop();
+            hash_history.push(history_key);
+            let score = -self.absearch(&new_board, -beta, -alpha, depth - 1, ply + 1, hash_history);
+            hash_history.pop();
 
             if score > best_score {
                 best_score = score;
@@ -323,5 +331,12 @@ impl Search {
         };
 
         return num;
+    }
+
+    fn iterative_deepening(&mut self) {
+        let mut depth = 3;
+        let mut best_move: Option<Move> = None;
+
+        for d in 0..MAX_PLY {}
     }
 }

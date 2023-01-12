@@ -163,7 +163,8 @@ fn check_castling_move(board: &Board, mv: Move) -> Move {
 
 fn go(board: &Board, search: &mut Search, depth: u8) {
     let start = std::time::Instant::now();
-    let mut score = search.absearch(&board, -INFINITY, INFINITY, depth, 0);
+    let mut hash_history: Vec<u64> = Vec::new();
+    let mut score = search.absearch(&board, -INFINITY, INFINITY, depth, 0, &mut hash_history);
     let elapsed = start.elapsed();
 
     let print_score: String;

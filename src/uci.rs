@@ -1,8 +1,8 @@
 use crate::{
-    constants::{mated_in, INFINITY, MATE, MAX_PLY},
+    constants::{INFINITY, MATE, MAX_PLY},
     engine::search::Search,
 };
-use cozy_chess::{Board, Move};
+use cozy_chess::{Board, Move, Piece, Square};
 
 pub fn main_loop() {
     let mut board = Board::default();
@@ -74,7 +74,9 @@ pub fn main_loop() {
                             for i in
                                 words.iter().position(|&x| x == "moves").unwrap() + 1..words.len()
                             {
-                                board.play(words[i].parse().unwrap());
+                                let mut mv: Move = words[i].parse().unwrap();
+                                mv = check_castling_move(&board, mv);
+                                board.play(mv);
                             }
                         }
                         break 'main;
@@ -97,7 +99,7 @@ pub fn main_loop() {
                             let mut score = search.absearch(&board, -INFINITY, INFINITY, depth, 0);
                             let elapsed = start.elapsed();
 
-                            let mut print_score = String::new();
+                            let print_score: String;
                             // check mate score
                             if score > MATE - MAX_PLY {
                                 let plies_to_mate = MATE - score;
@@ -151,4 +153,36 @@ fn show_pv(search: &Search) -> String {
     }
 
     return pv;
+}
+
+fn check_castling_move(board: &Board, mv: Move) -> Move {
+    if board.piece_on(mv.from) == Some(Piece::King) {
+        if mv.from == Square::E1 && mv.to == Square::G1 {
+            return Move {
+                from: Square::E1,
+                to: Square::H1,
+                promotion: None,
+            };
+        } else if mv.from == Square::E8 && mv.to == Square::G8 {
+            return Move {
+                from: Square::E8,
+                to: Square::H8,
+                promotion: None,
+            };
+        } else if mv.from == Square::E1 && mv.to == Square::C1 {
+            return Move {
+                from: Square::E1,
+                to: Square::A1,
+                promotion: None,
+            };
+        } else if mv.from == Square::E8 && mv.to == Square::C8 {
+            return Move {
+                from: Square::E8,
+                to: Square::A8,
+                promotion: None,
+            };
+        }
+    }
+
+    return mv;
 }

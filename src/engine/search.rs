@@ -67,16 +67,16 @@ impl Search {
 
         // Generate captures
         let enemy_pieces = board.colors(!board.side_to_move());
-        let mut move_list = Vec::new();
+        let mut capture_list = Vec::new();
         board.generate_moves(|moves| {
             let mut captures = moves.clone();
             captures.to &= enemy_pieces;
-            move_list.extend(captures);
+            capture_list.extend(captures);
             false
         });
 
         // Sort moves wth MVV-LVA
-        move_list.sort_by(|a, b| {
+        capture_list.sort_by(|a, b| {
             let a_score = self.mvvlva(board, *a);
             let b_score = self.mvvlva(board, *b);
             b_score.cmp(&a_score)
@@ -84,7 +84,7 @@ impl Search {
 
         let old_alpha = alpha;
         let mut best_move: Option<Move> = None;
-        for mv in move_list {
+        for mv in capture_list {
             self.nodes += 1;
             let victim = board.piece_on(mv.to);
             let captured: Piece;
@@ -315,8 +315,8 @@ impl Search {
         if piece == None {
             return 0;
         }
-        let piece = piece.unwrap();
-        let num = match piece {
+
+        let num = match piece.unwrap() {
             Piece::Pawn => 1,
             Piece::Knight => 2,
             Piece::Bishop => 3,
@@ -324,6 +324,7 @@ impl Search {
             Piece::Queen => 5,
             Piece::King => 6,
         };
+        
         return num;
     }
 }

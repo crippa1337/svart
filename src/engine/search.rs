@@ -8,7 +8,6 @@ pub struct Search {
     pub pv_table: [[Option<Move>; MAX_PLY as usize]; MAX_PLY as usize],
     pub transposition_table: TranspositionTable,
     pub nodes: u32,
-    pub tables_used: u32,
     hash_history: Vec<u64>,
 }
 
@@ -19,7 +18,6 @@ impl Search {
             pv_table: [[None; MAX_PLY as usize]; MAX_PLY as usize],
             transposition_table: TranspositionTable::new(),
             nodes: 0,
-            tables_used: 0,
             hash_history: Vec::new(),
         };
     }
@@ -56,7 +54,6 @@ impl Search {
 
         // Treating depth as 0
         if tt_hit {
-            self.tables_used += 1;
             if tt_entry.flag == Flag::EXACTBOUND
                 || (tt_entry.flag == Flag::LOWERBOUND && tt_score >= beta)
                 || (tt_entry.flag == Flag::UPPERBOUND && tt_score <= alpha)
@@ -167,6 +164,7 @@ impl Search {
             }
         }
 
+        // Escape condition
         if depth == 0 {
             return self.qsearch(board, alpha, beta, ply);
         }
@@ -189,13 +187,12 @@ impl Search {
         }
 
         if !root && tt_hit && tt_entry.depth >= depth as i32 {
-            self.tables_used += 1;
             match tt_entry.flag {
                 Flag::EXACTBOUND => {
                     return tt_score;
                 }
-                Flag::UPPERBOUND => alpha = alpha.max(tt_score),
-                Flag::LOWERBOUND => beta = beta.min(tt_score),
+                Flag::UPPERBOUND => beta = beta.min(tt_score),
+                Flag::LOWERBOUND => alpha = alpha.max(tt_score),
                 Flag::NONEBOUND => (),
             }
             if alpha >= beta {
@@ -324,7 +321,7 @@ impl Search {
             Piece::Queen => 5,
             Piece::King => 6,
         };
-        
+
         return num;
     }
 }

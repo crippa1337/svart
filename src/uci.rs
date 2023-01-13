@@ -160,7 +160,7 @@ fn go(board: &Board, search: &mut Search, depth: u8) {
         }
         print_score = format!("mate {}", score);
     } else {
-        print_score = format!("cps {}", score);
+        print_score = format!("cps {}", score / 100);
     }
 
     println!(

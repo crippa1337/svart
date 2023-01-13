@@ -129,36 +129,17 @@ fn show_pv(search: &Search) -> String {
     return pv;
 }
 
-fn check_castling_move(board: &Board, mv: Move) -> Move {
+fn check_castling_move(board: &Board, mut mv: Move) -> Move {
     if board.piece_on(mv.from) == Some(Piece::King) {
-        if mv.from == Square::E1 && mv.to == Square::G1 {
-            return Move {
-                from: Square::E1,
-                to: Square::H1,
-                promotion: None,
-            };
-        } else if mv.from == Square::E8 && mv.to == Square::G8 {
-            return Move {
-                from: Square::E8,
-                to: Square::H8,
-                promotion: None,
-            };
-        } else if mv.from == Square::E1 && mv.to == Square::C1 {
-            return Move {
-                from: Square::E1,
-                to: Square::A1,
-                promotion: None,
-            };
-        } else if mv.from == Square::E8 && mv.to == Square::C8 {
-            return Move {
-                from: Square::E8,
-                to: Square::A8,
-                promotion: None,
-            };
-        }
+        mv.to = match (mv.from, mv.to) {
+            (Square::E1, Square::G1) => Square::H1,
+            (Square::E8, Square::G8) => Square::H8,
+            (Square::E1, Square::C1) => Square::A1,
+            (Square::E8, Square::C8) => Square::A8,
+            _ => mv.to,
+        };
     }
-
-    return mv;
+    mv
 }
 
 fn go(board: &Board, search: &mut Search, depth: u8) {

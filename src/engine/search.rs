@@ -11,6 +11,7 @@ pub struct Search {
     pub pv_table: [[Option<Move>; MAX_PLY as usize]; MAX_PLY as usize],
     pub transposition_table: TranspositionTable,
     pub nodes: u32,
+    pub tt_hits: u32,
 }
 
 impl Search {
@@ -20,6 +21,7 @@ impl Search {
             pv_table: [[None; MAX_PLY as usize]; MAX_PLY as usize],
             transposition_table: TranspositionTable::new(),
             nodes: 0,
+            tt_hits: 0,
         };
     }
 
@@ -59,6 +61,7 @@ impl Search {
                 || (tt_entry.flag == Flag::LOWERBOUND && tt_score >= beta)
                 || (tt_entry.flag == Flag::UPPERBOUND && tt_score <= alpha)
             {
+                self.tt_hits += 1;
                 return tt_score;
             }
         }
@@ -191,6 +194,7 @@ impl Search {
         }
 
         if !root && tt_hit && tt_entry.depth >= depth as i32 {
+            self.tt_hits += 1;
             match tt_entry.flag {
                 Flag::EXACTBOUND => {
                     return tt_score;

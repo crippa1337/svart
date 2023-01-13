@@ -1,7 +1,10 @@
 use crate::{constants::*, engine::eval};
-use cozy_chess::{BitBoard, Board, GameStatus, Move, Piece, Square};
+use cozy_chess::{BitBoard, Board, Move, Piece, Square};
 
-use super::tt::{Flag, TranspositionTable};
+use super::{
+    movegen,
+    tt::{Flag, TranspositionTable},
+};
 
 pub struct Search {
     pub pv_length: [i32; MAX_PLY as usize],
@@ -61,14 +64,7 @@ impl Search {
         }
 
         // Generate captures
-        let enemy_pieces = board.colors(!board.side_to_move());
-        let mut capture_list = Vec::new();
-        board.generate_moves(|moves| {
-            let mut captures = moves.clone();
-            captures.to &= enemy_pieces;
-            capture_list.extend(captures);
-            false
-        });
+        let mut capture_list: Vec<Move> = movegen::qmoves(board);
 
         // Sort moves wth MVV-LVA
         capture_list.sort_by(|a, b| {

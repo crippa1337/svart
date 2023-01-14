@@ -90,15 +90,8 @@ impl Search {
             }
         }
 
-        // Generate captures
-        let mut capture_list: Vec<Move> = movegen::qmoves(board);
-
-        // Sort moves wth MVV-LVA
-        capture_list.sort_by(|a, b| {
-            let a_score = self.mvvlva(board, *a);
-            let b_score = self.mvvlva(board, *b);
-            b_score.cmp(&a_score)
-        });
+        // Generate sorted captures
+        let capture_list: Vec<Move> = movegen::capture_moves(board);
 
         let old_alpha = alpha;
         let mut best_move: Option<Move> = None;
@@ -196,11 +189,13 @@ impl Search {
                 return 0;
             }
 
-            // Mate distance pruning - if we are mated in n, we don't want to search deeper than n
-            alpha = alpha.max(mated_in(ply));
-            beta = beta.min(mate_in(ply + 1));
-            if alpha >= beta {
-                return alpha;
+            // Mate distance pruning
+            let mate_val = mate_in(ply);
+            if mate_val < beta {
+                beta = mate_val;
+                if alpha >= mate_val {
+                    return mate_val;
+                }
             }
         }
 
@@ -245,12 +240,7 @@ impl Search {
         let mut best_score = -INFINITY;
         let mut moves_done: u32 = 0;
         let mut best_move: Option<Move> = None;
-        let mut move_list = Vec::new();
-        board.generate_moves(|moves| {
-            // Unpack dense move set into move list
-            move_list.extend(moves);
-            false
-        });
+        let mut move_list = movegen::all_moves(board);
 
         for mv in move_list {
             hash_history.push(history_key);
@@ -322,48 +312,6 @@ impl Search {
         );
 
         return best_score;
-    }
-
-    // Most Valuable Victim - Least Valuable Aggressor (MVV-LVA)
-    fn mvvlva(&self, board: &Board, mv: Move) -> i32 {
-        let mvvlva: [[i32; 7]; 7] = [
-            [0, 0, 0, 0, 0, 0, 0],
-            [0, 105, 104, 103, 102, 101, 100],
-            [0, 205, 204, 203, 202, 201, 200],
-            [0, 305, 304, 303, 302, 301, 300],
-            [0, 405, 404, 403, 402, 401, 400],
-            [0, 505, 504, 503, 502, 501, 500],
-            [0, 605, 604, 603, 602, 601, 600],
-        ];
-
-        let from_square = mv.from;
-        let to_square = mv.to;
-        let attacker = self.piece_num_at(board, from_square);
-        let mut victim = self.piece_num_at(board, to_square);
-
-        // En Passant
-        if victim == 0 {
-            victim = 1
-        }
-        return mvvlva[victim as usize][attacker as usize];
-    }
-
-    fn piece_num_at(&self, board: &Board, square: Square) -> i32 {
-        let piece = board.piece_on(square);
-        if piece == None {
-            return 0;
-        }
-
-        let num = match piece.unwrap() {
-            Piece::Pawn => 1,
-            Piece::Knight => 2,
-            Piece::Bishop => 3,
-            Piece::Rook => 4,
-            Piece::Queen => 5,
-            Piece::King => 6,
-        };
-
-        return num;
     }
 
     pub fn iterative_deepening(&mut self, board: &Board, st: SearchType) {

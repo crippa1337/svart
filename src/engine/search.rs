@@ -184,20 +184,15 @@ impl Search {
         let history_key = board.hash_without_ep();
         let root = if ply == 0 { true } else { false };
         if !root {
-            // Check for draw by 50 move rule
-            let mut counter = 0;
+            // Check for repetition to avoid 3-fold draws
             for key in hash_history.iter() {
                 if *key == history_key {
-                    counter += 1;
-                }
-
-                if counter >= 2 {
-                    return 0;
+                    return 8 - (self.nodes as i32 & 7);
                 }
             }
 
-            // Return 0 for draw by 50-move rule
-            if board.halfmove_clock() >= 100 {
+            // Return 0 for draw by 50-move rule - some leeway is given
+            if board.halfmove_clock() >= 95 {
                 return 0;
             }
 
@@ -436,7 +431,7 @@ impl Search {
             }
             print_score = format!("mate {}", score);
         } else {
-            print_score = format!("cp {}", score);
+            print_score = format!("cp {}", score / 100);
         }
 
         print_score

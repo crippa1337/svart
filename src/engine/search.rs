@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use crate::{constants::*, engine::eval, uci::SearchType};
-use cozy_chess::{BitBoard, Board, Move, Piece, Square};
+use cozy_chess::{BitBoard, Board, Move, Piece};
 
 use super::{
     movegen,
@@ -21,7 +21,7 @@ pub struct Search {
 }
 
 impl Search {
-    pub fn new() -> Self {
+    pub fn new(tt: TranspositionTable) -> Self {
         return Search {
             stop: false,
             search_type: SearchType::Depth(0),
@@ -29,7 +29,7 @@ impl Search {
             goal_time: None,
             pv_length: [0; MAX_PLY as usize],
             pv_table: [[None; MAX_PLY as usize]; MAX_PLY as usize],
-            transposition_table: TranspositionTable::new(),
+            transposition_table: tt,
             nodes: 0,
             tt_hits: 0,
         };

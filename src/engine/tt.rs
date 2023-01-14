@@ -34,6 +34,7 @@ impl TEntry {
     }
 }
 
+#[derive(Clone)]
 pub struct TranspositionTable {
     pub table: Vec<TEntry>,
 }

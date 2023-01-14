@@ -1,8 +1,10 @@
 use crate::engine::search::Search;
+use crate::engine::tt::TranspositionTable;
 use cozy_chess::{Board, Color, Move, Piece, Square};
 
 pub fn main_loop() {
     let mut board = Board::default();
+    let mut tt = TranspositionTable::new();
     let mut uci_set = false;
     let mut board_set = false;
 
@@ -43,6 +45,7 @@ pub fn main_loop() {
                     "ucinewgame" => {
                         board = Board::startpos();
                         board_set = true;
+                        tt = TranspositionTable::new();
                         break 'main;
                     }
                     "position" => {
@@ -87,13 +90,13 @@ pub fn main_loop() {
                                     .parse::<u8>()
                                 {
                                     Ok(d) => {
-                                        go(&board, SearchType::Depth(d));
+                                        go(&board, SearchType::Depth(d), &tt);
                                     }
                                     Err(_) => (),
                                 }
                             // Infinite search
                             } else if words.iter().any(|&x| x == "infinite") {
-                                go(&board, SearchType::Infinite);
+                                go(&board, SearchType::Infinite, &tt);
                             // Static time search
                             } else if words.iter().any(|&x| x == "movetime") {
                                 match words
@@ -101,30 +104,75 @@ pub fn main_loop() {
                                     .parse::<u64>()
                                 {
                                     Ok(d) => {
-                                        go(&board, SearchType::Time(d));
+                                        go(&board, SearchType::Time(d), &tt);
                                     }
                                     Err(_) => (),
                                 }
                             // Time search
                             } else if words.iter().any(|&x| x == "wtime" || x == "btime") {
-                                let time = if board.side_to_move() == Color::White {
+                                if board.side_to_move() == Color::White {
                                     match words
                                         [words.iter().position(|&x| x == "wtime").unwrap() + 1]
                                         .parse::<u64>()
                                     {
-                                        Ok(t) => t,
-                                        Err(_) => 0,
+                                        Ok(t) => {
+                                            // Increment
+                                            let inc: Option<u64> =
+                                                if words.iter().any(|&x| x == "winc") {
+                                                    match words[words
+                                                        .iter()
+                                                        .position(|&x| x == "winc")
+                                                        .unwrap()
+                                                        + 1]
+                                                    .parse::<u64>()
+                                                    {
+                                                        Ok(i) => Some(i),
+                                                        Err(_) => None,
+                                                    }
+                                                } else {
+                                                    None
+                                                };
+
+                                            go(
+                                                &board,
+                                                SearchType::Time(time_for_move(t, inc, None)),
+                                                &tt,
+                                            );
+                                        }
+                                        Err(_) => (),
                                     }
                                 } else {
                                     match words
                                         [words.iter().position(|&x| x == "btime").unwrap() + 1]
                                         .parse::<u64>()
                                     {
-                                        Ok(t) => t,
-                                        Err(_) => 0,
+                                        Ok(t) => {
+                                            // Increment
+                                            let inc: Option<u64> =
+                                                if words.iter().any(|&x| x == "binc") {
+                                                    match words[words
+                                                        .iter()
+                                                        .position(|&x| x == "binc")
+                                                        .unwrap()
+                                                        + 1]
+                                                    .parse::<u64>()
+                                                    {
+                                                        Ok(i) => Some(i),
+                                                        Err(_) => None,
+                                                    }
+                                                } else {
+                                                    None
+                                                };
+
+                                            go(
+                                                &board,
+                                                SearchType::Time(time_for_move(t, inc, None)),
+                                                &tt,
+                                            );
+                                        }
+                                        Err(_) => (),
                                     }
                                 };
-                                go(&board, SearchType::Time(time_for_move(time, None, None)));
                             } else {
                                 break 'main;
                             }
@@ -161,8 +209,8 @@ fn check_castling_move(board: &Board, mut mv: Move) -> Move {
     mv
 }
 
-fn go(board: &Board, st: SearchType) {
-    let mut search = Search::new();
+fn go(board: &Board, st: SearchType, tt: &TranspositionTable) {
+    let mut search = Search::new(tt.clone());
     search.iterative_deepening(&board, st);
 }
 

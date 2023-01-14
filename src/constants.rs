@@ -10,7 +10,6 @@ pub const NONE: i32 = INFINITY + 1;
 
 // https://github.com/Disservin/python-chess-engine/blob/ab54c003d3e2252c50f7a398089987c8fe803c86/src/helpers.py#L13
 pub const TB_WIN: i32 = MATED_IN;
-pub const TB_LOSS: i32 = -TB_WIN;
 pub const TB_WIN_MAX: i32 = TB_WIN - MAX_PLY;
 pub const TB_LOSS_MAX: i32 = -TB_WIN_MAX;
 

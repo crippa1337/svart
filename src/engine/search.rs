@@ -240,7 +240,7 @@ impl Search {
         let mut best_score = -INFINITY;
         let mut moves_done: u32 = 0;
         let mut best_move: Option<Move> = None;
-        let mut move_list = movegen::all_moves(board);
+        let move_list = movegen::all_moves(board);
 
         for mv in move_list {
             hash_history.push(history_key);
@@ -369,7 +369,7 @@ impl Search {
     pub fn show_score(&self, mut score: i32) -> String {
         let print_score: String;
         // check mate score
-        if score > MATE - MAX_PLY {
+        if score > MATE - MAX_PLY || score < -MATE + MAX_PLY {
             let plies_to_mate = MATE - score;
             let moves_to_mate = (plies_to_mate + 1) / 2;
             if score > 0 {

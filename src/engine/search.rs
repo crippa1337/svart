@@ -1,4 +1,6 @@
-use crate::{constants::*, engine::eval};
+use std::time::Instant;
+
+use crate::{constants::*, engine::eval, uci::SearchType};
 use cozy_chess::{BitBoard, Board, Move, Piece, Square};
 
 use super::{
@@ -7,6 +9,10 @@ use super::{
 };
 
 pub struct Search {
+    pub stop: bool,
+    pub search_type: SearchType,
+    pub timer: Option<Instant>,
+    pub goal_time: Option<u64>,
     pub pv_length: [i32; MAX_PLY as usize],
     pub pv_table: [[Option<Move>; MAX_PLY as usize]; MAX_PLY as usize],
     pub transposition_table: TranspositionTable,
@@ -17,6 +23,10 @@ pub struct Search {
 impl Search {
     pub fn new() -> Self {
         return Search {
+            stop: false,
+            search_type: SearchType::Depth(0),
+            timer: None,
+            goal_time: None,
             pv_length: [0; MAX_PLY as usize],
             pv_table: [[None; MAX_PLY as usize]; MAX_PLY as usize],
             transposition_table: TranspositionTable::new(),
@@ -26,6 +36,20 @@ impl Search {
     }
 
     fn qsearch(&mut self, board: &Board, mut alpha: i32, beta: i32, ply: i32) -> i32 {
+        // Early returns
+        if self.nodes % 1024 == 0 && self.timer.is_some() && self.goal_time.is_some() {
+            let time = self.timer.as_ref().unwrap();
+            let goal = self.goal_time.unwrap();
+            if time.elapsed().as_millis() as u64 >= goal {
+                self.stop = true;
+                return 0;
+            }
+        }
+
+        if self.stop {
+            return 0;
+        }
+
         if ply >= MAX_PLY {
             return eval::evaluate(board);
         }
@@ -136,6 +160,20 @@ impl Search {
         ply: i32,
         hash_history: &mut Vec<u64>,
     ) -> i32 {
+        // Early returns
+        if self.nodes % 1024 == 0 && self.timer.is_some() && self.goal_time.is_some() {
+            let time = self.timer.as_ref().unwrap();
+            let goal = self.goal_time.unwrap();
+            if time.elapsed().as_millis() as u64 >= goal {
+                self.stop = true;
+                return 0;
+            }
+        }
+
+        if self.stop {
+            return 0;
+        }
+
         if ply >= MAX_PLY {
             return eval::evaluate(board);
         }
@@ -153,7 +191,7 @@ impl Search {
                     counter += 1;
                 }
 
-                if counter >= 3 {
+                if counter >= 2 {
                     return 0;
                 }
             }
@@ -220,12 +258,12 @@ impl Search {
         });
 
         for mv in move_list {
+            hash_history.push(history_key);
             let mut new_board = board.clone();
             new_board.play(mv);
             self.nodes += 1;
             moves_done += 1;
 
-            hash_history.push(history_key);
             let score = -self.absearch(&new_board, -beta, -alpha, depth - 1, ply + 1, hash_history);
             hash_history.pop();
 
@@ -333,10 +371,74 @@ impl Search {
         return num;
     }
 
-    fn iterative_deepening(&mut self) {
-        let mut depth = 3;
-        let mut best_move: Option<Move> = None;
+    pub fn iterative_deepening(&mut self, board: &Board, st: SearchType) {
+        let depth: u8;
+        match st {
+            SearchType::Time(t) => {
+                depth = 64;
+                self.timer = Some(Instant::now());
+                // Small overhead to make sure we don't go over time
+                self.goal_time = Some(t - 3);
+            }
+            SearchType::Infinite => {
+                depth = 64;
+            }
+            SearchType::Depth(d) => depth = d,
+        };
 
-        for d in 0..MAX_PLY {}
+        let mut best_move: Option<Move> = None;
+        let mut hash_history: Vec<u64> = Vec::new();
+
+        for d in 1..depth + 1 {
+            let score = self.absearch(board, -INFINITY, INFINITY, d as u8, 0, &mut hash_history);
+
+            if self.stop {
+                break;
+            }
+
+            best_move = self.pv_table[0][0];
+
+            println!(
+                "info depth {} {} nodes {} pv {}",
+                d,
+                self.show_score(score),
+                self.nodes,
+                self.show_pv()
+            );
+        }
+
+        println!("bestmove {}", best_move.unwrap().to_string());
+    }
+
+    pub fn show_pv(&self) -> String {
+        let mut pv = String::new();
+        for i in 0..self.pv_length[0] {
+            if self.pv_table[0][i as usize].is_none() {
+                break;
+            }
+            pv.push_str(&self.pv_table[0][i as usize].unwrap().to_string());
+            pv.push(' ');
+        }
+
+        return pv;
+    }
+
+    pub fn show_score(&self, mut score: i32) -> String {
+        let print_score: String;
+        // check mate score
+        if score > MATE - MAX_PLY {
+            let plies_to_mate = MATE - score;
+            let moves_to_mate = (plies_to_mate + 1) / 2;
+            if score > 0 {
+                score = moves_to_mate;
+            } else {
+                score = -moves_to_mate;
+            }
+            print_score = format!("mate {}", score);
+        } else {
+            print_score = format!("cp {}", score);
+        }
+
+        print_score
     }
 }

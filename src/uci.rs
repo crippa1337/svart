@@ -1,12 +1,8 @@
-use crate::{
-    constants::{INFINITY, MATE, MAX_PLY},
-    engine::search::Search,
-};
-use cozy_chess::{Board, Move, Piece, Square};
+use crate::engine::search::Search;
+use cozy_chess::{Board, Color, Move, Piece, Square};
 
 pub fn main_loop() {
     let mut board = Board::default();
-    let mut search: Search = Search::new();
     let mut uci_set = false;
     let mut board_set = false;
 
@@ -25,6 +21,7 @@ pub fn main_loop() {
                     id();
                     println!("uciok");
                     uci_set = true;
+                    continue;
                 }
                 "quit" => {
                     break;
@@ -37,6 +34,7 @@ pub fn main_loop() {
                     "uci" => {
                         id();
                         println!("uciok");
+                        break 'main;
                     }
                     "isready" => {
                         println!("readyok");
@@ -83,19 +81,53 @@ pub fn main_loop() {
                     }
                     "go" => {
                         if board_set {
-                            let depth: u8;
+                            // Static depth search
                             if words.iter().any(|&x| x == "depth") {
-                                depth = words
-                                    [words.iter().position(|&x| x == "depth").unwrap() + 1]
+                                match words[words.iter().position(|&x| x == "depth").unwrap() + 1]
                                     .parse::<u8>()
-                                    .unwrap();
+                                {
+                                    Ok(d) => {
+                                        go(&board, SearchType::Depth(d));
+                                    }
+                                    Err(_) => (),
+                                }
+                            // Infinite search
                             } else if words.iter().any(|&x| x == "infinite") {
-                                depth = 6;
+                                go(&board, SearchType::Infinite);
+                            // Static time search
+                            } else if words.iter().any(|&x| x == "movetime") {
+                                match words
+                                    [words.iter().position(|&x| x == "movetime").unwrap() + 1]
+                                    .parse::<u64>()
+                                {
+                                    Ok(d) => {
+                                        go(&board, SearchType::Time(d));
+                                    }
+                                    Err(_) => (),
+                                }
+                            // Time search
+                            } else if words.iter().any(|&x| x == "wtime" || x == "btime") {
+                                let time = if board.side_to_move() == Color::White {
+                                    match words
+                                        [words.iter().position(|&x| x == "wtime").unwrap() + 1]
+                                        .parse::<u64>()
+                                    {
+                                        Ok(t) => t,
+                                        Err(_) => 0,
+                                    }
+                                } else {
+                                    match words
+                                        [words.iter().position(|&x| x == "btime").unwrap() + 1]
+                                        .parse::<u64>()
+                                    {
+                                        Ok(t) => t,
+                                        Err(_) => 0,
+                                    }
+                                };
+                                go(&board, SearchType::Time(time_for_move(time, None, None)));
                             } else {
                                 break 'main;
                             }
-
-                            go(&board, &mut search, depth);
                         }
                         break 'main;
                     }
@@ -116,19 +148,6 @@ fn id() {
     println!("id author crippa");
 }
 
-fn show_pv(search: &Search) -> String {
-    let mut pv = String::new();
-    for i in 0..search.pv_length[0] {
-        if search.pv_table[0][i as usize].is_none() {
-            break;
-        }
-        pv.push_str(&search.pv_table[0][i as usize].unwrap().to_string());
-        pv.push(' ');
-    }
-
-    return pv;
-}
-
 fn check_castling_move(board: &Board, mut mv: Move) -> Move {
     if board.piece_on(mv.from) == Some(Piece::King) {
         mv.to = match (mv.from, mv.to) {
@@ -142,33 +161,26 @@ fn check_castling_move(board: &Board, mut mv: Move) -> Move {
     mv
 }
 
-fn go(board: &Board, search: &mut Search, depth: u8) {
-    let start = std::time::Instant::now();
-    let mut hash_history: Vec<u64> = Vec::new();
-    let mut score = search.absearch(&board, -INFINITY, INFINITY, depth, 0, &mut hash_history);
-    let elapsed = start.elapsed();
+fn go(board: &Board, st: SearchType) {
+    let mut search = Search::new();
+    search.iterative_deepening(&board, st);
+}
 
-    let print_score: String;
-    // check mate score
-    if score > MATE - MAX_PLY {
-        let plies_to_mate = MATE - score;
-        let moves_to_mate = (plies_to_mate + 1) / 2;
-        if score > 0 {
-            score = moves_to_mate;
-        } else {
-            score = -moves_to_mate;
-        }
-        print_score = format!("mate {}", score);
+fn time_for_move(time: u64, increment: Option<u64>, moves_to_go: Option<u8>) -> u64 {
+    if moves_to_go.is_some() {
+        return time / moves_to_go.unwrap() as u64;
     } else {
-        print_score = format!("cps {}", score);
+        if increment.is_some() {
+            return (time / 20) + (increment.unwrap() / 2);
+        } else {
+            return time / 20;
+        }
     }
+}
 
-    println!(
-        "info depth {depth} {print_score} nodes {} nps {} {}",
-        search.nodes,
-        (search.nodes as f64 / elapsed.as_secs_f64()).round(),
-        show_pv(&search),
-    );
-    println!("bestmove {}", search.pv_table[0][0].unwrap().to_string());
-    search.nodes = 0;
+#[derive(Debug, PartialEq)]
+pub enum SearchType {
+    Time(u64),
+    Depth(u8),
+    Infinite,
 }

@@ -3,13 +3,6 @@
 version = 3
 
 [[package]]
-name = "Daedalus"
-version = "0.3.0"
-dependencies = [
- "cozy-chess",
-]
-
-[[package]]
 name = "cozy-chess"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -23,3 +16,10 @@ name = "cozy-chess-types"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f4a557c6659b8705d301732f473c9a61659c740ffda3e3485e79d1d4b7a1e12"
+
+[[package]]
+name = "daedalus"
+version = "0.3.0"
+dependencies = [
+ "cozy-chess",
+]

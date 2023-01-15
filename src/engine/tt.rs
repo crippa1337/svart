@@ -1,7 +1,3 @@
-//////////////////////////////////////////////////////////////////////////////
-///               Credits to https://github.com/Disservin/                ////
-/// for help and examples used in this transposition table implementation ////
-//////////////////////////////////////////////////////////////////////////////
 use crate::constants::*;
 use cozy_chess::Move;
 
@@ -67,17 +63,11 @@ impl TranspositionTable {
         let index = self.index(key);
         let mut entry = self.table[index];
 
-        // Replacement scheme
-        if entry.key != key || entry.best_move != best_move {
-            entry.best_move = best_move;
-        }
-
-        if entry.key != key || flag == Flag::EXACTBOUND || depth + 4 > entry.depth {
-            entry.depth = depth;
-            entry.score = self.score_to_tt(score, ply);
-            entry.key = key;
-            entry.flag = flag;
-        }
+        entry.key = key;
+        entry.depth = depth;
+        entry.flag = flag;
+        entry.score = self.score_to_tt(score, ply);
+        entry.best_move = best_move;
 
         self.table[index] = entry;
     }

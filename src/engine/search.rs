@@ -62,39 +62,9 @@ impl Search {
             alpha = stand_pat;
         }
 
-        // Transposition table lookup
-        let hash_key = board.hash();
-        let tt_entry = self.transposition_table.probe(hash_key);
-        let tt_hit = tt_entry.key == hash_key;
-        let tt_move: Option<Move>;
-        if tt_hit {
-            tt_move = tt_entry.best_move;
-        } else {
-            tt_move = None;
-        }
-        let tt_score: i32;
-        if tt_hit {
-            tt_score = self.transposition_table.score_from_tt(tt_entry.score, ply)
-        } else {
-            tt_score = NONE;
-        }
-
-        // Treating depth as 0
-        if tt_hit {
-            if tt_entry.flag == Flag::EXACTBOUND
-                || (tt_entry.flag == Flag::LOWERBOUND && tt_score >= beta)
-                || (tt_entry.flag == Flag::UPPERBOUND && tt_score <= alpha)
-            {
-                self.tt_hits += 1;
-                return tt_score;
-            }
-        }
-
         // Generate sorted captures
         let capture_list: Vec<Move> = movegen::capture_moves(board);
 
-        let old_alpha = alpha;
-        let mut best_move: Option<Move> = None;
         for mv in capture_list {
             self.nodes += 1;
             let victim = board.piece_on(mv.to);
@@ -121,7 +91,6 @@ impl Search {
 
                 if score > alpha {
                     alpha = score;
-                    best_move = Some(mv);
 
                     if score >= beta {
                         break;
@@ -129,17 +98,6 @@ impl Search {
                 }
             }
         }
-
-        // Calculate bound and save to TT if no cutoff
-        let bound: Flag = if stand_pat >= beta {
-            Flag::LOWERBOUND
-        } else if stand_pat > old_alpha {
-            Flag::EXACTBOUND
-        } else {
-            Flag::UPPERBOUND
-        };
-        self.transposition_table
-            .store(hash_key, 0, bound, stand_pat, best_move.into(), ply);
 
         return stand_pat;
     }
@@ -223,15 +181,10 @@ impl Search {
 
         if !root && tt_hit && tt_entry.depth >= depth as i32 {
             self.tt_hits += 1;
-            match tt_entry.flag {
-                Flag::EXACTBOUND => {
-                    return tt_score;
-                }
-                Flag::UPPERBOUND => beta = beta.min(tt_score),
-                Flag::LOWERBOUND => alpha = alpha.max(tt_score),
-                Flag::NONEBOUND => (),
-            }
-            if alpha >= beta {
+            if tt_entry.flag == Flag::EXACTBOUND
+                || (tt_entry.flag == Flag::LOWERBOUND && tt_score >= beta)
+                || (tt_entry.flag == Flag::UPPERBOUND && tt_score <= alpha)
+            {
                 return tt_score;
             }
         }
@@ -324,7 +277,7 @@ impl Search {
                 self.goal_time = Some(t - 3);
             }
             SearchType::Infinite => {
-                depth = 64;
+                depth = MAX_PLY as u8 - 1;
             }
             SearchType::Depth(d) => depth = d,
         };
@@ -332,7 +285,11 @@ impl Search {
         let mut best_move: Option<Move> = None;
         let mut hash_history: Vec<u64> = Vec::new();
 
-        for d in 1..depth + 1 {
+        // reset pv table before search - doesn't seem to change anything
+        self.pv_length = [0; MAX_PLY as usize];
+        self.pv_table = [[None; MAX_PLY as usize]; MAX_PLY as usize];
+
+        for d in 1..depth {
             let score = self.absearch(board, -INFINITY, INFINITY, d as u8, 0, &mut hash_history);
 
             if self.stop {
@@ -369,8 +326,8 @@ impl Search {
     pub fn show_score(&self, mut score: i32) -> String {
         let print_score: String;
         // check mate score
-        if score > MATE - MAX_PLY || score < -MATE + MAX_PLY {
-            let plies_to_mate = MATE - score;
+        if score > MATE_IN || score < MATED_IN {
+            let plies_to_mate = MATE - score.abs();
             let moves_to_mate = (plies_to_mate + 1) / 2;
             if score > 0 {
                 score = moves_to_mate;

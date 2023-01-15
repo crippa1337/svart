@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use crate::{constants::*, engine::eval, uci::SearchType};
-use cozy_chess::{BitBoard, Board, Move, Piece};
+use cozy_chess::{BitBoard, Board, Move};
 
 use super::movegen;
 
@@ -59,8 +59,7 @@ impl Search {
 
         // Escape condition
         if depth == 0 {
-            // return self.qsearch(board, alpha, beta, ply);
-            return eval::evaluate(board);
+            return self.qsearch(board, alpha, beta, ply);
         }
 
         let mut best_score = NEG_INFINITY;
@@ -110,6 +109,57 @@ impl Search {
             } else {
                 // Stalemate
                 return 0;
+            }
+        }
+
+        return best_score;
+    }
+
+    fn qsearch(&mut self, board: &Board, mut alpha: i32, beta: i32, ply: i32) -> i32 {
+        // Early returns
+        if self.nodes % 1024 == 0 && self.timer.is_some() && self.goal_time.is_some() {
+            let time = self.timer.as_ref().unwrap();
+            let goal = self.goal_time.unwrap();
+            if time.elapsed().as_millis() as u64 >= goal {
+                self.stop = true;
+                return 0;
+            }
+        }
+
+        if self.stop {
+            return 0;
+        }
+
+        if ply >= MAX_PLY {
+            return eval::evaluate(board);
+        }
+
+        let stand_pat = eval::evaluate(board);
+        if stand_pat >= beta {
+            return stand_pat;
+        }
+        alpha = alpha.max(stand_pat);
+
+        let captures = movegen::capture_moves(board);
+        let mut best_score = stand_pat;
+
+        for mv in captures {
+            let mut new_board = board.clone();
+            new_board.play(mv);
+            self.nodes += 1;
+
+            let score = -self.qsearch(&new_board, -beta, -alpha, ply + 1);
+
+            if score > best_score {
+                best_score = score;
+
+                if score > alpha {
+                    alpha = score;
+
+                    if score >= beta {
+                        break;
+                    }
+                }
             }
         }
 

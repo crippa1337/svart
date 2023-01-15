@@ -1,10 +1,8 @@
 use crate::engine::search::Search;
-use crate::engine::tt::TranspositionTable;
 use cozy_chess::{Board, Color, Move, Piece, Square};
 
 pub fn main_loop() {
     let mut board = Board::default();
-    let mut tt = TranspositionTable::new();
     let mut uci_set = false;
     let mut board_set = false;
 
@@ -45,7 +43,6 @@ pub fn main_loop() {
                     "ucinewgame" => {
                         board = Board::startpos();
                         board_set = true;
-                        tt = TranspositionTable::new();
                         break 'main;
                     }
                     "position" => {
@@ -90,13 +87,13 @@ pub fn main_loop() {
                                     .parse::<u8>()
                                 {
                                     Ok(d) => {
-                                        go(&board, SearchType::Depth(d), &tt);
+                                        go(&board, SearchType::Depth(d));
                                     }
                                     Err(_) => (),
                                 }
                             // Infinite search
                             } else if words.iter().any(|&x| x == "infinite") {
-                                go(&board, SearchType::Infinite, &tt);
+                                go(&board, SearchType::Infinite);
                             // Static time search
                             } else if words.iter().any(|&x| x == "movetime") {
                                 match words
@@ -104,7 +101,7 @@ pub fn main_loop() {
                                     .parse::<u64>()
                                 {
                                     Ok(d) => {
-                                        go(&board, SearchType::Time(d), &tt);
+                                        go(&board, SearchType::Time(d));
                                     }
                                     Err(_) => (),
                                 }
@@ -136,7 +133,6 @@ pub fn main_loop() {
                                             go(
                                                 &board,
                                                 SearchType::Time(time_for_move(t, inc, None)),
-                                                &tt,
                                             );
                                         }
                                         Err(_) => (),
@@ -167,7 +163,6 @@ pub fn main_loop() {
                                             go(
                                                 &board,
                                                 SearchType::Time(time_for_move(t, inc, None)),
-                                                &tt,
                                             );
                                         }
                                         Err(_) => (),
@@ -192,7 +187,7 @@ pub fn main_loop() {
 }
 
 fn id() {
-    println!("id name chessy {}", env!("CARGO_PKG_VERSION"));
+    println!("id name daedalus {}", env!("CARGO_PKG_VERSION"));
     println!("id author crippa");
 }
 
@@ -209,8 +204,8 @@ fn check_castling_move(board: &Board, mut mv: Move) -> Move {
     mv
 }
 
-fn go(board: &Board, st: SearchType, tt: &TranspositionTable) {
-    let mut search = Search::new(tt.clone());
+fn go(board: &Board, st: SearchType) {
+    let mut search = Search::new();
     search.iterative_deepening(&board, st);
 }
 

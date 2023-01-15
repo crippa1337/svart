@@ -3,5 +3,5 @@ mod engine;
 mod uci;
 
 fn main() {
-    uci::main_loop();
+    uci::main_loop()
 }

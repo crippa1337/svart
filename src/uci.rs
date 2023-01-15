@@ -107,24 +107,67 @@ pub fn main_loop() {
                                 }
                             // Time search
                             } else if words.iter().any(|&x| x == "wtime" || x == "btime") {
-                                let time = if board.side_to_move() == Color::White {
+                                if board.side_to_move() == Color::White {
                                     match words
                                         [words.iter().position(|&x| x == "wtime").unwrap() + 1]
                                         .parse::<u64>()
                                     {
-                                        Ok(t) => t,
-                                        Err(_) => 0,
+                                        Ok(t) => {
+                                            // Increment
+                                            let inc: Option<u64> =
+                                                if words.iter().any(|&x| x == "winc") {
+                                                    match words[words
+                                                        .iter()
+                                                        .position(|&x| x == "winc")
+                                                        .unwrap()
+                                                        + 1]
+                                                    .parse::<u64>()
+                                                    {
+                                                        Ok(i) => Some(i),
+                                                        Err(_) => None,
+                                                    }
+                                                } else {
+                                                    None
+                                                };
+
+                                            go(
+                                                &board,
+                                                SearchType::Time(time_for_move(t, inc, None)),
+                                            );
+                                        }
+                                        Err(_) => (),
                                     }
                                 } else {
                                     match words
                                         [words.iter().position(|&x| x == "btime").unwrap() + 1]
                                         .parse::<u64>()
                                     {
-                                        Ok(t) => t,
-                                        Err(_) => 0,
+                                        Ok(t) => {
+                                            // Increment
+                                            let inc: Option<u64> =
+                                                if words.iter().any(|&x| x == "binc") {
+                                                    match words[words
+                                                        .iter()
+                                                        .position(|&x| x == "binc")
+                                                        .unwrap()
+                                                        + 1]
+                                                    .parse::<u64>()
+                                                    {
+                                                        Ok(i) => Some(i),
+                                                        Err(_) => None,
+                                                    }
+                                                } else {
+                                                    None
+                                                };
+
+                                            go(
+                                                &board,
+                                                SearchType::Time(time_for_move(t, inc, None)),
+                                            );
+                                        }
+                                        Err(_) => (),
                                     }
                                 };
-                                go(&board, SearchType::Time(time_for_move(time, None, None)));
                             } else {
                                 break 'main;
                             }
@@ -144,7 +187,7 @@ pub fn main_loop() {
 }
 
 fn id() {
-    println!("id name chessy {}", env!("CARGO_PKG_VERSION"));
+    println!("id name daedalus {}", env!("CARGO_PKG_VERSION"));
     println!("id author crippa");
 }
 

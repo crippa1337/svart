@@ -79,10 +79,12 @@ fn piece_num_at(board: &Board, square: Square) -> i32 {
 
 pub fn all_moves(board: &Board) -> Vec<Move> {
     let mut move_list: Vec<Move> = Vec::new();
+
     board.generate_moves(|moves| {
         // Unpack dense move set into move list
         move_list.extend(moves);
         false
     });
-    move_list
+
+    return move_list;
 }

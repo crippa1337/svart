@@ -36,7 +36,10 @@ impl Search {
         depth: u8,
         ply: i32,
     ) -> i32 {
-        // Early returns
+        ///////////////////
+        // Early returns //
+        ///////////////////
+
         if self.nodes % 1024 == 0 && self.timer.is_some() && self.goal_time.is_some() {
             let time = self.timer.as_ref().unwrap();
             let goal = self.goal_time.unwrap();
@@ -54,7 +57,7 @@ impl Search {
             return eval::evaluate(board);
         }
 
-        // init PV
+        // Init PV
         self.pv_length[ply as usize] = ply;
 
         // Escape condition
@@ -62,6 +65,9 @@ impl Search {
             return self.qsearch(board, alpha, beta, ply);
         }
 
+        /////////////////
+        // Search body //
+        /////////////////
         let mut best_score = NEG_INFINITY;
         let mut moves_done: u32 = 0;
         let move_list = movegen::all_moves(board);
@@ -183,6 +189,7 @@ impl Search {
 
         let mut best_move: Option<Move> = None;
         let start = Instant::now();
+
         for d in 1..depth {
             let score = self.absearch(board, -INFINITY, INFINITY, d as u8, 0);
 

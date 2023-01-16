@@ -235,7 +235,7 @@ impl Search {
             }
             print_score = format!("mate {}", score);
         } else {
-            print_score = format!("cp {}", score / 100);
+            print_score = format!("cp {}", score as f32 / 100.);
         }
 
         print_score

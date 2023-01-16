@@ -182,7 +182,7 @@ impl Search {
         };
 
         let mut best_move: Option<Move> = None;
-
+        let start = Instant::now();
         for d in 1..depth {
             let score = self.absearch(board, -INFINITY, INFINITY, d as u8, 0);
 
@@ -193,10 +193,11 @@ impl Search {
             best_move = self.pv_table[0][0];
 
             println!(
-                "info depth {} {} nodes {} pv{}",
+                "info depth {} {} nodes {} time {} pv{}",
                 d,
                 self.show_score(score),
                 self.nodes,
+                start.elapsed().as_millis(),
                 self.show_pv()
             );
         }
@@ -233,9 +234,9 @@ impl Search {
             } else {
                 score = -moves_to_mate;
             }
-            print_score = format!("mate {}", score);
+            print_score = format!("score mate {}", score);
         } else {
-            print_score = format!("cp {}", score as f32 / 100.);
+            print_score = format!("score cp {}", score);
         }
 
         print_score

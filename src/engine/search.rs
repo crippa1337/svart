@@ -201,6 +201,11 @@ impl Search {
             );
         }
 
+        // last try to get best move - may panic otherwise
+        if best_move.is_none() {
+            best_move = self.pv_table[0][0];
+        }
+
         println!("bestmove {}", best_move.unwrap().to_string());
     }
 

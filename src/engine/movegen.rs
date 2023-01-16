@@ -25,7 +25,7 @@ pub fn capture_moves(board: &Board) -> Vec<Move> {
         false
     });
 
-    // Sort moves wth MVV-LVA
+    // Sort moves wth MVV-LVA - Elo difference: 83.6 +/- 32.9
     captures_list.sort_by(|a, b| {
         let a_score = mvvlva(board, *a);
         let b_score = mvvlva(board, *b);

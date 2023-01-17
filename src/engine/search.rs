@@ -32,7 +32,7 @@ impl Search {
         &mut self,
         board: &Board,
         mut alpha: i32,
-        beta: i32,
+        mut beta: i32,
         depth: u8,
         ply: i32,
     ) -> i32 {
@@ -68,6 +68,7 @@ impl Search {
         /////////////////
         // Search body //
         /////////////////
+
         let mut best_score = NEG_INFINITY;
         let mut moves_done: u32 = 0;
         let move_list = movegen::all_moves(board);
@@ -107,7 +108,10 @@ impl Search {
             }
         }
 
-        // ENDSTATES
+        ///////////////
+        // ENDSTATES //
+        ///////////////
+
         if moves_done == 0 {
             // Mate
             if board.checkers() != BitBoard::EMPTY {

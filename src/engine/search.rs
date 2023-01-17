@@ -243,7 +243,7 @@ impl Search {
             SearchType::Infinite => {
                 depth = MAX_PLY as u8;
             }
-            SearchType::Depth(d) => depth = d,
+            SearchType::Depth(d) => depth = d + 1, // + 1 because we start at 1,
         };
 
         let mut best_move: Option<Move> = None;
@@ -309,10 +309,14 @@ impl Search {
     }
 
     pub fn score_moves(&self, mv: Move, tt_move: Option<Move>) -> i16 {
-        if mv == tt_move.unwrap() && tt_move.is_some() {
-            return INFINITY;
-        } else if mv.promotion.is_some() {
-            return 10000;
+        if tt_move.is_some() {
+            if mv == tt_move.unwrap() {
+                return INFINITY;
+            }
+        }
+
+        if mv.promotion.is_some() {
+            return 1000;
         } else {
             return 0;
         }

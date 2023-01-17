@@ -11,12 +11,14 @@ pub enum TTFlag {
 
 #[derive(Clone, Copy)]
 pub struct TTEntry {
-    key: u64,         // 8 bytes
-    mv: Option<Move>, // 4 bytes
-    score: i16,       // 2 bytes
-    flags: TTFlag,
+    pub key: u64,         // 8 bytes
+    pub mv: Option<Move>, // 4 bytes
+    pub score: i16,       // 2 bytes
+    pub depth: u8,        // 1 byte
+    pub flags: TTFlag,
 }
 
+#[derive(Clone)]
 pub struct TT {
     entries: Vec<TTEntry>,
 }
@@ -31,6 +33,7 @@ impl TT {
                 key: 0,
                 mv: None,
                 score: 0,
+                depth: 0,
                 flags: TTFlag::None,
             });
         }
@@ -47,7 +50,7 @@ impl TT {
         return self.entries[index];
     }
 
-    pub fn store(&mut self, key: u64, mv: Option<Move>, score: i16, flags: TTFlag) {
+    pub fn store(&mut self, key: u64, mv: Option<Move>, score: i16, depth: u8, flags: TTFlag) {
         let index = self.index(key);
 
         // Always replace scheme
@@ -55,6 +58,7 @@ impl TT {
             key,
             mv,
             score,
+            depth,
             flags,
         };
     }

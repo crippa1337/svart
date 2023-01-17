@@ -1,9 +1,11 @@
 use std::time::Instant;
 
+use crate::engine::tt::TTFlag;
 use crate::{constants::*, engine::eval, uci::SearchType};
 use cozy_chess::{BitBoard, Board, Move};
 
 use super::movegen;
+use super::tt::TT;
 
 pub struct Search {
     pub stop: bool,
@@ -13,10 +15,11 @@ pub struct Search {
     pub pv_length: [i16; MAX_PLY as usize],
     pub pv_table: [[Option<Move>; MAX_PLY as usize]; MAX_PLY as usize],
     pub nodes: u32,
+    pub tt: TT,
 }
 
 impl Search {
-    pub fn new() -> Self {
+    pub fn new(tt: TT) -> Self {
         return Search {
             stop: false,
             search_type: SearchType::Depth(0),
@@ -25,6 +28,7 @@ impl Search {
             pv_length: [0; MAX_PLY as usize],
             pv_table: [[None; MAX_PLY as usize]; MAX_PLY as usize],
             nodes: 0,
+            tt,
         };
     }
 
@@ -32,7 +36,7 @@ impl Search {
         &mut self,
         board: &Board,
         mut alpha: i16,
-        beta: i16,
+        mut beta: i16,
         depth: u8,
         ply: i16,
     ) -> i16 {
@@ -65,13 +69,52 @@ impl Search {
             return self.qsearch(board, alpha, beta, ply);
         }
 
+        let root = ply == 0;
+
+        /////////////////////////
+        // Transposition table //
+        /////////////////////////
+
+        let old_alpha = alpha;
+        let hash_key = board.hash();
+        let tt_entry = self.tt.probe(hash_key);
+        let tt_hit = tt_entry.key == hash_key;
+        let tt_move: Option<Move> = if tt_hit { tt_entry.mv } else { None };
+        let tt_score = if tt_hit {
+            self.tt.score_from_tt(tt_entry.score, ply)
+        } else {
+            NONE
+        };
+
+        if !root && tt_hit && tt_entry.depth >= depth {
+            assert!(tt_score != NONE);
+
+            match tt_entry.flags {
+                TTFlag::Exact => return tt_score,
+                TTFlag::LowerBound => alpha = std::cmp::max(alpha, tt_score),
+                TTFlag::UpperBound => beta = std::cmp::min(beta, tt_score),
+                _ => unreachable!(),
+            }
+
+            if alpha >= beta {
+                return tt_score;
+            }
+        }
+
         /////////////////
         // Search body //
         /////////////////
 
         let mut best_score: i16 = NEG_INFINITY;
+        let mut best_move: Option<Move> = None;
         let mut moves_done: u32 = 0;
-        let move_list = movegen::all_moves(board);
+        let mut move_list = movegen::all_moves(board);
+
+        move_list.sort_by(|a, b| {
+            let a_score = self.score_moves(*a, tt_move);
+            let b_score = self.score_moves(*b, tt_move);
+            b_score.cmp(&a_score)
+        });
 
         for mv in move_list {
             let mut new_board = board.clone();
@@ -86,6 +129,7 @@ impl Search {
 
                 if score > alpha {
                     alpha = score;
+                    best_move = Some(mv);
 
                     let usize_ply = ply as usize;
                     // Write to PV table
@@ -121,6 +165,17 @@ impl Search {
                 return 0;
             }
         }
+
+        // Storing to TT
+        let flag = if best_score >= beta {
+            TTFlag::LowerBound
+        } else if best_score > old_alpha {
+            TTFlag::Exact
+        } else {
+            TTFlag::UpperBound
+        };
+
+        self.tt.store(hash_key, best_move, best_score, depth, flag);
 
         return best_score;
     }
@@ -251,5 +306,15 @@ impl Search {
         }
 
         print_score
+    }
+
+    pub fn score_moves(&self, mv: Move, tt_move: Option<Move>) -> i16 {
+        if mv == tt_move.unwrap() && tt_move.is_some() {
+            return INFINITY;
+        } else if mv.promotion.is_some() {
+            return 10000;
+        } else {
+            return 0;
+        }
     }
 }

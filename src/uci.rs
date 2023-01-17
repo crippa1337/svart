@@ -108,13 +108,13 @@ pub fn main_loop() {
                                     .parse::<u8>()
                                 {
                                     Ok(d) => {
-                                        go(&board, SearchType::Depth(d));
+                                        go(&board, SearchType::Depth(d), &tt);
                                     }
                                     Err(_) => (),
                                 }
                             // Infinite search
                             } else if words.iter().any(|&x| x == "infinite") {
-                                go(&board, SearchType::Infinite);
+                                go(&board, SearchType::Infinite, &tt);
                             // Static time search
                             } else if words.iter().any(|&x| x == "movetime") {
                                 match words
@@ -122,7 +122,7 @@ pub fn main_loop() {
                                     .parse::<u64>()
                                 {
                                     Ok(d) => {
-                                        go(&board, SearchType::Time(d));
+                                        go(&board, SearchType::Time(d), &tt);
                                     }
                                     Err(_) => (),
                                 }
@@ -154,6 +154,7 @@ pub fn main_loop() {
                                             go(
                                                 &board,
                                                 SearchType::Time(time_for_move(t, inc, None)),
+                                                &tt,
                                             );
                                         }
                                         Err(_) => (),
@@ -184,6 +185,7 @@ pub fn main_loop() {
                                             go(
                                                 &board,
                                                 SearchType::Time(time_for_move(t, inc, None)),
+                                                &tt,
                                             );
                                         }
                                         Err(_) => (),
@@ -229,8 +231,9 @@ fn check_castling_move(board: &Board, mut mv: Move) -> Move {
     mv
 }
 
-fn go(board: &Board, st: SearchType) {
-    let mut search = Search::new();
+fn go(board: &Board, st: SearchType, tt: &TT) {
+    let new_tt = tt.clone();
+    let mut search = Search::new(new_tt);
     search.iterative_deepening(&board, st);
 }
 

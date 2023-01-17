@@ -10,7 +10,7 @@ pub struct Search {
     pub search_type: SearchType,
     pub timer: Option<Instant>,
     pub goal_time: Option<u64>,
-    pub pv_length: [i32; MAX_PLY as usize],
+    pub pv_length: [i16; MAX_PLY as usize],
     pub pv_table: [[Option<Move>; MAX_PLY as usize]; MAX_PLY as usize],
     pub nodes: u32,
 }
@@ -31,11 +31,11 @@ impl Search {
     pub fn absearch(
         &mut self,
         board: &Board,
-        mut alpha: i32,
-        mut beta: i32,
+        mut alpha: i16,
+        beta: i16,
         depth: u8,
-        ply: i32,
-    ) -> i32 {
+        ply: i16,
+    ) -> i16 {
         ///////////////////
         // Early returns //
         ///////////////////
@@ -69,7 +69,7 @@ impl Search {
         // Search body //
         /////////////////
 
-        let mut best_score = NEG_INFINITY;
+        let mut best_score: i16 = NEG_INFINITY;
         let mut moves_done: u32 = 0;
         let move_list = movegen::all_moves(board);
 
@@ -125,7 +125,7 @@ impl Search {
         return best_score;
     }
 
-    fn qsearch(&mut self, board: &Board, mut alpha: i32, beta: i32, ply: i32) -> i32 {
+    fn qsearch(&mut self, board: &Board, mut alpha: i16, beta: i16, ply: i16) -> i16 {
         // Early returns
         if self.nodes % 1024 == 0 && self.timer.is_some() && self.goal_time.is_some() {
             let time = self.timer.as_ref().unwrap();
@@ -195,7 +195,7 @@ impl Search {
         let start = Instant::now();
 
         for d in 1..depth {
-            let score = self.absearch(board, -INFINITY, INFINITY, d as u8, 0);
+            let score = self.absearch(board, -INFINITY, INFINITY, d, 0);
 
             if self.stop {
                 break;
@@ -234,7 +234,7 @@ impl Search {
         return pv;
     }
 
-    pub fn show_score(&self, mut score: i32) -> String {
+    pub fn show_score(&self, mut score: i16) -> String {
         let print_score: String;
         // check mate score
         if score > MATE_IN || score < MATED_IN {

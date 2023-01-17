@@ -1,8 +1,10 @@
-use crate::engine::search::Search;
+use crate::engine::{search::Search, tt::TT};
 use cozy_chess::{Board, Color, Move, Piece, Square};
 
 pub fn main_loop() {
     let mut board = Board::default();
+    let mut tt_size = 32;
+    let mut tt = TT::new(tt_size);
     let mut uci_set = false;
     let mut board_set = false;
 
@@ -19,6 +21,7 @@ pub fn main_loop() {
             match words[0] {
                 "uci" => {
                     id();
+                    options();
                     println!("uciok");
                     uci_set = true;
                     continue;
@@ -33,6 +36,7 @@ pub fn main_loop() {
                 match words[0] {
                     "uci" => {
                         id();
+                        options();
                         println!("uciok");
                         break 'main;
                     }
@@ -42,7 +46,24 @@ pub fn main_loop() {
                     }
                     "ucinewgame" => {
                         board = Board::startpos();
+                        tt = TT::new(tt_size);
                         board_set = true;
+                        break 'main;
+                    }
+                    "setoption" => {
+                        if words[1] == "name" && words[2] == "Hash" && words[3] == "value" {
+                            match words[4].parse::<u32>() {
+                                Ok(s) => {
+                                    // Don't allow hash bigger than max
+                                    if s > 1024 {
+                                        break 'main;
+                                    }
+                                    tt_size = s;
+                                    tt = TT::new(tt_size);
+                                }
+                                Err(_) => (),
+                            }
+                        }
                         break 'main;
                     }
                     "position" => {
@@ -189,6 +210,10 @@ pub fn main_loop() {
 fn id() {
     println!("id name daedalus {}", env!("CARGO_PKG_VERSION"));
     println!("id author crippa");
+}
+
+fn options() {
+    println!("option name Hash default 32 min 1 max 1024");
 }
 
 fn check_castling_move(board: &Board, mut mv: Move) -> Move {

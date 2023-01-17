@@ -4,7 +4,7 @@
 
 //pawns
 #[rustfmt::skip]
-pub const PAWN_TABLE: [[i32; 8]; 8] = [
+pub const PAWN_TABLE: [[i16; 8]; 8] = [
     [0,  0,  0,  0,  0,  0,  0,  0],
     [50, 50, 50, 50, 50, 50, 50, 50],
     [10, 10, 20, 30, 30, 20, 10, 10],
@@ -17,7 +17,7 @@ pub const PAWN_TABLE: [[i32; 8]; 8] = [
 
 //knights
 #[rustfmt::skip]
-pub const KNIGHT_TABLE: [[i32; 8]; 8] = [
+pub const KNIGHT_TABLE: [[i16; 8]; 8] = [
     [-50,-40,-30,-30,-30,-30,-40,-50],
     [-40,-20,  0,  0,  0,  0,-20,-40],
     [-30,  0, 10, 15, 15, 10,  0,-30],
@@ -30,7 +30,7 @@ pub const KNIGHT_TABLE: [[i32; 8]; 8] = [
 
 //bishops
 #[rustfmt::skip]
-pub const BISHOP_TABLE: [[i32; 8]; 8] = [
+pub const BISHOP_TABLE: [[i16; 8]; 8] = [
     [-20,-10,-10,-10,-10,-10,-10,-20],
     [-10,  0,  0,  0,  0,  0,  0,-10],
     [-10,  0,  5, 10, 10,  5,  0,-10],
@@ -43,7 +43,7 @@ pub const BISHOP_TABLE: [[i32; 8]; 8] = [
 
 //rooks
 #[rustfmt::skip]
-pub const ROOK_TABLE: [[i32; 8]; 8] = [
+pub const ROOK_TABLE: [[i16; 8]; 8] = [
     [ 0,  0,  0,  0,  0,  0,  0,  0],
     [ 5, 10, 10, 10, 10, 10, 10,  5],
     [-5,  0,  0,  0,  0,  0,  0, -5],
@@ -56,7 +56,7 @@ pub const ROOK_TABLE: [[i32; 8]; 8] = [
 
 //queens
 #[rustfmt::skip]
-pub const QUEEN_TABLE: [[i32; 8]; 8] = [
+pub const QUEEN_TABLE: [[i16; 8]; 8] = [
     [-20,-10,-10, -5, -5,-10,-10,-20],
     [-10,  0,  0,  0,  0,  0,  0,-10],
     [-10,  0,  5,  5,  5,  5,  0,-10],
@@ -69,7 +69,7 @@ pub const QUEEN_TABLE: [[i32; 8]; 8] = [
 
 //kings
 #[rustfmt::skip]
-pub const KING_TABLE: [[i32; 8]; 8] = [
+pub const KING_TABLE: [[i16; 8]; 8] = [
     [-30,-40,-40,-50,-50,-40,-40,-30],
     [-30,-40,-40,-50,-50,-40,-40,-30],
     [-30,-40,-40,-50,-50,-40,-40,-30],
@@ -82,7 +82,7 @@ pub const KING_TABLE: [[i32; 8]; 8] = [
 
 //kings endgame
 // #[rustfmt::skip]
-// pub const KING_ENDGAME_TABLE: [[i32; 8]; 8] = [
+// pub const KING_ENDGAME_TABLE: [[i16; 8]; 8] = [
 //     [-50,-40,-30,-20,-20,-30,-40,-50],
 //     [-30,-20,-10,  0,  0,-10,-20,-30],
 //     [-30,-10, 20, 30, 30, 20,-10,-30],

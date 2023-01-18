@@ -215,7 +215,7 @@ fn id() {
 }
 
 fn options() {
-    println!("option name Hash default 32 min 1 max 1024");
+    println!("option name Hash type spin default 32 min 1 max 1024");
 }
 
 fn check_castling_move(board: &Board, mut mv: Move) -> Move {

@@ -87,7 +87,7 @@ impl Search {
         };
 
         if !root && tt_hit && tt_entry.depth >= depth {
-            assert!(tt_score != NONE);
+            assert!(tt_score < NONE);
 
             match tt_entry.flags {
                 TTFlag::Exact => return tt_score,
@@ -175,7 +175,8 @@ impl Search {
             TTFlag::UpperBound
         };
 
-        self.tt.store(hash_key, best_move, best_score, depth, flag);
+        self.tt
+            .store(hash_key, best_move.into(), best_score, depth, flag);
 
         return best_score;
     }
@@ -236,9 +237,10 @@ impl Search {
         match st {
             SearchType::Time(t) => {
                 depth = MAX_PLY as u8;
+                // Start the search timer
                 self.timer = Some(Instant::now());
                 // Small overhead to make sure we don't go over time
-                self.goal_time = Some(t - 3);
+                self.goal_time = Some(t - 25);
             }
             SearchType::Infinite => {
                 depth = MAX_PLY as u8;
@@ -247,6 +249,7 @@ impl Search {
         };
 
         let mut best_move: Option<Move> = None;
+        // Not the search timer, but for info printing
         let start = Instant::now();
 
         for d in 1..depth {
@@ -268,7 +271,7 @@ impl Search {
             );
         }
 
-        // last try to get best move - may panic otherwise
+        // Last try to get best move - may panic otherwise
         if best_move.is_none() {
             best_move = self.pv_table[0][0];
         }
@@ -290,8 +293,9 @@ impl Search {
     }
 
     pub fn show_score(&self, mut score: i16) -> String {
+        assert!(score < NONE);
         let print_score: String;
-        // check mate score
+        // Check if it's a mate score
         if score > MATE_IN || score < MATED_IN {
             let plies_to_mate = MATE - score.abs();
             let moves_to_mate = (plies_to_mate + 1) / 2;

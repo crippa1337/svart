@@ -42,12 +42,14 @@ impl TT {
     }
 
     pub fn index(&self, key: u64) -> usize {
-        return key as usize % self.entries.len();
+        return key as usize % self.entries.capacity();
     }
 
     pub fn probe(&self, key: u64) -> TTEntry {
         let index = self.index(key);
-        return self.entries[index];
+        let entry = self.entries[index];
+
+        return entry;
     }
 
     pub fn store(

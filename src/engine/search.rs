@@ -1,4 +1,3 @@
-use std::fmt::format;
 use std::time::Instant;
 
 use crate::engine::tt::TTFlag;
@@ -180,7 +179,8 @@ impl Search {
             }
         }
 
-        if !self.stop {
+        // TODO: Fix
+        if !self.stop && best_score < MATE_IN && best_score > MATED_IN {
             self.tt
                 .store(hash_key, best_move.into(), best_score, depth, flag, ply);
         }

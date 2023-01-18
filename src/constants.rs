@@ -11,9 +11,8 @@ pub const MATE_IN: i16 = MATE - MAX_PLY;
 pub const MATED_IN: i16 = -MATE_IN;
 
 pub const TB_WIN: i16 = MATE_IN;
-pub const TB_LOSS: i16 = -TB_WIN;
-pub const TB_WIN_MAX: i16 = TB_WIN - MAX_PLY;
-pub const TB_LOSS_MAX: i16 = -TB_WIN_MAX;
+pub const TB_WIN_IN_PLY: i16 = TB_WIN - MAX_PLY;
+pub const TB_LOSS_IN_PLY: i16 = -TB_WIN_IN_PLY;
 
 pub fn mated_in(ply: i16) -> i16 {
     return ply - MATE;

@@ -50,24 +50,32 @@ impl TT {
         return self.entries[index];
     }
 
-    pub fn store(&mut self, key: u64, mv: Option<Move>, score: i16, depth: u8, flags: TTFlag) {
+    pub fn store(
+        &mut self,
+        key: u64,
+        mv: Option<Move>,
+        score: i16,
+        depth: u8,
+        flags: TTFlag,
+        ply: i16,
+    ) {
         let index = self.index(key);
 
         // Always replace scheme
         self.entries[index] = TTEntry {
             key,
             mv,
-            score,
+            score: self.score_to_tt(score, ply),
             depth,
             flags,
         };
     }
 
     pub fn score_to_tt(&self, score: i16, ply: i16) -> i16 {
-        if score >= TB_WIN_MAX {
+        if score >= TB_WIN_IN_PLY {
             return score + ply;
         } else {
-            if score <= TB_LOSS_MAX {
+            if score <= TB_LOSS_IN_PLY {
                 return score - ply;
             } else {
                 return score;
@@ -76,10 +84,10 @@ impl TT {
     }
 
     pub fn score_from_tt(&self, score: i16, ply: i16) -> i16 {
-        if score >= TB_WIN_MAX {
+        if score >= TB_WIN_IN_PLY {
             return score - ply;
         } else {
-            if score <= TB_LOSS_MAX {
+            if score <= TB_LOSS_IN_PLY {
                 return score + ply;
             } else {
                 return score;

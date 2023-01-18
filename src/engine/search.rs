@@ -1,3 +1,4 @@
+use std::fmt::format;
 use std::time::Instant;
 
 use crate::engine::tt::TTFlag;
@@ -75,10 +76,10 @@ impl Search {
         // Transposition table //
         /////////////////////////
 
-        let old_alpha = alpha;
         let hash_key = board.hash();
         let tt_entry = self.tt.probe(hash_key);
         let tt_hit = tt_entry.key == hash_key;
+
         let tt_move: Option<Move> = if tt_hit { tt_entry.mv } else { None };
         let tt_score = if tt_hit {
             self.tt.score_from_tt(tt_entry.score, ply)
@@ -93,7 +94,7 @@ impl Search {
                 TTFlag::Exact => return tt_score,
                 TTFlag::LowerBound => alpha = std::cmp::max(alpha, tt_score),
                 TTFlag::UpperBound => beta = std::cmp::min(beta, tt_score),
-                _ => unreachable!(),
+                _ => unreachable!("Invalid TTFlag!"),
             }
 
             if alpha >= beta {
@@ -105,6 +106,7 @@ impl Search {
         // Search body //
         /////////////////
 
+        let old_alpha = alpha;
         let mut best_score: i16 = NEG_INFINITY;
         let mut best_move: Option<Move> = None;
         let mut moves_done: u32 = 0;
@@ -167,16 +169,21 @@ impl Search {
         }
 
         // Storing to TT
-        let flag = if best_score >= beta {
-            TTFlag::LowerBound
-        } else if best_score > old_alpha {
-            TTFlag::Exact
+        let flag;
+        if best_score >= beta {
+            flag = TTFlag::LowerBound;
         } else {
-            TTFlag::UpperBound
-        };
+            if best_score != old_alpha {
+                flag = TTFlag::Exact;
+            } else {
+                flag = TTFlag::UpperBound;
+            }
+        }
 
-        self.tt
-            .store(hash_key, best_move.into(), best_score, depth, flag);
+        if !self.stop {
+            self.tt
+                .store(hash_key, best_move.into(), best_score, depth, flag, ply);
+        }
 
         return best_score;
     }
@@ -262,7 +269,7 @@ impl Search {
             best_move = self.pv_table[0][0];
 
             println!(
-                "info depth {} {} nodes {} time {} pv{}",
+                "info depth {} score {} nodes {} time {} pv{}",
                 d,
                 self.show_score(score),
                 self.nodes,
@@ -292,24 +299,19 @@ impl Search {
         return pv;
     }
 
-    pub fn show_score(&self, mut score: i16) -> String {
+    // Parse score to UCI standard
+    pub fn show_score(&self, score: i16) -> String {
         assert!(score < NONE);
         let print_score: String;
-        // Check if it's a mate score
-        if score > MATE_IN || score < MATED_IN {
-            let plies_to_mate = MATE - score.abs();
-            let moves_to_mate = (plies_to_mate + 1) / 2;
-            if score > 0 {
-                score = moves_to_mate;
-            } else {
-                score = -moves_to_mate;
-            }
-            print_score = format!("score mate {}", score);
+        if score >= MATE_IN {
+            print_score = format!("mate {}", (((MATE - score) / 2) + ((MATE - score) & 1)));
+        } else if score <= MATED_IN {
+            print_score = format!("mate {}", -(((MATE + score) / 2) + ((MATE + score) & 1)));
         } else {
-            print_score = format!("score cp {}", score);
+            print_score = format!("cp {}", score);
         }
 
-        print_score
+        return print_score;
     }
 
     pub fn score_moves(&self, mv: Move, tt_move: Option<Move>) -> i16 {

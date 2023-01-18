@@ -132,19 +132,20 @@ impl Search {
                     alpha = score;
                     best_move = Some(mv);
 
-                    let usize_ply = ply as usize;
                     // Write to PV table
-                    self.pv_table[usize_ply][usize_ply] = Some(mv);
+                    let uply = ply as usize;
+                    self.pv_table[uply][uply] = Some(mv);
 
-                    // Loop over next ply
-                    let mut next_ply = usize_ply + 1;
-                    while next_ply < self.pv_length[usize_ply + 1] as usize {
-                        self.pv_table[usize_ply][next_ply] = self.pv_table[usize_ply + 1][next_ply];
+                    // Loop over the next ply
+                    let mut next_ply = uply + 1;
+                    while next_ply < self.pv_length[uply + 1] as usize {
+                        // Copy move from deeper ply into current line
+                        self.pv_table[uply][next_ply] = self.pv_table[uply + 1][next_ply];
                         next_ply += 1;
                     }
 
                     // Update PV length
-                    self.pv_length[usize_ply] = self.pv_length[usize_ply + 1];
+                    self.pv_length[uply] = self.pv_length[uply + 1];
 
                     if score >= beta {
                         break;

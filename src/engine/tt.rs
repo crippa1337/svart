@@ -1,7 +1,7 @@
 use crate::constants::*;
 use cozy_chess::Move;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum TTFlag {
     None,
     Exact,
@@ -9,7 +9,7 @@ pub enum TTFlag {
     UpperBound,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct TTEntry {
     pub key: u64,         // 8 bytes
     pub mv: Option<Move>, // 4 bytes

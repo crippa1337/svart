@@ -137,11 +137,9 @@ impl Search {
                     self.pv_table[uply][uply] = Some(mv);
 
                     // Loop over the next ply
-                    let mut next_ply = uply + 1;
-                    while next_ply < self.pv_length[uply + 1] as usize {
+                    for i in (uply + 1)..self.pv_length[uply + 1] as usize {
                         // Copy move from deeper ply into current line
-                        self.pv_table[uply][next_ply] = self.pv_table[uply + 1][next_ply];
-                        next_ply += 1;
+                        self.pv_table[uply][i] = self.pv_table[uply + 1][i];
                     }
 
                     // Update PV length
@@ -180,10 +178,9 @@ impl Search {
             }
         }
 
-        // TODO: Fix
-        if !self.stop && best_score < MATE_IN && best_score > MATED_IN {
+        if !self.stop {
             self.tt
-                .store(hash_key, best_move.into(), best_score, depth, flag, ply);
+                .store(hash_key, best_move, best_score, depth, flag, ply);
         }
 
         return best_score;
@@ -305,8 +302,10 @@ impl Search {
         assert!(score < NONE);
         let print_score: String;
         if score >= MATE_IN {
+            println!("{score}");
             print_score = format!("mate {}", (((MATE - score) / 2) + ((MATE - score) & 1)));
         } else if score <= MATED_IN {
+            println!("{score}");
             print_score = format!("mate {}", -(((MATE + score) / 2) + ((MATE + score) & 1)));
         } else {
             print_score = format!("cp {}", score);

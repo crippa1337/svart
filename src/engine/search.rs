@@ -180,7 +180,7 @@ impl Search {
 
         if !self.stop {
             self.tt
-                .store(hash_key, best_move, best_score, depth, flag, ply);
+                .store(hash_key, best_move.into(), best_score, depth, flag, ply);
         }
 
         return best_score;

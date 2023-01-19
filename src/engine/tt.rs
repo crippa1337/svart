@@ -47,9 +47,7 @@ impl TT {
 
     pub fn probe(&self, key: u64) -> TTEntry {
         let index = self.index(key);
-        let entry = self.entries[index];
-
-        return entry;
+        return self.entries[index];
     }
 
     pub fn store(

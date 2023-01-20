@@ -4,7 +4,7 @@ use crate::engine::tt::TTFlag;
 use crate::{constants::*, engine::eval, uci::SearchType};
 use cozy_chess::{BitBoard, Board, Move};
 
-use super::movegen;
+use super::movegen::{self, mvvlva};
 use super::tt::TT;
 
 pub struct Search {
@@ -14,6 +14,7 @@ pub struct Search {
     pub goal_time: Option<u64>,
     pub pv_length: [i16; MAX_PLY as usize],
     pub pv_table: [[Option<Move>; MAX_PLY as usize]; MAX_PLY as usize],
+    pub killers: [[Option<Move>; 2]; MAX_PLY as usize],
     pub nodes: u32,
     pub tt: TT,
 }
@@ -27,6 +28,7 @@ impl Search {
             goal_time: None,
             pv_length: [0; MAX_PLY as usize],
             pv_table: [[None; MAX_PLY as usize]; MAX_PLY as usize],
+            killers: [[None; 2]; MAX_PLY as usize],
             nodes: 0,
             tt,
         };
@@ -112,8 +114,8 @@ impl Search {
         let mut move_list = movegen::all_moves(board);
 
         move_list.sort_by(|a, b| {
-            let a_score = self.score_moves(*a, tt_move);
-            let b_score = self.score_moves(*b, tt_move);
+            let a_score = self.score_moves(board, *a, tt_move);
+            let b_score = self.score_moves(board, *b, tt_move);
             b_score.cmp(&a_score)
         });
 
@@ -228,6 +230,10 @@ impl Search {
                     alpha = score;
 
                     if score >= beta {
+                        // if movegen::piece_num_at(board, mv.to) == 0 {
+                        //     self.fhf += 1;
+                        // }
+
                         break;
                     }
                 }
@@ -314,7 +320,7 @@ impl Search {
         return print_score;
     }
 
-    pub fn score_moves(&self, mv: Move, tt_move: Option<Move>) -> i16 {
+    pub fn score_moves(&self, board: &Board, mv: Move, tt_move: Option<Move>) -> i16 {
         if tt_move.is_some() {
             if mv == tt_move.unwrap() {
                 return INFINITY;
@@ -323,8 +329,13 @@ impl Search {
 
         if mv.promotion.is_some() {
             return 1000;
-        } else {
-            return 0;
         }
+
+        // Returns between 100 - 600
+        if movegen::piece_num_at(board, mv.to) != 0 {
+            return mvvlva(board, mv) as i16;
+        }
+
+        return 0;
     }
 }

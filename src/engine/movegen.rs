@@ -36,7 +36,7 @@ pub fn capture_moves(board: &Board) -> Vec<Move> {
 }
 
 // Most Valuable Victim - Least Valuable Aggressor (MVV-LVA)
-fn mvvlva(board: &Board, mv: Move) -> i32 {
+pub fn mvvlva(board: &Board, mv: Move) -> i32 {
     let mvvlva: [[i32; 7]; 7] = [
         [0, 0, 0, 0, 0, 0, 0],
         [0, 105, 104, 103, 102, 101, 100],
@@ -56,10 +56,11 @@ fn mvvlva(board: &Board, mv: Move) -> i32 {
     if victim == 0 {
         victim = 1
     }
+
     return mvvlva[victim as usize][attacker as usize];
 }
 
-fn piece_num_at(board: &Board, square: Square) -> i32 {
+pub fn piece_num_at(board: &Board, square: Square) -> i32 {
     let piece = board.piece_on(square);
     if piece == None {
         return 0;

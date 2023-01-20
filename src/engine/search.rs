@@ -308,10 +308,8 @@ impl Search {
         assert!(score < NONE);
         let print_score: String;
         if score >= MATE_IN {
-            println!("{score}");
             print_score = format!("mate {}", (((MATE - score) / 2) + ((MATE - score) & 1)));
         } else if score <= MATED_IN {
-            println!("{score}");
             print_score = format!("mate {}", -(((MATE + score) / 2) + ((MATE + score) & 1)));
         } else {
             print_score = format!("cp {}", score);

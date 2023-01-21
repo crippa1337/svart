@@ -1,10 +1,14 @@
-use crate::engine::{search::Search, tt::TT};
+use crate::{
+    constants::{self, MAX_PLY},
+    engine::{search::Search, tt::TT},
+};
 use cozy_chess::{Board, Color, Move, Piece, Square};
 
 pub fn main_loop() {
     let mut board = Board::default();
     let mut tt_size = 32;
     let mut tt = TT::new(tt_size);
+    let mut search = Search::new(tt);
     let mut uci_set = false;
     let mut board_set = false;
 
@@ -47,6 +51,7 @@ pub fn main_loop() {
                     "ucinewgame" => {
                         board = Board::startpos();
                         tt = TT::new(tt_size);
+                        search = Search::new(tt);
                         board_set = true;
                         break 'main;
                     }
@@ -60,6 +65,7 @@ pub fn main_loop() {
                                     }
                                     tt_size = s;
                                     tt = TT::new(tt_size);
+                                    search = Search::new(tt);
                                 }
                                 Err(_) => (),
                             }
@@ -108,13 +114,13 @@ pub fn main_loop() {
                                     .parse::<u8>()
                                 {
                                     Ok(d) => {
-                                        go(&board, SearchType::Depth(d), &tt);
+                                        go(&board, SearchType::Depth(d), &mut search);
                                     }
                                     Err(_) => (),
                                 }
                             // Infinite search
                             } else if words.iter().any(|&x| x == "infinite") {
-                                go(&board, SearchType::Infinite, &tt);
+                                go(&board, SearchType::Infinite, &mut search);
                             // Static time search
                             } else if words.iter().any(|&x| x == "movetime") {
                                 match words
@@ -122,7 +128,7 @@ pub fn main_loop() {
                                     .parse::<u64>()
                                 {
                                     Ok(d) => {
-                                        go(&board, SearchType::Time(d), &tt);
+                                        go(&board, SearchType::Time(d), &mut search);
                                     }
                                     Err(_) => (),
                                 }
@@ -154,7 +160,7 @@ pub fn main_loop() {
                                             go(
                                                 &board,
                                                 SearchType::Time(time_for_move(t, inc, None)),
-                                                &tt,
+                                                &mut search,
                                             );
                                         }
                                         Err(_) => (),
@@ -185,7 +191,7 @@ pub fn main_loop() {
                                             go(
                                                 &board,
                                                 SearchType::Time(time_for_move(t, inc, None)),
-                                                &tt,
+                                                &mut search,
                                             );
                                         }
                                         Err(_) => (),
@@ -231,13 +237,15 @@ fn check_castling_move(board: &Board, mut mv: Move) -> Move {
     mv
 }
 
-fn go(board: &Board, st: SearchType, tt: &TT) {
-    let new_tt = tt.clone();
-    let mut search = Search::new(new_tt);
+fn go(board: &Board, st: SearchType, search: &mut Search) {
     search.iterative_deepening(&board, st);
+    reset_search(search);
 }
 
 fn time_for_move(time: u64, increment: Option<u64>, moves_to_go: Option<u8>) -> u64 {
+    // Account for overhead
+    let time = time - constants::TIME_OVERHEAD;
+
     if moves_to_go.is_some() {
         return time / moves_to_go.unwrap() as u64;
     } else {
@@ -247,6 +255,17 @@ fn time_for_move(time: u64, increment: Option<u64>, moves_to_go: Option<u8>) -> 
             return time / 20;
         }
     }
+}
+
+fn reset_search(search: &mut Search) {
+    // Reset everything except the transposition table
+    search.stop = false;
+    search.search_type = SearchType::Depth(0);
+    search.timer = None;
+    search.goal_time = None;
+    search.pv_length = [0; MAX_PLY as usize];
+    search.pv_table = [[None; MAX_PLY as usize]; MAX_PLY as usize];
+    search.nodes = 0;
 }
 
 #[derive(Debug, PartialEq)]

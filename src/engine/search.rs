@@ -14,7 +14,6 @@ pub struct Search {
     pub goal_time: Option<u64>,
     pub pv_length: [i16; MAX_PLY as usize],
     pub pv_table: [[Option<Move>; MAX_PLY as usize]; MAX_PLY as usize],
-    pub killers: [[Option<Move>; 2]; MAX_PLY as usize],
     pub nodes: u32,
     pub tt: TT,
 }
@@ -28,7 +27,6 @@ impl Search {
             goal_time: None,
             pv_length: [0; MAX_PLY as usize],
             pv_table: [[None; MAX_PLY as usize]; MAX_PLY as usize],
-            killers: [[None; 2]; MAX_PLY as usize],
             nodes: 0,
             tt,
         };
@@ -66,12 +64,12 @@ impl Search {
         // Init PV
         self.pv_length[ply as usize] = ply;
 
+        let root = ply == 0;
+
         // Escape condition
         if depth == 0 {
             return self.qsearch(board, alpha, beta, ply);
         }
-
-        let root = ply == 0;
 
         /////////////////////////
         // Transposition table //
@@ -159,11 +157,9 @@ impl Search {
         ///////////////
 
         if moves_done == 0 {
-            // Mate
             if board.checkers() != BitBoard::EMPTY {
                 return mated_in(ply);
             } else {
-                // Stalemate
                 return 0;
             }
         }
@@ -230,10 +226,6 @@ impl Search {
                     alpha = score;
 
                     if score >= beta {
-                        // if movegen::piece_num_at(board, mv.to) == 0 {
-                        //     self.fhf += 1;
-                        // }
-
                         break;
                     }
                 }
@@ -251,7 +243,7 @@ impl Search {
                 // Start the search timer
                 self.timer = Some(Instant::now());
                 // Small overhead to make sure we don't go over time
-                self.goal_time = Some(t - 25);
+                self.goal_time = Some(t - TIME_OVERHEAD);
             }
             SearchType::Infinite => {
                 depth = MAX_PLY as u8;

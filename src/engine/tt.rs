@@ -20,7 +20,7 @@ pub struct TTEntry {
 
 #[derive(Clone)]
 pub struct TT {
-    entries: Vec<TTEntry>,
+    pub entries: Vec<TTEntry>,
 }
 
 impl TT {

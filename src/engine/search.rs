@@ -32,7 +32,7 @@ impl Search {
         };
     }
 
-    pub fn absearch(
+    pub fn pvsearch(
         &mut self,
         board: &Board,
         mut alpha: i16,
@@ -63,8 +63,7 @@ impl Search {
 
         // Init PV
         self.pv_length[ply as usize] = ply;
-
-        let root = ply == 0;
+        let pv_node = (beta - alpha) != 1;
 
         // Escape condition
         if depth == 0 {
@@ -86,7 +85,7 @@ impl Search {
             NONE
         };
 
-        if !root && tt_hit && tt_entry.depth >= depth {
+        if !pv_node && tt_hit && tt_entry.depth >= depth {
             assert!(tt_score < NONE);
 
             match tt_entry.flags {
@@ -117,13 +116,23 @@ impl Search {
             b_score.cmp(&a_score)
         });
 
+        let mut counter = 0;
         for mv in move_list {
+            counter += 1;
             let mut new_board = board.clone();
             new_board.play(mv);
             self.nodes += 1;
             moves_done += 1;
 
-            let score = -self.absearch(&new_board, -beta, -alpha, depth - 1, ply + 1);
+            let mut score: i16;
+            if counter == 1 {
+                score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1);
+            } else {
+                score = -self.pvsearch(&new_board, -alpha - 1, -alpha, depth - 1, ply + 1);
+                if alpha < score && score < beta {
+                    score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1);
+                }
+            }
 
             if score > best_score {
                 best_score = score;
@@ -256,7 +265,7 @@ impl Search {
         let start = Instant::now();
 
         for d in 1..depth {
-            let score = self.absearch(board, -INFINITY, INFINITY, d, 0);
+            let score = self.pvsearch(board, -INFINITY, INFINITY, d, 0);
 
             if self.stop {
                 break;

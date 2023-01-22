@@ -20,10 +20,6 @@ pub fn mated_in(ply: i16) -> i16 {
     return ply - MATE;
 }
 
-pub fn mate_in(ply: i16) -> i16 {
-    return MATE - ply;
-}
-
 pub fn piece_val(piece: Piece) -> i16 {
     return match piece {
         Piece::Pawn => 100,

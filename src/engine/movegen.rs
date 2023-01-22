@@ -32,7 +32,7 @@ pub fn capture_moves(board: &Board) -> Vec<Move> {
         b_score.cmp(&a_score)
     });
 
-    captures_list
+    return captures_list;
 }
 
 // Most Valuable Victim - Least Valuable Aggressor (MVV-LVA)

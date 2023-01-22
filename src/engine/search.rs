@@ -64,7 +64,6 @@ impl Search {
 
         // Init PV
         self.pv_length[ply as usize] = ply;
-
         let hash_key = board.hash();
 
         // Escape condition

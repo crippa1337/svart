@@ -39,6 +39,7 @@ impl Search {
         mut beta: i16,
         depth: u8,
         ply: i16,
+        is_pv: bool,
     ) -> i16 {
         ///////////////////
         // Early returns //
@@ -63,7 +64,8 @@ impl Search {
 
         // Init PV
         self.pv_length[ply as usize] = ply;
-        let pv_node = (beta - alpha) != 1;
+
+        let hash_key = board.hash();
 
         // Escape condition
         if depth == 0 {
@@ -74,7 +76,6 @@ impl Search {
         // Transposition table //
         /////////////////////////
 
-        let hash_key = board.hash();
         let tt_entry = self.tt.probe(hash_key);
         let tt_hit = tt_entry.key == hash_key;
 
@@ -85,7 +86,7 @@ impl Search {
             NONE
         };
 
-        if !pv_node && tt_hit && tt_entry.depth >= depth {
+        if !is_pv && tt_hit && tt_entry.depth >= depth {
             assert!(tt_score < NONE);
 
             match tt_entry.flags {
@@ -126,11 +127,11 @@ impl Search {
 
             let mut score: i16;
             if counter == 1 {
-                score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1);
+                score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1, is_pv);
             } else {
-                score = -self.pvsearch(&new_board, -alpha - 1, -alpha, depth - 1, ply + 1);
+                score = -self.pvsearch(&new_board, -alpha - 1, -alpha, depth - 1, ply + 1, false);
                 if alpha < score && score < beta {
-                    score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1);
+                    score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1, true);
                 }
             }
 
@@ -265,7 +266,7 @@ impl Search {
         let start = Instant::now();
 
         for d in 1..depth {
-            let score = self.pvsearch(board, -INFINITY, INFINITY, d, 0);
+            let score = self.pvsearch(board, -INFINITY, INFINITY, d, 0, true);
 
             if self.stop {
                 break;

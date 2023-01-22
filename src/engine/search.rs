@@ -63,7 +63,7 @@ impl Search {
 
         // Init PV
         self.pv_length[ply as usize] = ply;
-        let pv_node = (beta - alpha) > 1;
+        let pv_node = (beta - alpha) != 1;
 
         // Escape condition
         if depth == 0 {

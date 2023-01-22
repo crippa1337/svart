@@ -116,16 +116,14 @@ impl Search {
             b_score.cmp(&a_score)
         });
 
-        let mut counter = 0;
         for mv in move_list {
-            counter += 1;
             let mut new_board = board.clone();
             new_board.play(mv);
             self.nodes += 1;
             moves_done += 1;
 
             let mut score: i16;
-            if counter == 1 {
+            if moves_done == 1 {
                 score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1, is_pv);
             } else {
                 score = -self.pvsearch(&new_board, -alpha - 1, -alpha, depth - 1, ply + 1, false);

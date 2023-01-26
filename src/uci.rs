@@ -76,6 +76,7 @@ pub fn main_loop() {
                         if words[1] == "startpos" {
                             board = Board::startpos();
                             board_set = true;
+                            search.game_history = vec![];
                         } else if words[1] == "fen" {
                             // Put together the split fen string
                             let mut fen = String::new();
@@ -102,6 +103,7 @@ pub fn main_loop() {
                                 let mut mv: Move = words[i].parse().unwrap();
                                 mv = check_castling_move(&board, mv);
                                 board.play(mv);
+                                search.game_history.push(board.hash())
                             }
                         }
                         break 'main;

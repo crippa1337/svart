@@ -258,7 +258,7 @@ fn time_for_move(time: u64, increment: Option<u64>, moves_to_go: Option<u8>) -> 
 }
 
 fn reset_search(search: &mut Search) {
-    // Reset everything except the transposition table
+    // Clear search specific data
     search.stop = false;
     search.search_type = SearchType::Depth(0);
     search.timer = None;

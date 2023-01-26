@@ -16,6 +16,7 @@ pub struct Search {
     pub pv_table: [[Option<Move>; MAX_PLY as usize]; MAX_PLY as usize],
     pub nodes: u32,
     pub tt: TT,
+    pub game_history: Vec<u64>,
 }
 
 impl Search {
@@ -29,6 +30,7 @@ impl Search {
             pv_table: [[None; MAX_PLY as usize]; MAX_PLY as usize],
             nodes: 0,
             tt,
+            game_history: vec![],
         };
     }
 
@@ -41,6 +43,8 @@ impl Search {
         ply: i16,
         is_pv: bool,
     ) -> i16 {
+        let hash_key = board.hash();
+        self.game_history.push(hash_key);
         ///////////////////
         // Early returns //
         ///////////////////
@@ -64,7 +68,19 @@ impl Search {
 
         // Init PV
         self.pv_length[ply as usize] = ply;
-        let hash_key = board.hash();
+        let root = ply == 0;
+
+        if !root {
+            // Check for draw by repetition
+            if self.repetitions(board) > 0 {
+                return 8 - (self.nodes as i16 & 7);
+            }
+
+            // Check for draw by 50 move rule
+            if board.halfmove_clock() >= 100 {
+                return 0;
+            }
+        }
 
         // Escape condition
         if depth == 0 {
@@ -119,6 +135,7 @@ impl Search {
         for mv in move_list {
             let mut new_board = board.clone();
             new_board.play(mv);
+
             self.nodes += 1;
             moves_done += 1;
 
@@ -192,6 +209,8 @@ impl Search {
             self.tt
                 .store(hash_key, best_move.into(), best_score, depth, flag, ply);
         }
+
+        self.game_history.pop();
 
         return best_score;
     }
@@ -334,5 +353,16 @@ impl Search {
         }
 
         return 0;
+    }
+
+    fn repetitions(&self, board: &Board) -> usize {
+        self.game_history
+            .iter()
+            .rev()
+            .take(board.halfmove_clock() as usize + 1)
+            .step_by(2)
+            .skip(1)
+            .filter(|hash| hash == &&board.hash())
+            .count()
     }
 }

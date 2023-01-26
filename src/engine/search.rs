@@ -54,7 +54,7 @@ impl Search {
             }
         }
 
-        if self.stop {
+        if self.stop && ply > 0 {
             return 0;
         }
 
@@ -122,6 +122,7 @@ impl Search {
             self.nodes += 1;
             moves_done += 1;
 
+            // Principal Variation Search
             let mut score: i16;
             if moves_done == 1 {
                 score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1, is_pv);
@@ -138,6 +139,10 @@ impl Search {
                 if score > alpha {
                     alpha = score;
                     best_move = Some(mv);
+
+                    /////////////////////////////////////////////////////////////
+                    // PV LOGIC - https://www.youtube.com/watch?v=LOR-dkAkUyM  //
+                    /////////////////////////////////////////////////////////////
 
                     // Write to PV table
                     let uply = ply as usize;
@@ -202,7 +207,7 @@ impl Search {
             }
         }
 
-        if self.stop {
+        if self.stop && ply > 0 {
             return 0;
         }
 
@@ -258,14 +263,14 @@ impl Search {
             SearchType::Depth(d) => depth = d + 1, // + 1 because we start at 1,
         };
 
-        let mut best_move: Option<Move> = None;
         // Not the search timer, but for info printing
         let start = Instant::now();
+        let mut best_move: Option<Move> = None;
 
         for d in 1..depth {
             let score = self.pvsearch(board, -INFINITY, INFINITY, d, 0, true);
 
-            if self.stop {
+            if self.stop && d > 1 {
                 break;
             }
 
@@ -274,16 +279,11 @@ impl Search {
             println!(
                 "info depth {} score {} nodes {} time {} pv{}",
                 d,
-                self.show_score(score),
+                self.parse_score(score),
                 self.nodes,
                 start.elapsed().as_millis(),
                 self.show_pv()
             );
-        }
-
-        // Last try to get best move - may panic otherwise
-        if best_move.is_none() {
-            best_move = self.pv_table[0][0];
         }
 
         println!("bestmove {}", best_move.unwrap().to_string());
@@ -303,7 +303,7 @@ impl Search {
     }
 
     // Parse score to UCI standard
-    pub fn show_score(&self, score: i16) -> String {
+    pub fn parse_score(&self, score: i16) -> String {
         assert!(score < NONE);
         let print_score: String;
         if score >= MATE_IN {

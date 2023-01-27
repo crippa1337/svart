@@ -342,7 +342,7 @@ impl Search {
             return 1000;
         }
 
-        // Returns between 100 - 600
+        // Returns between 100..600
         if movegen::piece_num_at(board, mv.to) != 0 {
             return mvvlva(board, mv) as i16;
         }

@@ -4,6 +4,13 @@ use crate::{
 };
 use cozy_chess::{Board, Color, Move, Piece, Square};
 
+#[derive(Debug, PartialEq)]
+pub enum SearchType {
+    Time(u64),
+    Depth(u8),
+    Infinite,
+}
+
 pub fn main_loop() {
     let mut board = Board::default();
     let mut tt_size = 32;
@@ -76,6 +83,7 @@ pub fn main_loop() {
                         if words[1] == "startpos" {
                             board = Board::startpos();
                             board_set = true;
+                            search.game_history = vec![board.hash()]
                         } else if words[1] == "fen" {
                             // Put together the split fen string
                             let mut fen = String::new();
@@ -102,6 +110,7 @@ pub fn main_loop() {
                                 let mut mv: Move = words[i].parse().unwrap();
                                 mv = check_castling_move(&board, mv);
                                 board.play(mv);
+                                search.game_history.push(board.hash());
                             }
                         }
                         break 'main;
@@ -266,11 +275,4 @@ fn reset_search(search: &mut Search) {
     search.pv_length = [0; MAX_PLY as usize];
     search.pv_table = [[None; MAX_PLY as usize]; MAX_PLY as usize];
     search.nodes = 0;
-}
-
-#[derive(Debug, PartialEq)]
-pub enum SearchType {
-    Time(u64),
-    Depth(u8),
-    Infinite,
 }

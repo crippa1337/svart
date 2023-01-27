@@ -16,6 +16,7 @@ pub struct Search {
     pub pv_table: [[Option<Move>; MAX_PLY as usize]; MAX_PLY as usize],
     pub nodes: u32,
     pub tt: TT,
+    pub game_history: Vec<u64>,
 }
 
 impl Search {
@@ -29,6 +30,7 @@ impl Search {
             pv_table: [[None; MAX_PLY as usize]; MAX_PLY as usize],
             nodes: 0,
             tt,
+            game_history: vec![],
         };
     }
 
@@ -65,6 +67,14 @@ impl Search {
         // Init PV
         self.pv_length[ply as usize] = ply;
         let hash_key = board.hash();
+        let root = ply == 0;
+
+        if !root {
+            if self.repetition(board, hash_key) {
+                // Avoids three-fold repetition blindness
+                return 8 - (self.nodes as i16 & 7);
+            }
+        }
 
         // Escape condition
         if depth == 0 {
@@ -119,6 +129,8 @@ impl Search {
         for mv in move_list {
             let mut new_board = board.clone();
             new_board.play(mv);
+            self.game_history.push(new_board.hash());
+
             self.nodes += 1;
             moves_done += 1;
 
@@ -132,6 +144,8 @@ impl Search {
                     score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1, true);
                 }
             }
+
+            self.game_history.pop();
 
             if score > best_score {
                 best_score = score;
@@ -334,5 +348,23 @@ impl Search {
         }
 
         return 0;
+    }
+
+    // Tantabaus repetition detection
+    pub fn repetition(&self, board: &Board, hash: u64) -> bool {
+        for key in self
+            .game_history
+            .iter()
+            .rev()
+            .take(board.halfmove_clock() as usize + 1)
+            .skip(2)
+            .step_by(2)
+        {
+            if *key == hash {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

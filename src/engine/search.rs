@@ -44,7 +44,7 @@ impl Search {
         is_pv: bool,
     ) -> i16 {
         let hash_key = board.hash();
-        self.game_history.push(hash_key);
+        // self.game_history.push(hash_key);
         ///////////////////
         // Early returns //
         ///////////////////
@@ -74,11 +74,6 @@ impl Search {
             // Check for draw by repetition
             if self.repetitions(board) > 0 {
                 return 8 - (self.nodes as i16 & 7);
-            }
-
-            // Check for draw by 50 move rule
-            if board.halfmove_clock() >= 100 {
-                return 0;
             }
         }
 
@@ -210,7 +205,7 @@ impl Search {
                 .store(hash_key, best_move.into(), best_score, depth, flag, ply);
         }
 
-        self.game_history.pop();
+        // self.game_history.pop();
 
         return best_score;
     }
@@ -362,7 +357,7 @@ impl Search {
             .take(board.halfmove_clock() as usize + 1)
             .step_by(2)
             .skip(1)
-            .filter(|hash| hash == &&board.hash())
+            .filter(|&&hash| hash == board.hash())
             .count()
     }
 }

@@ -67,7 +67,6 @@ impl Search {
         // Init PV
         self.pv_length[ply as usize] = ply;
         let hash_key = board.hash();
-        self.game_history.push(hash_key);
         let root = ply == 0;
 
         if !root {
@@ -130,6 +129,8 @@ impl Search {
         for mv in move_list {
             let mut new_board = board.clone();
             new_board.play(mv);
+            self.game_history.push(new_board.hash());
+
             self.nodes += 1;
             moves_done += 1;
 
@@ -143,6 +144,8 @@ impl Search {
                     score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1, true);
                 }
             }
+
+            self.game_history.pop();
 
             if score > best_score {
                 best_score = score;
@@ -203,8 +206,6 @@ impl Search {
             self.tt
                 .store(hash_key, best_move.into(), best_score, depth, flag, ply);
         }
-
-        self.game_history.pop();
 
         return best_score;
     }

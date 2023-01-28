@@ -271,9 +271,8 @@ impl Search {
         match st {
             SearchType::Time(t) => {
                 depth = MAX_PLY as u8;
-                // Start the search timer
                 self.timer = Some(Instant::now());
-                // Small overhead to make sure we don't go over time
+                // Overhead to avoid timeouts
                 self.goal_time = Some(t - TIME_OVERHEAD);
             }
             SearchType::Infinite => {

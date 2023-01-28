@@ -255,14 +255,12 @@ fn time_for_move(time: u64, increment: Option<u64>, moves_to_go: Option<u8>) -> 
     // Account for overhead
     let time = time - constants::TIME_OVERHEAD;
 
-    if moves_to_go.is_some() {
-        return time / moves_to_go.unwrap() as u64;
+    if let Some(n) = moves_to_go {
+        time / n.max(1) as u64
+    } else if let Some(n) = increment {
+        (time / 20) + (n / 2)
     } else {
-        if increment.is_some() {
-            return (time / 20) + (increment.unwrap() / 2);
-        } else {
-            return time / 20;
-        }
+        time / 20
     }
 }
 

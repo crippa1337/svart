@@ -19,7 +19,7 @@ checksum = "6f4a557c6659b8705d301732f473c9a61659c740ffda3e3485e79d1d4b7a1e12"
 
 [[package]]
 name = "daedalus"
-version = "0.4.3"
+version = "0.4.4"
 dependencies = [
  "cozy-chess",
 ]

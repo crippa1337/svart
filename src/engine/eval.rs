@@ -1,13 +1,16 @@
-use crate::{constants, engine::psqt};
+use crate::{
+    constants::{piece_val, EVAL_PIECES},
+    engine::psqt,
+};
 use cozy_chess::{Board, Color, Piece};
 
 pub fn evaluate(board: &Board) -> i16 {
     let mut white_score: i16 = 0;
     let mut black_score: i16 = 0;
 
-    for pt in Piece::ALL {
+    for pt in EVAL_PIECES {
         for mut square in board.pieces(pt) {
-            let piece_val: i16 = constants::piece_val(pt);
+            let piece_val: i16 = piece_val(pt);
 
             let color = board.color_on(square).unwrap();
 
@@ -16,7 +19,7 @@ pub fn evaluate(board: &Board) -> i16 {
                 square = square.flip_rank();
             }
 
-            // get square index for PSQT - https://www.chessprogramming.org/Square_Mapping_Considerations#Deduction_on_Files_and_Ranks
+            // Get square index for PSQT - https://www.chessprogramming.org/Square_Mapping_Considerations#Deduction_on_Files_and_Ranks
             let square_index = square as usize;
             let rank = square_index / 8;
             let file = square_index % 8;

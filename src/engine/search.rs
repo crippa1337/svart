@@ -351,7 +351,7 @@ impl Search {
     }
 
     // Tantabaus repetition detection
-    pub fn repetition(&self, board: &Board, hash: u64) -> bool {
+    fn repetition(&self, board: &Board, hash: u64) -> bool {
         for key in self
             .game_history
             .iter()

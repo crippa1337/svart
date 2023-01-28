@@ -1,4 +1,11 @@
 use cozy_chess::Piece;
+pub const EVAL_PIECES: [Piece; 5] = [
+    Piece::Pawn,
+    Piece::Knight,
+    Piece::Bishop,
+    Piece::Rook,
+    Piece::Queen,
+];
 
 pub const MAX_PLY: i16 = 64;
 
@@ -27,6 +34,6 @@ pub fn piece_val(piece: Piece) -> i16 {
         Piece::Bishop => 330,
         Piece::Rook => 500,
         Piece::Queen => 900,
-        Piece::King => 2000,
+        _ => unreachable!(),
     };
 }

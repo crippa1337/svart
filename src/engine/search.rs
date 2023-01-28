@@ -47,12 +47,12 @@ impl Search {
         // Early returns //
         ///////////////////
 
-        if self.nodes % 1024 == 0 && self.timer.is_some() && self.goal_time.is_some() {
-            let time = self.timer.as_ref().unwrap();
-            let goal = self.goal_time.unwrap();
-            if time.elapsed().as_millis() as u64 >= goal {
-                self.stop = true;
-                return 0;
+        if let (Some(timer), Some(goal)) = (self.timer, self.goal_time) {
+            if self.nodes % 1024 == 0 {
+                if timer.elapsed().as_millis() as u64 >= goal {
+                    self.stop = true;
+                    return 0;
+                }
             }
         }
 
@@ -217,12 +217,12 @@ impl Search {
 
     fn qsearch(&mut self, board: &Board, mut alpha: i16, beta: i16, ply: i16) -> i16 {
         // Early returns
-        if self.nodes % 1024 == 0 && self.timer.is_some() && self.goal_time.is_some() {
-            let time = self.timer.as_ref().unwrap();
-            let goal = self.goal_time.unwrap();
-            if time.elapsed().as_millis() as u64 >= goal {
-                self.stop = true;
-                return 0;
+        if let (Some(timer), Some(goal)) = (self.timer, self.goal_time) {
+            if self.nodes % 1024 == 0 {
+                if timer.elapsed().as_millis() as u64 >= goal {
+                    self.stop = true;
+                    return 0;
+                }
             }
         }
 

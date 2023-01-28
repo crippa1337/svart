@@ -70,8 +70,12 @@ impl Search {
         let root = ply == 0;
 
         if !root {
+            if board.halfmove_clock() >= 100 {
+                return 0;
+            }
+
             if self.repetition(board, hash_key) {
-                // Avoids three-fold repetition blindness
+                // Avoids three-fold repetition blindness - Elo difference: 70.4 +/- 29.8
                 return 8 - (self.nodes as i16 & 7);
             }
         }
@@ -182,6 +186,7 @@ impl Search {
         // ENDSTATES //
         ///////////////
 
+        // Checkmates and stalemates
         if moves_done == 0 {
             if board.checkers() != BitBoard::EMPTY {
                 return mated_in(ply);

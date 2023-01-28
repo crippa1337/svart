@@ -15,7 +15,7 @@ pub struct TTEntry {
     pub mv: Option<Move>, // 4 bytes
     pub score: i16,       // 2 bytes
     pub depth: u8,        // 1 byte
-    pub flags: TTFlag,
+    pub flags: TTFlag,    // 1 byte
 }
 
 #[derive(Clone)]

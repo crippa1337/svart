@@ -34,8 +34,8 @@ pub fn evaluate(board: &Board) -> i16 {
                     white_eg += EG_TABLE[p_type(piece)][sq];
                 }
                 Color::Black => {
-                    black_mg += MG_TABLE[sq][p_type(piece) + 6];
-                    black_eg += EG_TABLE[sq][p_type(piece) + 6];
+                    black_mg += MG_TABLE[p_type(piece) + 6][sq];
+                    black_eg += EG_TABLE[p_type(piece) + 6][sq];
                 }
             }
         }

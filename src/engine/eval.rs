@@ -1,7 +1,7 @@
 use crate::engine::psqt::*;
 use cozy_chess::{Board, Color, Piece};
 
-const PHASE_INC: [i16; 6] = [0, 1, 1, 2, 4, 0];
+const PHASE_INC: [i32; 6] = [0, 1, 1, 2, 4, 0];
 
 fn p_type(piece: Piece) -> usize {
     match piece {
@@ -15,10 +15,10 @@ fn p_type(piece: Piece) -> usize {
 }
 
 pub fn evaluate(board: &Board) -> i16 {
-    let mut white_mg: i16 = 0;
-    let mut white_eg: i16 = 0;
-    let mut black_mg: i16 = 0;
-    let mut black_eg: i16 = 0;
+    let mut white_mg = 0;
+    let mut white_eg = 0;
+    let mut black_mg = 0;
+    let mut black_eg = 0;
     let mut game_phase = 0;
 
     for pt in Piece::ALL {
@@ -52,7 +52,7 @@ pub fn evaluate(board: &Board) -> i16 {
     let eg_weight = 24 - mg_weight;
 
     match board.side_to_move() {
-        Color::White => (mg_score * mg_weight + eg_score * eg_weight) / 24,
-        Color::Black => (mg_score * mg_weight + eg_score * eg_weight) / -24,
+        Color::White => (((mg_score * mg_weight) + (eg_score * eg_weight)) / 24) as i16,
+        Color::Black => (((mg_score * mg_weight) + (eg_score * eg_weight)) / -24) as i16,
     }
 }

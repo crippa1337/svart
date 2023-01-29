@@ -1,12 +1,3 @@
-use cozy_chess::Piece;
-pub const EVAL_PIECES: [Piece; 5] = [
-    Piece::Pawn,
-    Piece::Knight,
-    Piece::Bishop,
-    Piece::Rook,
-    Piece::Queen,
-];
-
 pub const MAX_PLY: i16 = 64;
 
 pub const NONE: i16 = 32002;
@@ -25,15 +16,4 @@ pub const TIME_OVERHEAD: u64 = 3;
 
 pub fn mated_in(ply: i16) -> i16 {
     return ply - MATE;
-}
-
-pub fn piece_val(piece: Piece) -> i16 {
-    return match piece {
-        Piece::Pawn => 100,
-        Piece::Knight => 320,
-        Piece::Bishop => 330,
-        Piece::Rook => 500,
-        Piece::Queen => 900,
-        _ => unreachable!(),
-    };
 }

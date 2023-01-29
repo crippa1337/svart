@@ -1,46 +1,58 @@
-use crate::{
-    constants::{piece_val, EVAL_PIECES},
-    engine::psqt,
-};
+use crate::engine::psqt::*;
 use cozy_chess::{Board, Color, Piece};
 
+const PHASE_INC: [i16; 6] = [0, 1, 1, 2, 4, 0];
+
+fn p_type(piece: Piece) -> usize {
+    match piece {
+        Piece::Pawn => 0,
+        Piece::Knight => 1,
+        Piece::Bishop => 2,
+        Piece::Rook => 3,
+        Piece::Queen => 4,
+        Piece::King => 5,
+    }
+}
+
 pub fn evaluate(board: &Board) -> i16 {
-    let mut white_score: i16 = 0;
-    let mut black_score: i16 = 0;
+    let mut white_mg: i16 = 0;
+    let mut white_eg: i16 = 0;
+    let mut black_mg: i16 = 0;
+    let mut black_eg: i16 = 0;
+    let mut game_phase = 0;
 
-    for pt in EVAL_PIECES {
-        for mut square in board.pieces(pt) {
-            let piece_val: i16 = piece_val(pt);
-
+    for pt in Piece::ALL {
+        for square in board.pieces(pt) {
+            let piece = board.piece_on(square).unwrap();
             let color = board.color_on(square).unwrap();
-
-            // Flip rank for PSQT if white
-            if color == Color::White {
-                square = square.flip_rank();
-            }
-
-            // Get square index for PSQT - https://www.chessprogramming.org/Square_Mapping_Considerations#Deduction_on_Files_and_Ranks
-            let square_index = square as usize;
-            let rank = square_index / 8;
-            let file = square_index % 8;
-            let pos_val: i16 = match pt {
-                Piece::Pawn => psqt::PAWN_TABLE[rank][file],
-                Piece::Knight => psqt::KNIGHT_TABLE[rank][file],
-                Piece::Bishop => psqt::BISHOP_TABLE[rank][file],
-                Piece::Rook => psqt::ROOK_TABLE[rank][file],
-                Piece::Queen => psqt::QUEEN_TABLE[rank][file],
-                Piece::King => psqt::KING_TABLE[rank][file],
-            };
+            let sq = square.flip_rank() as usize;
+            game_phase += PHASE_INC[p_type(piece)];
 
             match color {
-                Color::White => white_score += piece_val + pos_val,
-                Color::Black => black_score += piece_val + pos_val,
+                Color::White => {
+                    white_mg += MG_TABLE[p_type(piece)][sq];
+                    white_eg += EG_TABLE[p_type(piece)][sq];
+                }
+                Color::Black => {
+                    black_mg += MG_TABLE[sq][p_type(piece) + 6];
+                    black_eg += EG_TABLE[sq][p_type(piece) + 6];
+                }
             }
         }
     }
 
-    match board.side_to_move() {
-        Color::White => return white_score - black_score,
-        Color::Black => return (white_score - black_score) * -1,
+    let mg_score = white_mg - black_mg;
+    let eg_score = white_eg - black_eg;
+
+    let mut mg_weight = game_phase;
+    if mg_weight > 24 {
+        mg_weight = 24
     };
+
+    let eg_weight = 24 - mg_weight;
+
+    match board.side_to_move() {
+        Color::White => (mg_score * mg_weight + eg_score * eg_weight) / 24,
+        Color::Black => (mg_score * mg_weight + eg_score * eg_weight) / -24,
+    }
 }

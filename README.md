@@ -3,7 +3,7 @@ A UCI chess engine written in Rust.
 
 
 ## UCI Support
-Daedalus currently partially supports the following UCI commands:
+### Daedalus currently partially supports the following UCI commands:
 
 * ``uci``
 * ``isready``
@@ -15,7 +15,7 @@ Daedalus currently partially supports the following UCI commands:
 
 <br>
 
-Daeadlus currently supports the following UCI options:
+### Daeadalus currently supports the following UCI options:
 
 * ### Hash
     Minimum: 1 <br>

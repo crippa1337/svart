@@ -15,5 +15,5 @@ pub const TB_LOSS_IN_PLY: i16 = -TB_WIN_IN_PLY;
 pub const TIME_OVERHEAD: u64 = 3;
 
 pub fn mated_in(ply: i16) -> i16 {
-    return ply - MATE;
+    ply - MATE
 }

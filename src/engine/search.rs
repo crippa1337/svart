@@ -47,6 +47,7 @@ impl Search {
         // Early returns //
         ///////////////////
 
+        // Every 1024 nodes, check if it's time to stop
         if let (Some(timer), Some(goal)) = (self.timer, self.goal_time) {
             if self.nodes % 1024 == 0 {
                 if timer.elapsed().as_millis() as u64 >= goal {
@@ -74,8 +75,8 @@ impl Search {
                 return 0;
             }
 
+            // Avoids three-fold repetition blindness - Elo difference: 70.4 +/- 29.8
             if self.repetition(board, hash_key) {
-                // Avoids three-fold repetition blindness - Elo difference: 70.4 +/- 29.8
                 return 8 - (self.nodes as i16 & 7);
             }
         }
@@ -212,7 +213,7 @@ impl Search {
                 .store(hash_key, best_move.into(), best_score, depth, flag, ply);
         }
 
-        return best_score;
+        best_score
     }
 
     fn qsearch(&mut self, board: &Board, mut alpha: i16, beta: i16, ply: i16) -> i16 {
@@ -263,7 +264,7 @@ impl Search {
             }
         }
 
-        return best_score;
+        best_score
     }
 
     pub fn iterative_deepening(&mut self, board: &Board, st: SearchType) {
@@ -272,17 +273,15 @@ impl Search {
             SearchType::Time(t) => {
                 depth = MAX_PLY as u8;
                 self.timer = Some(Instant::now());
-                // Overhead to avoid timeouts
                 self.goal_time = Some(t - TIME_OVERHEAD);
             }
             SearchType::Infinite => {
                 depth = MAX_PLY as u8;
             }
-            SearchType::Depth(d) => depth = d + 1, // + 1 because we start at 1,
+            SearchType::Depth(d) => depth = d + 1,
         };
 
-        // Not the search timer, but for info printing
-        let start = Instant::now();
+        let info_timer = Instant::now();
         let mut best_move: Option<Move> = None;
 
         for d in 1..depth {
@@ -299,7 +298,7 @@ impl Search {
                 d,
                 self.parse_score(score),
                 self.nodes,
-                start.elapsed().as_millis(),
+                info_timer.elapsed().as_millis(),
                 self.show_pv()
             );
         }
@@ -317,7 +316,7 @@ impl Search {
             pv.push_str(&self.pv_table[0][i as usize].unwrap().to_string());
         }
 
-        return pv;
+        pv
     }
 
     // Parse score to UCI standard
@@ -332,7 +331,7 @@ impl Search {
             print_score = format!("cp {}", score);
         }
 
-        return print_score;
+        print_score
     }
 
     pub fn score_moves(&self, board: &Board, mv: Move, tt_move: Option<Move>) -> i16 {

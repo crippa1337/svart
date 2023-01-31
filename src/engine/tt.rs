@@ -38,16 +38,16 @@ impl TT {
             });
         }
 
-        return Self { entries };
+        Self { entries }
     }
 
     pub fn index(&self, key: u64) -> usize {
-        return key as usize % self.entries.capacity();
+        key as usize % self.entries.capacity()
     }
 
     pub fn probe(&self, key: u64) -> TTEntry {
         let index = self.index(key);
-        return self.entries[index];
+        self.entries[index]
     }
 
     pub fn store(
@@ -73,12 +73,12 @@ impl TT {
 
     pub fn score_to_tt(&self, score: i16, ply: i16) -> i16 {
         if score >= TB_WIN_IN_PLY {
-            return score + ply;
+            score + ply
         } else {
             if score <= TB_LOSS_IN_PLY {
-                return score - ply;
+                score - ply
             } else {
-                return score;
+                score
             }
         }
     }

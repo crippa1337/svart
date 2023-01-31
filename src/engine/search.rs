@@ -303,7 +303,7 @@ impl Search {
             );
         }
 
-        println!("bestmove {}", best_move.unwrap().to_string());
+        println!("bestmove {}", best_move.unwrap());
     }
 
     pub fn show_pv(&self) -> String {
@@ -328,7 +328,7 @@ impl Search {
         } else if score <= MATED_IN {
             print_score = format!("mate {}", -(((MATE + score) / 2) + ((MATE + score) & 1)));
         } else {
-            print_score = format!("cp {}", score);
+            print_score = format!("cp {score}");
         }
 
         print_score
@@ -350,7 +350,7 @@ impl Search {
             return mvvlva(board, mv) as i16;
         }
 
-        return 0;
+        0
     }
 
     // Tantabaus repetition detection
@@ -368,6 +368,6 @@ impl Search {
             }
         }
 
-        return false;
+        false
     }
 }

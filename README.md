@@ -2,9 +2,10 @@
 A UCI chess engine written in Rust.
 
 
-## UCI Support
-### Daedalus currently partially supports the following UCI commands:
+# UCI
+### Daedalus currently supports:
 
+#### Commands:
 * ``uci``
 * ``isready``
 * ``quit``
@@ -13,14 +14,12 @@ A UCI chess engine written in Rust.
 * ``go``
 * ``position``
 
-<br>
-
-### Daeadalus currently supports the following UCI options:
-
+#### Options:
 * ### Hash
     Minimum: 1 <br>
     Default: 32 <br>
     Maximum: 1024 <br>
+
 
 # Compilation
 Compile Daedalus using <a href="https://doc.rust-lang.org/cargo/">Cargo</a> in ``/target/release``.

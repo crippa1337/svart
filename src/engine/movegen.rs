@@ -57,25 +57,23 @@ pub fn mvvlva(board: &Board, mv: Move) -> i32 {
         victim = 1
     }
 
-    return mvvlva[victim as usize][attacker as usize];
+    mvvlva[victim as usize][attacker as usize]
 }
 
 pub fn piece_num_at(board: &Board, square: Square) -> i32 {
     let piece = board.piece_on(square);
-    if piece == None {
+    if piece.is_none() {
         return 0;
     }
 
-    let num = match piece.unwrap() {
+    match piece.unwrap() {
         Piece::Pawn => 1,
         Piece::Knight => 2,
         Piece::Bishop => 3,
         Piece::Rook => 4,
         Piece::Queen => 5,
         Piece::King => 6,
-    };
-
-    return num;
+    }
 }
 
 pub fn all_moves(board: &Board) -> Vec<Move> {
@@ -87,5 +85,21 @@ pub fn all_moves(board: &Board) -> Vec<Move> {
         false
     });
 
-    return move_list;
+    move_list
+}
+
+pub fn pick_move(moves: &[Move], scores: &mut [i16], index: usize) -> Move {
+    let mut best_index = index;
+    let mut best_score = scores[index];
+
+    for (i, _) in scores.iter().enumerate().skip(index + 1) {
+        if scores[i] > best_score {
+            best_index = i;
+            best_score = scores[i];
+        }
+    }
+
+    scores.swap(index, best_index);
+
+    moves[index]
 }

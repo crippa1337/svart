@@ -121,15 +121,17 @@ impl Search {
         let mut best_score: i16 = NEG_INFINITY;
         let mut best_move: Option<Move> = None;
         let mut moves_done: u32 = 0;
-        let mut move_list = movegen::all_moves(board);
+        let move_list = movegen::all_moves(board);
 
-        move_list.sort_by(|a, b| {
-            let a_score = self.score_moves(board, *a, tt_move);
-            let b_score = self.score_moves(board, *b, tt_move);
-            b_score.cmp(&a_score)
-        });
+        let mut move_scores = vec![];
+        for mv in &move_list {
+            let score = self.score_moves(board, *mv, tt_move);
+            move_scores.push(score);
+        }
 
-        for mv in move_list {
+        for i in 0..move_scores.len() {
+            let mv = movegen::pick_move(&move_list, &mut move_scores, i);
+
             let mut new_board = board.clone();
             new_board.play(mv);
             self.game_history.push(new_board.hash());

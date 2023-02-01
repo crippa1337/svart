@@ -121,7 +121,7 @@ impl Search {
         let mut best_score: i16 = NEG_INFINITY;
         let mut best_move: Option<Move> = None;
         let mut moves_done: u32 = 0;
-        let move_list = movegen::all_moves(board);
+        let mut move_list = movegen::all_moves(board);
 
         let mut move_scores = vec![];
         for mv in &move_list {
@@ -130,7 +130,7 @@ impl Search {
         }
 
         for i in 0..move_scores.len() {
-            let mv = movegen::pick_move(&move_list, &mut move_scores, i);
+            let mv = movegen::pick_move(&mut move_list, &mut move_scores, i);
 
             let mut new_board = board.clone();
             new_board.play(mv);

@@ -7,18 +7,20 @@ pub fn capture_moves(board: &Board) -> Vec<Move> {
     // assigns ep_square to the square that can be attacked
     let ep = board.en_passant();
     let mut ep_square: Option<Square> = None;
-    if ep.is_some() {
+    if let Some(ep) = ep {
         if board.side_to_move() == Color::White {
-            ep_square = Some(Square::new(ep.unwrap(), Rank::Sixth));
+            ep_square = Some(Square::new(ep, Rank::Sixth));
         } else {
-            ep_square = Some(Square::new(ep.unwrap(), Rank::Third));
+            ep_square = Some(Square::new(ep, Rank::Third));
         }
     }
 
     board.generate_moves(|mut moves| {
         let mut permissible = enemy_pieces;
-        if ep_square.is_some() && moves.piece == Piece::Pawn {
-            permissible |= ep_square.unwrap().bitboard();
+        if let Some(ep_square) = ep_square {
+            if moves.piece == Piece::Pawn {
+                permissible |= ep_square.bitboard();
+            }
         }
         moves.to &= permissible;
         captures_list.extend(moves);
@@ -32,7 +34,7 @@ pub fn capture_moves(board: &Board) -> Vec<Move> {
         b_score.cmp(&a_score)
     });
 
-    return captures_list;
+    captures_list
 }
 
 // Most Valuable Victim - Least Valuable Aggressor (MVV-LVA)
@@ -88,11 +90,11 @@ pub fn all_moves(board: &Board) -> Vec<Move> {
     move_list
 }
 
-pub fn pick_move(moves: &[Move], scores: &mut [i16], index: usize) -> Move {
+pub fn pick_move(moves: &mut [Move], scores: &mut [i16], index: usize) -> Move {
     let mut best_index = index;
     let mut best_score = scores[index];
 
-    for (i, _) in scores.iter().enumerate().skip(index + 1) {
+    for (i, _) in moves.iter().enumerate().skip(index) {
         if scores[i] > best_score {
             best_index = i;
             best_score = scores[i];
@@ -100,6 +102,7 @@ pub fn pick_move(moves: &[Move], scores: &mut [i16], index: usize) -> Move {
     }
 
     scores.swap(index, best_index);
+    moves.swap(index, best_index);
 
     moves[index]
 }

@@ -21,7 +21,7 @@ pub struct Search {
 
 impl Search {
     pub fn new(tt: TT) -> Self {
-        return Search {
+        Search {
             stop: false,
             search_type: SearchType::Depth(0),
             timer: None,
@@ -31,7 +31,7 @@ impl Search {
             nodes: 0,
             tt,
             game_history: vec![],
-        };
+        }
     }
 
     pub fn pvsearch(
@@ -49,11 +49,9 @@ impl Search {
 
         // Every 1024 nodes, check if it's time to stop
         if let (Some(timer), Some(goal)) = (self.timer, self.goal_time) {
-            if self.nodes % 1024 == 0 {
-                if timer.elapsed().as_millis() as u64 >= goal {
-                    self.stop = true;
-                    return 0;
-                }
+            if self.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= goal {
+                self.stop = true;
+                return 0;
             }
         }
 
@@ -86,9 +84,9 @@ impl Search {
             return self.qsearch(board, alpha, beta, ply);
         }
 
-        /////////////////////////
-        // Transposition table //
-        /////////////////////////
+        /////////////////////////////////
+        // Transposition table cut-off //
+        /////////////////////////////////
 
         let tt_entry = self.tt.probe(hash_key);
         let tt_hit = tt_entry.key == hash_key;
@@ -101,7 +99,7 @@ impl Search {
         };
 
         if !is_pv && tt_hit && tt_entry.depth >= depth {
-            assert!(tt_score < NONE);
+            debug_assert!(tt_score < NONE);
 
             match tt_entry.flags {
                 TTFlag::Exact => return tt_score,
@@ -200,17 +198,15 @@ impl Search {
         let flag;
         if best_score >= beta {
             flag = TTFlag::LowerBound;
+        } else if best_score != old_alpha {
+            flag = TTFlag::Exact;
         } else {
-            if best_score != old_alpha {
-                flag = TTFlag::Exact;
-            } else {
-                flag = TTFlag::UpperBound;
-            }
+            flag = TTFlag::UpperBound;
         }
 
         if !self.stop {
             self.tt
-                .store(hash_key, best_move.into(), best_score, depth, flag, ply);
+                .store(hash_key, best_move, best_score, depth, flag, ply);
         }
 
         best_score
@@ -219,11 +215,9 @@ impl Search {
     fn qsearch(&mut self, board: &Board, mut alpha: i16, beta: i16, ply: i16) -> i16 {
         // Early returns
         if let (Some(timer), Some(goal)) = (self.timer, self.goal_time) {
-            if self.nodes % 1024 == 0 {
-                if timer.elapsed().as_millis() as u64 >= goal {
-                    self.stop = true;
-                    return 0;
-                }
+            if self.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= goal {
+                self.stop = true;
+                return 0;
             }
         }
 
@@ -335,8 +329,8 @@ impl Search {
     }
 
     pub fn score_moves(&self, board: &Board, mv: Move, tt_move: Option<Move>) -> i16 {
-        if tt_move.is_some() {
-            if mv == tt_move.unwrap() {
+        if let Some(tmove) = tt_move {
+            if mv == tmove {
                 return INFINITY;
             }
         }

@@ -24,7 +24,7 @@ pub fn main_loop() {
         std::io::stdin().read_line(&mut line).unwrap();
         line = line.trim().to_string();
         let words: Vec<&str> = line.split_whitespace().collect();
-        if words.len() == 0 {
+        if words.is_empty() {
             continue;
         }
 
@@ -247,7 +247,7 @@ fn check_castling_move(board: &Board, mut mv: Move) -> Move {
 }
 
 fn go(board: &Board, st: SearchType, search: &mut Search) {
-    search.iterative_deepening(&board, st);
+    search.iterative_deepening(board, st);
     reset_search(search);
 }
 

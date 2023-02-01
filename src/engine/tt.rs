@@ -74,24 +74,20 @@ impl TT {
     pub fn score_to_tt(&self, score: i16, ply: i16) -> i16 {
         if score >= TB_WIN_IN_PLY {
             score + ply
+        } else if score <= TB_LOSS_IN_PLY {
+            score - ply
         } else {
-            if score <= TB_LOSS_IN_PLY {
-                score - ply
-            } else {
-                score
-            }
+            score
         }
     }
 
     pub fn score_from_tt(&self, score: i16, ply: i16) -> i16 {
         if score >= TB_WIN_IN_PLY {
-            return score - ply;
+            score - ply
+        } else if score <= TB_LOSS_IN_PLY {
+            score + ply
         } else {
-            if score <= TB_LOSS_IN_PLY {
-                return score + ply;
-            } else {
-                return score;
-            }
+            score
         }
     }
 }

@@ -7,18 +7,20 @@ pub fn capture_moves(board: &Board) -> Vec<Move> {
     // assigns ep_square to the square that can be attacked
     let ep = board.en_passant();
     let mut ep_square: Option<Square> = None;
-    if ep.is_some() {
+    if let Some(ep) = ep {
         if board.side_to_move() == Color::White {
-            ep_square = Some(Square::new(ep.unwrap(), Rank::Sixth));
+            ep_square = Some(Square::new(ep, Rank::Sixth));
         } else {
-            ep_square = Some(Square::new(ep.unwrap(), Rank::Third));
+            ep_square = Some(Square::new(ep, Rank::Third));
         }
     }
 
     board.generate_moves(|mut moves| {
         let mut permissible = enemy_pieces;
-        if ep_square.is_some() && moves.piece == Piece::Pawn {
-            permissible |= ep_square.unwrap().bitboard();
+        if let Some(epsq) = ep_square {
+            if moves.piece == Piece::Pawn {
+                permissible |= epsq.bitboard();
+            }
         }
         moves.to &= permissible;
         captures_list.extend(moves);
@@ -32,7 +34,7 @@ pub fn capture_moves(board: &Board) -> Vec<Move> {
         b_score.cmp(&a_score)
     });
 
-    return captures_list;
+    captures_list
 }
 
 // Most Valuable Victim - Least Valuable Aggressor (MVV-LVA)
@@ -57,25 +59,23 @@ pub fn mvvlva(board: &Board, mv: Move) -> i32 {
         victim = 1
     }
 
-    return mvvlva[victim as usize][attacker as usize];
+    mvvlva[victim as usize][attacker as usize]
 }
 
 pub fn piece_num_at(board: &Board, square: Square) -> i32 {
     let piece = board.piece_on(square);
-    if piece == None {
+    if piece.is_none() {
         return 0;
     }
 
-    let num = match piece.unwrap() {
+    match piece.unwrap() {
         Piece::Pawn => 1,
         Piece::Knight => 2,
         Piece::Bishop => 3,
         Piece::Rook => 4,
         Piece::Queen => 5,
         Piece::King => 6,
-    };
-
-    return num;
+    }
 }
 
 pub fn all_moves(board: &Board) -> Vec<Move> {
@@ -87,5 +87,5 @@ pub fn all_moves(board: &Board) -> Vec<Move> {
         false
     });
 
-    return move_list;
+    move_list
 }

@@ -237,10 +237,18 @@ impl Search {
         }
         alpha = alpha.max(stand_pat);
 
-        let captures = movegen::capture_moves(board);
+        let mut captures = movegen::capture_moves(board);
+        let mut capture_scores = vec![];
+        for capture in &captures {
+            let score = movegen::mvvlva(board, *capture) as i16;
+            capture_scores.push(score);
+        }
+
         let mut best_score = stand_pat;
 
-        for mv in captures {
+        for i in 0..capture_scores.len() {
+            let mv = movegen::pick_move(&mut captures, &mut capture_scores, i);
+
             let mut new_board = board.clone();
             new_board.play(mv);
             self.nodes += 1;

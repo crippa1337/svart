@@ -1,9 +1,10 @@
-# Daedalus
+# ♟Svart
 A UCI chess engine written in Rust.
 
+<br>
 
 # UCI
-### Daedalus currently supports:
+### Svart currently supports:
 
 #### Commands:
 * ``uci``
@@ -14,15 +15,18 @@ A UCI chess engine written in Rust.
 * ``go``
 * ``position``
 
+<br>
+
 #### Options:
 * ### Hash
     Minimum: 1 <br>
     Default: 32 <br>
     Maximum: 1024 <br>
-
+    
+<br>
 
 # Compilation
-Compile Daedalus using <a href="https://doc.rust-lang.org/cargo/">Cargo</a> in ``/target/release``.
+Compile Svart using <a href="https://doc.rust-lang.org/cargo/">Cargo</a> in ``/target/release``.
 
 ``` 
 cargo build --release

@@ -43,9 +43,9 @@ pub fn capture_moves(board: &Board) -> Vec<MoveEntry> {
 
     board.generate_moves(|mut moves| {
         let mut permissible = enemy_pieces;
-        if let Some(ep_square) = ep_square {
+        if let Some(epsq) = ep_square {
             if moves.piece == Piece::Pawn {
-                permissible |= ep_square.bitboard();
+                permissible |= epsq.bitboard();
             }
         }
         moves.to &= permissible;

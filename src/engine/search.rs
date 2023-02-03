@@ -4,7 +4,7 @@ use crate::engine::tt::TTFlag;
 use crate::{constants::*, engine::eval, uci::SearchType};
 use cozy_chess::{BitBoard, Board, Move};
 
-use super::movegen::{self, mvvlva};
+use super::movegen::{self};
 use super::tt::TT;
 
 pub struct Search {
@@ -121,15 +121,11 @@ impl Search {
         let mut best_score: i16 = NEG_INFINITY;
         let mut best_move: Option<Move> = None;
         let mut moves_done: u32 = 0;
-        let mut move_list = movegen::all_moves(board);
+        let mut move_list = movegen::all_moves(board, tt_move);
 
-        move_list.sort_by(|a, b| {
-            let a_score = self.score_moves(board, *a, tt_move);
-            let b_score = self.score_moves(board, *b, tt_move);
-            b_score.cmp(&a_score)
-        });
+        for i in 0..move_list.len() {
+            let mv = movegen::pick_move(&mut move_list, i);
 
-        for mv in move_list {
             let mut new_board = board.clone();
             new_board.play(mv);
             self.game_history.push(new_board.hash());
@@ -235,10 +231,12 @@ impl Search {
         }
         alpha = alpha.max(stand_pat);
 
-        let captures = movegen::capture_moves(board);
+        let mut captures = movegen::capture_moves(board);
         let mut best_score = stand_pat;
 
-        for mv in captures {
+        for i in 0..captures.len() {
+            let mv = movegen::pick_move(&mut captures, i);
+
             let mut new_board = board.clone();
             new_board.play(mv);
             self.nodes += 1;
@@ -326,25 +324,6 @@ impl Search {
         }
 
         print_score
-    }
-
-    pub fn score_moves(&self, board: &Board, mv: Move, tt_move: Option<Move>) -> i16 {
-        if let Some(tmove) = tt_move {
-            if mv == tmove {
-                return INFINITY;
-            }
-        }
-
-        if mv.promotion.is_some() {
-            return 1000;
-        }
-
-        // Returns between 100..600
-        if movegen::piece_num_at(board, mv.to) != 0 {
-            return mvvlva(board, mv) as i16;
-        }
-
-        0
     }
 
     // Tantabaus repetition detection

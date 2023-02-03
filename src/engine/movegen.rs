@@ -1,6 +1,32 @@
 use cozy_chess::{Board, Color, Move, Piece, Rank, Square};
 
-pub fn capture_moves(board: &Board) -> Vec<Move> {
+use crate::constants::INFINITY;
+
+pub struct MoveEntry {
+    pub mv: Move,
+    pub score: i16,
+}
+
+pub fn all_moves(board: &Board, tt_move: Option<Move>) -> Vec<MoveEntry> {
+    let mut move_list: Vec<Move> = Vec::new();
+
+    board.generate_moves(|moves| {
+        move_list.extend(moves);
+        false
+    });
+
+    let move_list: Vec<MoveEntry> = move_list
+        .iter()
+        .map(|mv| MoveEntry {
+            mv: *mv,
+            score: score_moves(board, *mv, tt_move),
+        })
+        .collect();
+
+    move_list
+}
+
+pub fn capture_moves(board: &Board) -> Vec<MoveEntry> {
     let enemy_pieces = board.colors(!board.side_to_move());
     let mut captures_list: Vec<Move> = Vec::new();
 
@@ -27,12 +53,20 @@ pub fn capture_moves(board: &Board) -> Vec<Move> {
         false
     });
 
+    let captures_list: Vec<MoveEntry> = captures_list
+        .iter()
+        .map(|mv| MoveEntry {
+            mv: *mv,
+            score: mvvlva(board, *mv),
+        })
+        .collect();
+
     captures_list
 }
 
 // Most Valuable Victim - Least Valuable Aggressor (MVV-LVA)
-pub fn mvvlva(board: &Board, mv: Move) -> i32 {
-    let mvvlva: [[i32; 7]; 7] = [
+pub fn mvvlva(board: &Board, mv: Move) -> i16 {
+    let mvvlva: [[i16; 7]; 7] = [
         [0, 0, 0, 0, 0, 0, 0],
         [0, 105, 104, 103, 102, 101, 100],
         [0, 205, 204, 203, 202, 201, 200],
@@ -55,7 +89,7 @@ pub fn mvvlva(board: &Board, mv: Move) -> i32 {
     mvvlva[victim as usize][attacker as usize]
 }
 
-pub fn piece_num_at(board: &Board, square: Square) -> i32 {
+pub fn piece_num_at(board: &Board, square: Square) -> i16 {
     let piece = board.piece_on(square);
     if piece.is_none() {
         return 0;
@@ -71,31 +105,33 @@ pub fn piece_num_at(board: &Board, square: Square) -> i32 {
     }
 }
 
-pub fn all_moves(board: &Board) -> Vec<Move> {
-    let mut move_list: Vec<Move> = Vec::new();
-
-    board.generate_moves(|moves| {
-        // Unpack dense move set into move list
-        move_list.extend(moves);
-        false
-    });
-
-    move_list
-}
-
-pub fn pick_move(moves: &mut [Move], scores: &mut [i16], index: usize) -> Move {
-    let mut best_index = index;
-    let mut best_score = scores[index];
-
-    for (i, _) in moves.iter().enumerate().skip(index) {
-        if scores[i] > best_score {
-            best_index = i;
-            best_score = scores[i];
+pub fn score_moves(board: &Board, mv: Move, tt_move: Option<Move>) -> i16 {
+    if let Some(tmove) = tt_move {
+        if mv == tmove {
+            return INFINITY;
         }
     }
 
-    scores.swap(index, best_index);
-    moves.swap(index, best_index);
+    if mv.promotion.is_some() {
+        return 1000;
+    }
 
-    moves[index]
+    // Returns between 100..600
+    if piece_num_at(board, mv.to) != 0 {
+        return mvvlva(board, mv);
+    }
+
+    0
+}
+
+pub fn pick_move(moves: &mut [MoveEntry], index: usize) -> Move {
+    let open_list = &mut moves[index..];
+    let best_index = open_list
+        .iter()
+        .enumerate()
+        .max_by_key(|(_, entry)| entry.score)
+        .unwrap()
+        .0;
+    open_list.swap(0, best_index);
+    open_list[0].mv
 }

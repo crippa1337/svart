@@ -1,6 +1,6 @@
 [package]
-name = "daedalus"
-version = "0.5.0"
+name = "svart"
+version = "0.5.1"
 edition = "2021"
 
 [dependencies]

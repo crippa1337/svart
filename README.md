@@ -42,7 +42,7 @@ cargo build --release
 For their invaluable help in the development of Svart:
 
 * <a href="https://github.com/Algorhythm-sxv">Algorhythm</a>, author of <a href="https://github.com/Algorhythm-sxv/Cheers">Cheers</a>.
-* <a href="https://github.com/analog-hors">Analog Hors</a>, author of <a href="https://github.com/analog-hors/tantabus">Tantabus</a>.
+* <a href="https://github.com/analog-hors">Analog Hors</a>, author of <a href="https://github.com/analog-hors/tantabus">Tantabus</a> and <a href="https://github.com/analog-hors/cozy-chess">Cozy Chess</a>.
 * <a href="https://github.com/cosmobobak">Cosmo</a>, author of <a href="https://github.com/cosmobobak/viridithas">Viridithas</a>.
 * <a href="https://github.com/disservin">Disservin</a>, author of <a href="https://github.com/Disservin/Smallbrain">Smallbrain</a>.
 * <a href="https://github.com/minuskelvin">MinusKelvin</a>, author of <a href="https://github.com/MinusKelvin/frozenight">Frozenight</a>.

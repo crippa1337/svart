@@ -225,7 +225,7 @@ pub fn main_loop() {
 }
 
 fn id() {
-    println!("id name daedalus {}", env!("CARGO_PKG_VERSION"));
+    println!("id name Svart {}", env!("CARGO_PKG_VERSION"));
     println!("id author crippa");
 }
 

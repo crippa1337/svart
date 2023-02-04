@@ -277,15 +277,33 @@ impl Search {
         let mut best_move: Option<Move> = None;
 
         let mut score: i16 = 0;
-        let mut delta = 0;
+        let mut alpha = NEG_INFINITY;
+        let mut beta = INFINITY;
 
         for d in 1..depth {
+            let mut delta = 40;
             if d <= 4 {
-                score = self.pvsearch(board, NEG_INFINITY, INFINITY, d, 0, true);
+                score = self.pvsearch(board, alpha, beta, d, 0, true);
             } else {
-                score = self.pvsearch(board, score - delta, score + delta, d, 0, true);
-                if score <= score - delta || score >= score + delta {
-                    delta *= 1.5 as i16;
+                loop {
+                    score = self.pvsearch(board, score - delta, score + delta, d, 0, true);
+
+                    // Search was within window
+                    if (score > alpha && score < beta) || self.stop {
+                        break;
+                    }
+
+                    // Search failed low, adjust window and reset depth
+                    if score <= alpha {
+                        beta = (alpha + beta) / 2;
+                        alpha = (alpha - delta).max(NEG_INFINITY);
+                    }
+                    // Search failed high, adjust window and reset depth
+                    else if score >= beta {
+                        beta = INFINITY.min(beta + delta);
+                    }
+
+                    delta = delta + delta / 2;
                 }
             };
 

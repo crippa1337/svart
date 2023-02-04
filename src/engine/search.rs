@@ -276,8 +276,18 @@ impl Search {
         let info_timer = Instant::now();
         let mut best_move: Option<Move> = None;
 
+        let mut score: i16 = 0;
+        let mut delta = 0;
+
         for d in 1..depth {
-            let score = self.pvsearch(board, -INFINITY, INFINITY, d, 0, true);
+            if d <= 4 {
+                score = self.pvsearch(board, NEG_INFINITY, INFINITY, d, 0, true);
+            } else {
+                score = self.pvsearch(board, score - delta, score + delta, d, 0, true);
+                if score <= score - delta || score >= score + delta {
+                    delta *= 1.5 as i16;
+                }
+            };
 
             if self.stop && d > 1 {
                 break;

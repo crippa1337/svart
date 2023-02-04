@@ -282,7 +282,7 @@ impl Search {
 
         for d in 1..depth {
             let mut delta = 40;
-            if d <= 4 {
+            if d <= 3 {
                 score = self.pvsearch(board, alpha, beta, d, 0, true);
             } else {
                 loop {

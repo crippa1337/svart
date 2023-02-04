@@ -286,7 +286,7 @@ impl Search {
                 score = self.pvsearch(board, alpha, beta, d, 0, true);
             } else {
                 loop {
-                    score = self.pvsearch(board, score - delta, score + delta, d, 0, true);
+                    score = self.pvsearch(board, alpha, beta, d, 0, true);
 
                     // Search was within window
                     if (score > alpha && score < beta) || self.stop {

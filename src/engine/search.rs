@@ -276,9 +276,12 @@ impl Search {
         let info_timer = Instant::now();
         let mut best_move: Option<Move> = None;
 
-        for d in 1..depth {
-            let score = self.pvsearch(board, -INFINITY, INFINITY, d, 0, true);
+        let mut score: i16 = 0;
 
+        for d in 1..depth {
+            score = self.aspiration_window(board, score, d);
+
+            // Search wasn't complete, do not update best move with garbage
             if self.stop && d > 1 {
                 break;
             }
@@ -291,14 +294,56 @@ impl Search {
                 self.parse_score(score),
                 self.nodes,
                 info_timer.elapsed().as_millis(),
-                self.show_pv()
+                self.parse_pv()
             );
         }
 
         println!("bestmove {}", best_move.unwrap());
     }
 
-    pub fn show_pv(&self) -> String {
+    fn aspiration_window(&mut self, board: &Board, prev_eval: i16, depth: u8) -> i16 {
+        let mut score: i16;
+
+        // Window size
+        let mut delta = 50;
+
+        // Window bounds
+        let mut alpha = NEG_INFINITY;
+        let mut beta = INFINITY;
+
+        if depth >= 5 {
+            alpha = (prev_eval - delta).max(NEG_INFINITY);
+            beta = (prev_eval + delta).min(INFINITY);
+        }
+
+        loop {
+            score = self.pvsearch(board, alpha, beta, depth, 0, true);
+
+            // This result won't be used
+            if self.stop {
+                return 0;
+            }
+
+            // Search failed low, adjust window
+            if score <= alpha {
+                beta = (alpha + beta) / 2;
+                alpha = (score - delta).max(NEG_INFINITY);
+            }
+            // Search failed high, adjust window
+            else if score >= beta {
+                beta = (score + delta).min(INFINITY);
+            }
+            // Search succeeded
+            else {
+                return score;
+            }
+
+            // Always increase window size on search failure
+            delta += delta / 2;
+        }
+    }
+
+    pub fn parse_pv(&self) -> String {
         let mut pv = String::new();
         for i in 0..self.pv_length[0] {
             if self.pv_table[0][i as usize].is_none() {

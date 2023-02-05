@@ -281,6 +281,7 @@ impl Search {
         for d in 1..depth {
             score = self.aspiration_window(board, score, d);
 
+            // Search wasn't complete, do not update best move with garbage
             if self.stop && d > 1 {
                 break;
             }
@@ -304,13 +305,13 @@ impl Search {
         let mut score: i16;
 
         // Window size
-        let mut delta = 12;
+        let mut delta = 50;
 
         // Window bounds
         let mut alpha = NEG_INFINITY;
         let mut beta = INFINITY;
 
-        if depth >= 3 {
+        if depth >= 5 {
             alpha = (prev_eval - delta).max(NEG_INFINITY);
             beta = (prev_eval + delta).min(INFINITY);
         }
@@ -318,8 +319,9 @@ impl Search {
         loop {
             score = self.pvsearch(board, alpha, beta, depth, 0, true);
 
-            if self.stop && depth > 1 {
-                break;
+            // This result won't be used
+            if self.stop {
+                return 0;
             }
 
             // Search failed low, adjust window
@@ -329,17 +331,16 @@ impl Search {
             }
             // Search failed high, adjust window
             else if score >= beta {
-                beta = INFINITY.min(beta + delta);
+                beta = (score + delta).min(INFINITY);
             }
             // Search succeeded
             else {
-                break;
+                return score;
             }
 
-            delta *= 1.5 as i16;
+            // Always increase window size on search failure
+            delta += delta / 2;
         }
-
-        score
     }
 
     pub fn parse_pv(&self) -> String {

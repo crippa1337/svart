@@ -277,35 +277,9 @@ impl Search {
         let mut best_move: Option<Move> = None;
 
         let mut score: i16 = 0;
-        let mut alpha = NEG_INFINITY;
-        let mut beta = INFINITY;
 
         for d in 1..depth {
-            let mut delta = 40;
-            if d <= 3 {
-                score = self.pvsearch(board, alpha, beta, d, 0, true);
-            } else {
-                loop {
-                    score = self.pvsearch(board, alpha, beta, d, 0, true);
-
-                    // Search was within window
-                    if (score > alpha && score < beta) || self.stop {
-                        break;
-                    }
-
-                    // Search failed low, adjust window and reset depth
-                    if score <= alpha {
-                        beta = (alpha + beta) / 2;
-                        alpha = (alpha - delta).max(NEG_INFINITY);
-                    }
-                    // Search failed high, adjust window and reset depth
-                    else if score >= beta {
-                        beta = INFINITY.min(beta + delta);
-                    }
-
-                    delta = delta + delta / 2;
-                }
-            };
+            score = self.aspiration_window(board, score, d);
 
             if self.stop && d > 1 {
                 break;
@@ -319,14 +293,56 @@ impl Search {
                 self.parse_score(score),
                 self.nodes,
                 info_timer.elapsed().as_millis(),
-                self.show_pv()
+                self.parse_pv()
             );
         }
 
         println!("bestmove {}", best_move.unwrap());
     }
 
-    pub fn show_pv(&self) -> String {
+    fn aspiration_window(&mut self, board: &Board, prev_eval: i16, depth: u8) -> i16 {
+        let mut score: i16;
+
+        // Window size
+        let mut delta = 12;
+
+        // Window bounds
+        let mut alpha = NEG_INFINITY;
+        let mut beta = INFINITY;
+
+        if depth >= 3 {
+            alpha = (prev_eval - delta).max(NEG_INFINITY);
+            beta = (prev_eval + delta).min(INFINITY);
+        }
+
+        loop {
+            score = self.pvsearch(board, alpha, beta, depth, 0, true);
+
+            if self.stop && depth > 1 {
+                break;
+            }
+
+            // Search failed low, adjust window
+            if score <= alpha {
+                beta = (alpha + beta) / 2;
+                alpha = (score - delta).max(NEG_INFINITY);
+            }
+            // Search failed high, adjust window
+            else if score >= beta {
+                beta = INFINITY.min(beta + delta);
+            }
+            // Search succeeded
+            else {
+                break;
+            }
+
+            delta *= 1.5 as i16;
+        }
+
+        score
+    }
+
+    pub fn parse_pv(&self) -> String {
         let mut pv = String::new();
         for i in 0..self.pv_length[0] {
             if self.pv_table[0][i as usize].is_none() {

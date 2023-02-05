@@ -1,4 +1,4 @@
-# ♟Svart
+# Svart
 
 <div align="center">
     <img src="https://github.com/crippa1337/svart/blob/master/images/new_logo.jpg">

@@ -218,6 +218,7 @@ impl Search {
 
         for i in 0..captures.len() {
             let mv = movegen::pick_move(&mut captures, i);
+            let is_quiet = quiet_move(board, mv);
 
             let mut new_board = board.clone();
             new_board.play(mv);

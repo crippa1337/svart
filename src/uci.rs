@@ -1,5 +1,5 @@
 use crate::{
-    constants::{self, MAX_PLY},
+    constants,
     engine::{search::Search, tt::TT},
 };
 use cozy_chess::{Board, Color, Move, Piece, Square};
@@ -270,7 +270,6 @@ fn reset_search(search: &mut Search) {
     search.search_type = SearchType::Depth(0);
     search.timer = None;
     search.goal_time = None;
-    search.pv_length = [0; MAX_PLY as usize];
-    search.pv_table = [[None; MAX_PLY as usize]; MAX_PLY as usize];
+    search.pv_table = crate::engine::pv_table::PVTable::new();
     search.nodes = 0;
 }

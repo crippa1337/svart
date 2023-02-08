@@ -1,8 +1,8 @@
-use std::time::Instant;
-
+use crate::engine::pv_table::PVTable;
 use crate::engine::tt::TTFlag;
 use crate::{constants::*, engine::eval, uci::SearchType};
 use cozy_chess::{BitBoard, Board, Move};
+use std::time::Instant;
 
 use super::movegen::{self};
 use super::tt::TT;
@@ -12,8 +12,7 @@ pub struct Search {
     pub search_type: SearchType,
     pub timer: Option<Instant>,
     pub goal_time: Option<u64>,
-    pub pv_length: [i16; MAX_PLY as usize],
-    pub pv_table: [[Option<Move>; MAX_PLY as usize]; MAX_PLY as usize],
+    pub pv_table: PVTable,
     pub nodes: u32,
     pub tt: TT,
     pub game_history: Vec<u64>,
@@ -26,8 +25,7 @@ impl Search {
             search_type: SearchType::Depth(0),
             timer: None,
             goal_time: None,
-            pv_length: [0; MAX_PLY as usize],
-            pv_table: [[None; MAX_PLY as usize]; MAX_PLY as usize],
+            pv_table: PVTable::new(),
             nodes: 0,
             tt,
             game_history: vec![],
@@ -64,7 +62,7 @@ impl Search {
         }
 
         // Init PV
-        self.pv_length[ply as usize] = ply;
+        self.pv_table.length[ply as usize] = ply;
         let hash_key = board.hash();
         let root = ply == 0;
 
@@ -73,7 +71,6 @@ impl Search {
                 return 0;
             }
 
-            // Avoids three-fold repetition blindness - Elo difference: 70.4 +/- 29.8
             if self.repetition(board, hash_key) {
                 return 8 - (self.nodes as i16 & 7);
             }
@@ -99,7 +96,7 @@ impl Search {
         };
 
         if !is_pv && tt_hit && tt_entry.depth >= depth {
-            debug_assert!(tt_score < NONE);
+            assert!(tt_score < NONE);
 
             match tt_entry.flags {
                 TTFlag::Exact => return tt_score,
@@ -118,7 +115,7 @@ impl Search {
         /////////////////
 
         let old_alpha = alpha;
-        let mut best_score: i16 = NEG_INFINITY;
+        let mut best_score: i16 = -INFINITY;
         let mut best_move: Option<Move> = None;
         let mut moves_done: u32 = 0;
         let mut move_list = movegen::all_moves(board, tt_move);
@@ -153,22 +150,7 @@ impl Search {
                     alpha = score;
                     best_move = Some(mv);
 
-                    /////////////////////////////////////////////////////////////
-                    // PV LOGIC - https://www.youtube.com/watch?v=LOR-dkAkUyM  //
-                    /////////////////////////////////////////////////////////////
-
-                    // Write to PV table
-                    let uply = ply as usize;
-                    self.pv_table[uply][uply] = Some(mv);
-
-                    // Loop over the next ply
-                    for i in (uply + 1)..self.pv_length[uply + 1] as usize {
-                        // Copy move from deeper ply into current line
-                        self.pv_table[uply][i] = self.pv_table[uply + 1][i];
-                    }
-
-                    // Update PV length
-                    self.pv_length[uply] = self.pv_length[uply + 1];
+                    self.pv_table.store(ply, mv);
 
                     if score >= beta {
                         break;
@@ -286,15 +268,15 @@ impl Search {
                 break;
             }
 
-            best_move = self.pv_table[0][0];
+            best_move = self.pv_table.table[0][0];
 
             println!(
                 "info depth {} score {} nodes {} time {} pv{}",
                 d,
-                self.parse_score(score),
+                self.format_score(score),
                 self.nodes,
                 info_timer.elapsed().as_millis(),
-                self.parse_pv()
+                self.pv_table.pv_string()
             );
         }
 
@@ -308,11 +290,11 @@ impl Search {
         let mut delta = 50;
 
         // Window bounds
-        let mut alpha = NEG_INFINITY;
+        let mut alpha = -INFINITY;
         let mut beta = INFINITY;
 
         if depth >= 5 {
-            alpha = (prev_eval - delta).max(NEG_INFINITY);
+            alpha = (prev_eval - delta).max(-INFINITY);
             beta = (prev_eval + delta).min(INFINITY);
         }
 
@@ -327,7 +309,7 @@ impl Search {
             // Search failed low, adjust window
             if score <= alpha {
                 beta = (alpha + beta) / 2;
-                alpha = (score - delta).max(NEG_INFINITY);
+                alpha = (score - delta).max(-INFINITY);
             }
             // Search failed high, adjust window
             else if score >= beta {
@@ -340,29 +322,16 @@ impl Search {
 
             // Always increase window size on search failure
             delta += delta / 2;
+            assert!(alpha >= -INFINITY && beta <= INFINITY);
         }
     }
 
-    pub fn parse_pv(&self) -> String {
-        let mut pv = String::new();
-        for i in 0..self.pv_length[0] {
-            if self.pv_table[0][i as usize].is_none() {
-                break;
-            }
-            pv.push(' ');
-            pv.push_str(&self.pv_table[0][i as usize].unwrap().to_string());
-        }
-
-        pv
-    }
-
-    // Parse score to UCI standard
-    pub fn parse_score(&self, score: i16) -> String {
+    pub fn format_score(&self, score: i16) -> String {
         assert!(score < NONE);
         let print_score: String;
         if score >= MATE_IN {
             print_score = format!("mate {}", (((MATE - score) / 2) + ((MATE - score) & 1)));
-        } else if score <= MATED_IN {
+        } else if score <= -MATE_IN {
             print_score = format!("mate {}", -(((MATE + score) / 2) + ((MATE + score) & 1)));
         } else {
             print_score = format!("cp {score}");
@@ -371,7 +340,7 @@ impl Search {
         print_score
     }
 
-    // Tantabaus repetition detection
+    // Tantabus inspired repetition detection
     fn repetition(&self, board: &Board, hash: u64) -> bool {
         for key in self
             .game_history

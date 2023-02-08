@@ -15,10 +15,8 @@ fn p_type(piece: Piece) -> usize {
 }
 
 pub fn evaluate(board: &Board) -> i16 {
-    let mut white_mg = 0;
-    let mut white_eg = 0;
-    let mut black_mg = 0;
-    let mut black_eg = 0;
+    let mut mg = 0;
+    let mut eg = 0;
     let mut game_phase = 0;
 
     for pt in Piece::ALL {
@@ -30,19 +28,16 @@ pub fn evaluate(board: &Board) -> i16 {
 
             match color {
                 Color::White => {
-                    white_mg += MG_TABLE[p_type(piece)][sq];
-                    white_eg += EG_TABLE[p_type(piece)][sq];
+                    mg += MG_TABLE[p_type(piece)][sq];
+                    eg += EG_TABLE[p_type(piece)][sq];
                 }
                 Color::Black => {
-                    black_mg += MG_TABLE[p_type(piece) + 6][sq];
-                    black_eg += EG_TABLE[p_type(piece) + 6][sq];
+                    mg -= MG_TABLE[p_type(piece) + 6][sq];
+                    eg -= EG_TABLE[p_type(piece) + 6][sq];
                 }
             }
         }
     }
-
-    let mg_score = white_mg - black_mg;
-    let eg_score = white_eg - black_eg;
 
     let mut mg_weight = game_phase;
     if mg_weight > 24 {
@@ -52,7 +47,7 @@ pub fn evaluate(board: &Board) -> i16 {
     let eg_weight = 24 - mg_weight;
 
     match board.side_to_move() {
-        Color::White => (((mg_score * mg_weight) + (eg_score * eg_weight)) / 24) as i16,
-        Color::Black => (((mg_score * mg_weight) + (eg_score * eg_weight)) / -24) as i16,
+        Color::White => (((mg * mg_weight) + (eg * eg_weight)) / 24) as i16,
+        Color::Black => (((mg * mg_weight) + (eg * eg_weight)) / -24) as i16,
     }
 }

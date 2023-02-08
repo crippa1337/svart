@@ -25,10 +25,6 @@ Svart is not a complete chess program and requires a <a href="https://www.chessp
 ### Options:
 * #### Hash
     MB of memory allocated for the <a href="https://en.wikipedia.org/wiki/Transposition_table">Transposition Table</a>.
-    * Minimum: 1
-    * Default: 32
-    * Maximum: 1024
-    
     
 # Compilation
 Compile Svart using <a href="https://doc.rust-lang.org/cargo/">Cargo</a> in ``/target/release``.

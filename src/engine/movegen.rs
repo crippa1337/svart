@@ -66,8 +66,9 @@ pub fn capture_moves(board: &Board) -> Vec<MoveEntry> {
 
 // Most Valuable Victim - Least Valuable Aggressor (MVV-LVA)
 pub fn mvvlva(board: &Board, mv: Move) -> i16 {
+    #[rustfmt::skip]
     let mvvlva: [[i16; 7]; 7] = [
-        [0, 0, 0, 0, 0, 0, 0],
+        [0,   0,   0,   0,   0,   0,   0],
         [0, 105, 104, 103, 102, 101, 100],
         [0, 205, 204, 203, 202, 201, 200],
         [0, 305, 304, 303, 302, 301, 300],

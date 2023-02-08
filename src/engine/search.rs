@@ -359,3 +359,65 @@ impl Search {
         false
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::constants::*;
+    use crate::engine::search::Search;
+    use crate::engine::tt::TT;
+    use cozy_chess::{Board, Move, Square};
+
+    #[test]
+    fn mate_in_1() {
+        let board = Board::from_fen(
+            "4r2k/1p3rbp/2p1N1p1/p3n3/P2NB1nq/1P6/4R1P1/B1Q2RK1 b - - 4 32",
+            false,
+        )
+        .unwrap();
+        let mut search = Search::new(TT::new(32));
+        let score = search.pvsearch(&board, -INFINITY, INFINITY, 2, 0, true);
+        assert_eq!(
+            search.pv_table.table[0][0],
+            Some(Move {
+                from: Square::H4,
+                to: Square::H2,
+                promotion: None,
+            })
+        );
+        assert_eq!(score, MATE - 1);
+
+        let board = Board::from_fen(
+            "r3qr2/p4k2/bpn1pp1Q/3pP3/P2Nn3/1Pb1RNPP/5PB1/3R2K1 w - - 1 24",
+            false,
+        )
+        .unwrap();
+        let mut search = Search::new(TT::new(32));
+        let score = search.pvsearch(&board, -INFINITY, INFINITY, 2, 0, true);
+        assert_eq!(
+            search.pv_table.table[0][0],
+            Some(Move {
+                from: Square::H6,
+                to: Square::H7,
+                promotion: None,
+            })
+        );
+        assert_eq!(score, MATE - 1);
+
+        let board = Board::from_fen(
+            "r3nk2/4r1b1/q2p4/1P5p/3P1p1P/4P3/1BQN1P1R/1KR5 b - - 0 33",
+            false,
+        )
+        .unwrap();
+        let mut search = Search::new(TT::new(32));
+        let score = search.pvsearch(&board, -INFINITY, INFINITY, 2, 0, true);
+        assert_eq!(
+            search.pv_table.table[0][0],
+            Some(Move {
+                from: Square::A6,
+                to: Square::A2,
+                promotion: None,
+            })
+        );
+        assert_eq!(score, MATE - 1);
+    }
+}

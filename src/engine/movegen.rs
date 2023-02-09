@@ -2,6 +2,7 @@ use cozy_chess::{Board, Color, Move, Piece, Rank, Square};
 
 use crate::constants::INFINITY;
 
+#[derive(PartialEq)]
 pub struct MoveEntry {
     pub mv: Move,
     pub score: i16,
@@ -135,4 +136,90 @@ pub fn pick_move(moves: &mut [MoveEntry], index: usize) -> Move {
         .0;
     open_list.swap(0, best_index);
     open_list[0].mv
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::constants::capture_move;
+    use crate::engine::movegen::capture_moves;
+    use cozy_chess::{Board, Move, Square::*};
+
+    use super::MoveEntry;
+
+    #[test]
+    fn capture_generation() {
+        let board_1 = Board::from_fen(
+            "r1bqk2r/1pppnppp/2n5/p1b1N3/2N5/1QPpP3/PP3PPP/R1B1KB1R w KQkq - 2 9",
+            false,
+        )
+        .unwrap();
+
+        let board_2 = Board::from_fen(
+            "2q5/5rkp/p2Prb2/1pBbnp2/QP6/P1NR1pP1/5K1P/4R3 b - - 1 34",
+            false,
+        )
+        .unwrap();
+
+        let moves_1 = capture_moves(&board_1);
+        let moves_2 = capture_moves(&board_2);
+
+        for mv in moves_1 {
+            assert!(capture_move(&board_1, mv.mv));
+        }
+
+        for mv in moves_2 {
+            assert!(capture_move(&board_2, mv.mv));
+        }
+    }
+
+    #[test]
+    fn ep_gen() {
+        let board_1 = Board::from_fen(
+            "rnbqkbnr/pppp1p1p/8/5Pp1/4p3/8/PPPPP1PP/RNBQKBNR w KQkq g6 0 4",
+            false,
+        )
+        .unwrap();
+        let moves_1 = capture_moves(&board_1);
+
+        let board_2 = Board::from_fen(
+            "rnbqkb1r/p1pppppp/5n2/Pp6/8/8/1PPPPPPP/RNBQKBNR w KQkq b6 0 3",
+            false,
+        )
+        .unwrap();
+        let moves_2 = capture_moves(&board_2);
+
+        let board_3 = Board::from_fen(
+            "rnbqkbnr/pppp1ppp/8/3P4/4pP2/8/PPP1P1PP/RNBQKBNR b KQkq f3 0 3",
+            false,
+        )
+        .unwrap();
+        let moves_3 = capture_moves(&board_3);
+
+        assert!(moves_1.iter().any(|e| matches!(
+            e.mv,
+            Move {
+                from: F5,
+                to: G6,
+                promotion: None
+            }
+        )));
+
+        assert!(moves_2.iter().any(|e| matches!(
+            e.mv,
+            Move {
+                from: A5,
+                to: B6,
+                promotion: None
+            }
+        )));
+
+        assert!(moves_3.iter().any(|e| matches!(
+            e.mv,
+            Move {
+                from: E4,
+                to: F3,
+                promotion: None
+            }
+        )));
+    }
 }

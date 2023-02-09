@@ -117,8 +117,16 @@ impl Search {
         let old_alpha = alpha;
         let mut best_score: i16 = -INFINITY;
         let mut best_move: Option<Move> = None;
-        let mut moves_done: u32 = 0;
         let mut move_list = movegen::all_moves(board, tt_move);
+
+        // Checkmates and stalemates
+        if move_list.is_empty() {
+            if board.checkers() != BitBoard::EMPTY {
+                return mated_in(ply);
+            } else {
+                return 0;
+            }
+        }
 
         for i in 0..move_list.len() {
             let mv = movegen::pick_move(&mut move_list, i);
@@ -128,11 +136,10 @@ impl Search {
             self.game_history.push(new_board.hash());
 
             self.nodes += 1;
-            moves_done += 1;
 
             // Principal Variation Search
             let mut score: i16;
-            if moves_done == 1 {
+            if i == 0 {
                 score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1, is_pv);
             } else {
                 score = -self.pvsearch(&new_board, -alpha - 1, -alpha, depth - 1, ply + 1, false);
@@ -156,19 +163,6 @@ impl Search {
                         break;
                     }
                 }
-            }
-        }
-
-        ///////////////
-        // ENDSTATES //
-        ///////////////
-
-        // Checkmates and stalemates
-        if moves_done == 0 {
-            if board.checkers() != BitBoard::EMPTY {
-                return mated_in(ply);
-            } else {
-                return 0;
             }
         }
 

@@ -17,6 +17,7 @@ pub struct Search {
     pub tt: TT,
     pub game_history: Vec<u64>,
     pub killers: [[Option<Move>; 2]; MAX_PLY as usize],
+    pub history: [[[u16; 64]; 64]; 2],
 }
 
 impl Search {
@@ -31,6 +32,7 @@ impl Search {
             tt,
             game_history: vec![],
             killers: [[None; 2]; MAX_PLY as usize],
+            history: [[[0; 64]; 64]; 2],
         }
     }
 
@@ -158,13 +160,15 @@ impl Search {
                 if score > alpha {
                     alpha = score;
                     best_move = Some(mv);
-
                     self.pv_table.store(ply, mv);
 
                     if score >= beta {
                         if quiet_move(board, mv) {
                             self.killers[ply as usize][1] = self.killers[ply as usize][0];
                             self.killers[ply as usize][0] = Some(mv);
+
+                            self.history[board.side_to_move() as usize][mv.to as usize]
+                                [mv.from as usize] += (depth * depth) as u16;
                         }
 
                         break;

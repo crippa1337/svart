@@ -226,7 +226,7 @@ pub fn main_loop() {
 
 fn id() {
     println!("id name Svart {}", env!("CARGO_PKG_VERSION"));
-    println!("id author Crippa");
+    println!("id author crippa");
 }
 
 fn options() {
@@ -273,4 +273,5 @@ fn reset_search(search: &mut Search) {
     search.pv_table = crate::engine::pv_table::PVTable::new();
     search.nodes = 0;
     search.killers = [[None; 2]; MAX_PLY as usize];
+    search.history = [[[0; 64]; 64]; 2];
 }

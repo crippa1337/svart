@@ -16,6 +16,7 @@ pub struct Search {
     pub nodes: u32,
     pub tt: TT,
     pub game_history: Vec<u64>,
+    pub killers: [[Option<Move>; 2]; MAX_PLY as usize],
 }
 
 impl Search {
@@ -29,6 +30,7 @@ impl Search {
             nodes: 0,
             tt,
             game_history: vec![],
+            killers: [[None; 2]; MAX_PLY as usize],
         }
     }
 
@@ -38,7 +40,7 @@ impl Search {
         mut alpha: i16,
         mut beta: i16,
         depth: u8,
-        ply: i16,
+        ply: u8,
         is_pv: bool,
     ) -> i16 {
         ///////////////////
@@ -117,12 +119,12 @@ impl Search {
         let old_alpha = alpha;
         let mut best_score: i16 = -INFINITY;
         let mut best_move: Option<Move> = None;
-        let mut move_list = movegen::all_moves(board, tt_move);
+        let mut move_list = movegen::all_moves(self, board, tt_move, ply);
 
         // Checkmates and stalemates
         if move_list.is_empty() {
             if board.checkers() != BitBoard::EMPTY {
-                return mated_in(ply);
+                return ply as i16 - MATE;
             } else {
                 return 0;
             }
@@ -160,6 +162,11 @@ impl Search {
                     self.pv_table.store(ply, mv);
 
                     if score >= beta {
+                        if quiet_move(board, mv) {
+                            self.killers[ply as usize][1] = self.killers[ply as usize][0];
+                            self.killers[ply as usize][0] = Some(mv);
+                        }
+
                         break;
                     }
                 }
@@ -184,7 +191,7 @@ impl Search {
         best_score
     }
 
-    fn qsearch(&mut self, board: &Board, mut alpha: i16, beta: i16, ply: i16) -> i16 {
+    fn qsearch(&mut self, board: &Board, mut alpha: i16, beta: i16, ply: u8) -> i16 {
         // Early returns
         if let (Some(timer), Some(goal)) = (self.timer, self.goal_time) {
             if self.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= goal {
@@ -212,7 +219,6 @@ impl Search {
 
         for i in 0..captures.len() {
             let mv = movegen::pick_move(&mut captures, i);
-            let is_quiet = quiet_move(board, mv);
 
             let mut new_board = board.clone();
             new_board.play(mv);
@@ -240,12 +246,12 @@ impl Search {
         let depth: u8;
         match st {
             SearchType::Time(t) => {
-                depth = MAX_PLY as u8;
+                depth = MAX_PLY;
                 self.timer = Some(Instant::now());
                 self.goal_time = Some(t - TIME_OVERHEAD);
             }
             SearchType::Infinite => {
-                depth = MAX_PLY as u8;
+                depth = MAX_PLY;
             }
             SearchType::Depth(d) => depth = d + 1,
         };

@@ -162,15 +162,13 @@ impl Search {
                     best_move = Some(mv);
                     self.pv_table.store(ply, mv);
 
-                    if quiet_move(board, mv) {
-                        self.history[board.side_to_move() as usize][mv.to as usize]
-                            [mv.from as usize] += depth as u16;
-                    }
-
                     if score >= beta {
                         if quiet_move(board, mv) {
                             self.killers[ply as usize][1] = self.killers[ply as usize][0];
                             self.killers[ply as usize][0] = Some(mv);
+
+                            self.history[board.side_to_move() as usize][mv.to as usize]
+                                [mv.from as usize] += (depth * depth) as u16;
                         }
 
                         break;

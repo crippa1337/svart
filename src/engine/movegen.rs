@@ -122,21 +122,21 @@ pub fn score_moves(
     }
 
     if mv.promotion.is_some() {
-        return 30_000;
+        return 31_000;
     }
 
-    // Returns between 1000..6000
+    // Returns between 5000..30000
     if piece_num_at(board, mv.to) != 0 {
-        return mvvlva(board, mv) * 10;
+        return mvvlva(board, mv) * 50;
     }
 
     if search.killers[ply as usize][0] == Some(mv) {
-        500
+        return 5000;
     } else if search.killers[ply as usize][1] == Some(mv) {
-        400
-    } else {
-        search.history[board.side_to_move() as usize][mv.to as usize][mv.from as usize] as i16
+        return 4500;
     }
+
+    search.history[board.side_to_move() as usize][mv.to as usize][mv.from as usize] as i16
 }
 
 pub fn pick_move(moves: &mut [MoveEntry], index: usize) -> Move {

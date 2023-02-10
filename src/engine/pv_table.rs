@@ -2,7 +2,7 @@ use crate::constants::MAX_PLY;
 use cozy_chess::Move;
 
 pub struct PVTable {
-    pub length: [i16; MAX_PLY as usize],
+    pub length: [u8; MAX_PLY as usize],
     pub table: [[Option<Move>; MAX_PLY as usize]; MAX_PLY as usize],
 }
 
@@ -14,7 +14,7 @@ impl PVTable {
         }
     }
 
-    pub fn store(&mut self, ply: i16, mv: Move) {
+    pub fn store(&mut self, ply: u8, mv: Move) {
         // Write to PV table
         let uply = ply as usize;
         self.table[uply][uply] = Some(mv);

@@ -57,7 +57,7 @@ impl TT {
         score: i16,
         depth: u8,
         flags: TTFlag,
-        ply: i16,
+        ply: u8,
     ) {
         let index = self.index(key);
 
@@ -71,21 +71,21 @@ impl TT {
         };
     }
 
-    pub fn score_to_tt(&self, score: i16, ply: i16) -> i16 {
+    pub fn score_to_tt(&self, score: i16, ply: u8) -> i16 {
         if score >= TB_WIN_IN_PLY {
-            score + ply
+            score + ply as i16
         } else if score <= TB_LOSS_IN_PLY {
-            score - ply
+            score - ply as i16
         } else {
             score
         }
     }
 
-    pub fn score_from_tt(&self, score: i16, ply: i16) -> i16 {
+    pub fn score_from_tt(&self, score: i16, ply: u8) -> i16 {
         if score >= TB_WIN_IN_PLY {
-            score - ply
+            score - ply as i16
         } else if score <= TB_LOSS_IN_PLY {
-            score + ply
+            score + ply as i16
         } else {
             score
         }

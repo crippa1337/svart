@@ -1,6 +1,6 @@
-use cozy_chess::{Board, Color, Move, Piece, Rank, Square};
-
 use crate::constants::INFINITY;
+use crate::engine::search::Search;
+use cozy_chess::{Board, Color, Move, Piece, Rank, Square};
 
 #[derive(PartialEq)]
 pub struct MoveEntry {
@@ -8,7 +8,7 @@ pub struct MoveEntry {
     pub score: i16,
 }
 
-pub fn all_moves(board: &Board, tt_move: Option<Move>) -> Vec<MoveEntry> {
+pub fn all_moves(search: &Search, board: &Board, tt_move: Option<Move>, ply: u8) -> Vec<MoveEntry> {
     let mut move_list: Vec<Move> = Vec::new();
 
     board.generate_moves(|moves| {
@@ -20,7 +20,7 @@ pub fn all_moves(board: &Board, tt_move: Option<Move>) -> Vec<MoveEntry> {
         .iter()
         .map(|mv| MoveEntry {
             mv: *mv,
-            score: score_moves(board, *mv, tt_move),
+            score: score_moves(search, board, *mv, tt_move, ply),
         })
         .collect();
 
@@ -107,20 +107,33 @@ pub fn piece_num_at(board: &Board, square: Square) -> i16 {
     }
 }
 
-pub fn score_moves(board: &Board, mv: Move, tt_move: Option<Move>) -> i16 {
+pub fn score_moves(
+    search: &Search,
+    board: &Board,
+    mv: Move,
+    tt_move: Option<Move>,
+    ply: u8,
+) -> i16 {
     if let Some(tmove) = tt_move {
         if mv == tmove {
+            // 32000
             return INFINITY;
         }
     }
 
     if mv.promotion.is_some() {
-        return 1000;
+        return 30_000;
     }
 
-    // Returns between 100..600
+    // Returns between 1000..6000
     if piece_num_at(board, mv.to) != 0 {
-        return mvvlva(board, mv);
+        return mvvlva(board, mv) * 10;
+    }
+
+    if search.killers[ply as usize][0] == Some(mv) {
+        return 500;
+    } else if search.killers[ply as usize][1] == Some(mv) {
+        return 400;
     }
 
     0
@@ -143,8 +156,6 @@ mod tests {
     use crate::constants::capture_move;
     use crate::engine::movegen::capture_moves;
     use cozy_chess::{Board, Move, Square::*};
-
-    use super::MoveEntry;
 
     #[test]
     fn capture_generation() {

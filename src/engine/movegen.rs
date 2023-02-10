@@ -131,12 +131,12 @@ pub fn score_moves(
     }
 
     if search.killers[ply as usize][0] == Some(mv) {
-        return 500;
+        500
     } else if search.killers[ply as usize][1] == Some(mv) {
-        return 400;
+        400
+    } else {
+        search.history[board.side_to_move() as usize][mv.to as usize][mv.from as usize] as i16
     }
-
-    0
 }
 
 pub fn pick_move(moves: &mut [MoveEntry], index: usize) -> Move {

@@ -31,7 +31,7 @@ pub fn capture_moves(board: &Board) -> Vec<MoveEntry> {
     let enemy_pieces = board.colors(!board.side_to_move());
     let mut captures_list: Vec<Move> = Vec::new();
 
-    // assigns ep_square to the square that can be attacked
+    // Assigns ep_square to the square that can be attacked
     let ep = board.en_passant();
     let mut ep_square: Option<Square> = None;
     if let Some(ep) = ep {
@@ -42,6 +42,7 @@ pub fn capture_moves(board: &Board) -> Vec<MoveEntry> {
         }
     }
 
+    // Generates all moves and filters out the ones that are not captures
     board.generate_moves(|mut moves| {
         let mut permissible = enemy_pieces;
         if let Some(epsq) = ep_square {
@@ -54,6 +55,7 @@ pub fn capture_moves(board: &Board) -> Vec<MoveEntry> {
         false
     });
 
+    // Assigns a score to each move based on MVV-LVA
     let captures_list: Vec<MoveEntry> = captures_list
         .iter()
         .map(|mv| MoveEntry {
@@ -91,6 +93,7 @@ pub fn mvvlva(board: &Board, mv: Move) -> i16 {
     mvvlva[victim as usize][attacker as usize]
 }
 
+// Used to index MVV-LVA table
 pub fn piece_num_at(board: &Board, square: Square) -> i16 {
     let piece = board.piece_on(square);
     if piece.is_none() {

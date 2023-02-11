@@ -1,4 +1,4 @@
-use crate::constants::INFINITY;
+use crate::constants::{capture_move, INFINITY};
 use crate::engine::search::Search;
 use cozy_chess::{Board, Color, Move, Piece, Rank, Square};
 
@@ -129,7 +129,7 @@ pub fn score_moves(
     }
 
     // Returns between 5000..30000
-    if piece_num_at(board, mv.to) != 0 {
+    if capture_move(board, mv) {
         return mvvlva(board, mv) * 50;
     }
 

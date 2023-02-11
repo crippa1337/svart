@@ -1,7 +1,7 @@
 use crate::engine::pv_table::PVTable;
 use crate::engine::tt::TTFlag;
 use crate::{constants::*, engine::eval, uci::SearchType};
-use cozy_chess::{BitBoard, Board, Move};
+use cozy_chess::{Board, Move};
 use std::time::Instant;
 
 use super::movegen::{self};
@@ -65,7 +65,6 @@ impl Search {
             return eval::evaluate(board);
         }
 
-        // Init PV
         self.pv_table.length[ply as usize] = ply;
         let hash_key = board.hash();
         let root = ply == 0;
@@ -77,6 +76,12 @@ impl Search {
 
             if self.repetition(board, hash_key) {
                 return 8 - (self.nodes as i16 & 7);
+            }
+
+            // Mate distance pruning
+            let mate_score = MATE - ply as i16;
+            if mate_score < beta && alpha >= mate_score {
+                return mate_score;
             }
         }
 
@@ -91,26 +96,24 @@ impl Search {
 
         let tt_entry = self.tt.probe(hash_key);
         let tt_hit = tt_entry.key == hash_key;
+        let mut tt_move: Option<Move> = None;
+        if tt_hit {
+            tt_move = tt_entry.mv;
+            let tt_score = self.tt.score_from_tt(tt_entry.score, ply);
 
-        let tt_move: Option<Move> = if tt_hit { tt_entry.mv } else { None };
-        let tt_score = if tt_hit {
-            self.tt.score_from_tt(tt_entry.score, ply)
-        } else {
-            NONE
-        };
+            if !is_pv && tt_entry.depth >= depth {
+                assert!(tt_score != NONE);
 
-        if !is_pv && tt_hit && tt_entry.depth >= depth {
-            assert!(tt_score < NONE);
+                match tt_entry.flags {
+                    TTFlag::Exact => return tt_score,
+                    TTFlag::LowerBound => alpha = std::cmp::max(alpha, tt_score),
+                    TTFlag::UpperBound => beta = std::cmp::min(beta, tt_score),
+                    _ => unreachable!("Invalid TTFlag!"),
+                }
 
-            match tt_entry.flags {
-                TTFlag::Exact => return tt_score,
-                TTFlag::LowerBound => alpha = std::cmp::max(alpha, tt_score),
-                TTFlag::UpperBound => beta = std::cmp::min(beta, tt_score),
-                _ => unreachable!("Invalid TTFlag!"),
-            }
-
-            if alpha >= beta {
-                return tt_score;
+                if alpha >= beta {
+                    return tt_score;
+                }
             }
         }
 
@@ -125,7 +128,7 @@ impl Search {
 
         // Checkmates and stalemates
         if move_list.is_empty() {
-            if board.checkers() != BitBoard::EMPTY {
+            if !board.checkers().is_empty() {
                 return ply as i16 - MATE;
             } else {
                 return 0;

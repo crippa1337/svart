@@ -117,6 +117,23 @@ impl Search {
             }
         }
 
+        let in_check = !board.checkers().is_empty();
+
+        // Null move pruning
+        if depth >= 3 && !in_check {
+            let new_board = board.null_move().unwrap();
+
+            let mut score = -self.pvsearch(&new_board, -beta, -beta + 1, depth - 2, ply + 1, false);
+
+            if score >= beta {
+                if score >= TB_WIN_IN_PLY {
+                    score = beta;
+                }
+
+                return score;
+            }
+        }
+
         /////////////////
         // Search body //
         /////////////////
@@ -128,7 +145,7 @@ impl Search {
 
         // Checkmates and stalemates
         if move_list.is_empty() {
-            if !board.checkers().is_empty() {
+            if in_check {
                 return ply as i16 - MATE;
             } else {
                 return 0;

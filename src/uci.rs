@@ -165,10 +165,24 @@ pub fn main_loop() {
                                                 } else {
                                                     None
                                                 };
+                                            let mtg = if words.iter().any(|&x| x == "movestogo") {
+                                                match words[words
+                                                    .iter()
+                                                    .position(|&x| x == "movestogo")
+                                                    .unwrap()
+                                                    + 1]
+                                                .parse::<u8>()
+                                                {
+                                                    Ok(m) => Some(m),
+                                                    Err(_) => None,
+                                                }
+                                            } else {
+                                                None
+                                            };
 
                                             go(
                                                 &board,
-                                                SearchType::Time(time_for_move(t, inc, None)),
+                                                SearchType::Time(time_for_move(t, inc, mtg)),
                                                 &mut search,
                                             );
                                         }
@@ -197,9 +211,24 @@ pub fn main_loop() {
                                                     None
                                                 };
 
+                                            let mtg = if words.iter().any(|&x| x == "movestogo") {
+                                                match words[words
+                                                    .iter()
+                                                    .position(|&x| x == "movestogo")
+                                                    .unwrap()
+                                                    + 1]
+                                                .parse::<u8>()
+                                                {
+                                                    Ok(m) => Some(m),
+                                                    Err(_) => None,
+                                                }
+                                            } else {
+                                                None
+                                            };
+
                                             go(
                                                 &board,
-                                                SearchType::Time(time_for_move(t, inc, None)),
+                                                SearchType::Time(time_for_move(t, inc, mtg)),
                                                 &mut search,
                                             );
                                         }
@@ -256,6 +285,7 @@ fn time_for_move(time: u64, increment: Option<u64>, moves_to_go: Option<u8>) -> 
     let time = time - constants::TIME_OVERHEAD;
 
     if let Some(n) = moves_to_go {
+        println!("{} moves to go", n);
         time / n.max(1) as u64
     } else if let Some(n) = increment {
         (time / 20) + (n / 2)

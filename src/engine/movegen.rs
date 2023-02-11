@@ -128,9 +128,9 @@ pub fn score_moves(
         return 31_000;
     }
 
-    // Returns between 5000..30000
+    // Returns between 10100..10605
     if capture_move(board, mv) {
-        return mvvlva(board, mv) * 50;
+        return mvvlva(board, mv) + 10_000;
     }
 
     if search.killers[ply as usize][0] == Some(mv) {

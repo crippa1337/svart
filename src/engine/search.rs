@@ -184,7 +184,7 @@ impl Search {
                 if score > alpha {
                     alpha = score;
                     best_move = Some(mv);
-                    self.pv_table.store(ply, mv);
+                    self.pv_table.store(board, ply, mv);
 
                     if score >= beta {
                         if quiet_move(board, mv) {

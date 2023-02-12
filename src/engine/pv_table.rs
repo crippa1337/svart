@@ -1,5 +1,6 @@
 use crate::constants::MAX_PLY;
-use cozy_chess::Move;
+use crate::uci::reverse_castling_move;
+use cozy_chess::{Board, Move};
 
 pub struct PVTable {
     pub length: [u8; MAX_PLY as usize],
@@ -14,9 +15,10 @@ impl PVTable {
         }
     }
 
-    pub fn store(&mut self, ply: u8, mv: Move) {
+    pub fn store(&mut self, board: &Board, ply: u8, mut mv: Move) {
         // Write to PV table
         let uply = ply as usize;
+        mv = reverse_castling_move(board, mv);
         self.table[uply][uply] = Some(mv);
 
         // Loop over the next ply

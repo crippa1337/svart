@@ -275,6 +275,19 @@ fn check_castling_move(board: &Board, mut mv: Move) -> Move {
     mv
 }
 
+pub fn reverse_castling_move(board: &Board, mut mv: Move) -> Move {
+    if board.piece_on(mv.from) == Some(Piece::King) {
+        mv.to = match (mv.from, mv.to) {
+            (Square::E1, Square::H1) => Square::G1,
+            (Square::E8, Square::H8) => Square::G8,
+            (Square::E1, Square::A1) => Square::C1,
+            (Square::E8, Square::A8) => Square::C8,
+            _ => mv.to,
+        };
+    }
+    mv
+}
+
 fn go(board: &Board, st: SearchType, search: &mut Search) {
     search.iterative_deepening(board, st);
     reset_search(search);

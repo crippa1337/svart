@@ -242,7 +242,7 @@ impl Search {
         }
         alpha = alpha.max(stand_pat);
 
-        let mut captures = movegen::capture_moves(board);
+        let mut captures = movegen::capture_moves(self, board, None, ply);
         let mut best_score = stand_pat;
 
         for i in 0..captures.len() {

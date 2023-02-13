@@ -27,7 +27,12 @@ pub fn all_moves(search: &Search, board: &Board, tt_move: Option<Move>, ply: u8)
     move_list
 }
 
-pub fn capture_moves(board: &Board) -> Vec<MoveEntry> {
+pub fn capture_moves(
+    search: &Search,
+    board: &Board,
+    tt_move: Option<Move>,
+    ply: u8,
+) -> Vec<MoveEntry> {
     let enemy_pieces = board.colors(!board.side_to_move());
     let mut captures_list: Vec<Move> = Vec::new();
 
@@ -60,7 +65,7 @@ pub fn capture_moves(board: &Board) -> Vec<MoveEntry> {
         .iter()
         .map(|mv| MoveEntry {
             mv: *mv,
-            score: mvvlva(board, *mv),
+            score: score_moves(search, board, *mv, tt_move, ply),
         })
         .collect();
 
@@ -139,6 +144,7 @@ pub fn score_moves(
         return 4500;
     }
 
+    // Will at most return (MAX_PLY * MAX_PLY)
     search.history[board.side_to_move() as usize][mv.to as usize][mv.from as usize] as i16
 }
 

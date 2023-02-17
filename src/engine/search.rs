@@ -2,6 +2,7 @@ use crate::engine::pv_table::PVTable;
 use crate::engine::tt::TTFlag;
 use crate::{constants::*, engine::eval, uci::SearchType};
 use cozy_chess::{Board, Move};
+use std::cmp::{max, min};
 use std::time::Instant;
 
 use super::movegen::{self};
@@ -45,10 +46,6 @@ impl Search {
         ply: u8,
         is_pv: bool,
     ) -> i16 {
-        ///////////////////
-        // Early returns //
-        ///////////////////
-
         // Every 1024 nodes, check if it's time to stop
         if let (Some(timer), Some(goal)) = (self.timer, self.goal_time) {
             if self.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= goal {
@@ -106,8 +103,8 @@ impl Search {
 
                 match tt_entry.flags {
                     TTFlag::Exact => return tt_score,
-                    TTFlag::LowerBound => alpha = std::cmp::max(alpha, tt_score),
-                    TTFlag::UpperBound => beta = std::cmp::min(beta, tt_score),
+                    TTFlag::LowerBound => alpha = max(alpha, tt_score),
+                    TTFlag::UpperBound => beta = min(beta, tt_score),
                     _ => unreachable!("Invalid TTFlag!"),
                 }
 
@@ -158,11 +155,10 @@ impl Search {
 
         for i in 0..move_list.len() {
             let mv = movegen::pick_move(&mut move_list, i);
-
             let mut new_board = board.clone();
             new_board.play(mv);
-            self.game_history.push(new_board.hash());
 
+            self.game_history.push(new_board.hash()); // Repetition detection
             self.nodes += 1;
 
             // Principal Variation Search
@@ -220,7 +216,6 @@ impl Search {
     }
 
     fn qsearch(&mut self, board: &Board, mut alpha: i16, beta: i16, ply: u8) -> i16 {
-        // Early returns
         if let (Some(timer), Some(goal)) = (self.timer, self.goal_time) {
             if self.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= goal {
                 self.stop = true;
@@ -237,19 +232,19 @@ impl Search {
         }
 
         let stand_pat = eval::evaluate(board);
+        alpha = max(alpha, stand_pat);
         if stand_pat >= beta {
             return stand_pat;
         }
-        alpha = alpha.max(stand_pat);
 
         let mut captures = movegen::capture_moves(self, board, None, ply);
         let mut best_score = stand_pat;
 
         for i in 0..captures.len() {
             let mv = movegen::pick_move(&mut captures, i);
-
             let mut new_board = board.clone();
             new_board.play(mv);
+
             self.nodes += 1;
 
             let score = -self.qsearch(&new_board, -beta, -alpha, ply + 1);
@@ -323,8 +318,8 @@ impl Search {
         let mut beta = INFINITY;
 
         if depth >= 5 {
-            alpha = (prev_eval - delta).max(-INFINITY);
-            beta = (prev_eval + delta).min(INFINITY);
+            alpha = max(-INFINITY, prev_eval - delta);
+            beta = min(INFINITY, prev_eval + delta);
         }
 
         loop {
@@ -338,11 +333,11 @@ impl Search {
             // Search failed low, adjust window
             if score <= alpha {
                 beta = (alpha + beta) / 2;
-                alpha = (score - delta).max(-INFINITY);
+                alpha = max(-INFINITY, score - delta);
             }
             // Search failed high, adjust window
             else if score >= beta {
-                beta = (score + delta).min(INFINITY);
+                beta = min(INFINITY, score + delta);
             }
             // Search succeeded
             else {

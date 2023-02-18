@@ -26,9 +26,12 @@ impl History {
         quiet_moves: Vec<Move>,
         depth: u8,
     ) {
-        let bonus = std::cmp::min(16 * (depth * depth) as i32, 1200);
+        let bonus = std::cmp::min((depth * depth) as i32, 1200);
 
-        // Update the history table for all the quiet moves passed in
+        // Update best move
+        self.update_score(board, best_move, bonus);
+
+        // Decay the history table for all the quiet moves passed in
         for mv in quiet_moves {
             if mv == best_move {
                 continue;

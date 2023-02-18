@@ -5,7 +5,7 @@ use cozy_chess::{Board, Color, Move, Piece, Rank, Square};
 #[derive(PartialEq)]
 pub struct MoveEntry {
     pub mv: Move,
-    pub score: i16,
+    pub score: i32,
 }
 
 pub fn all_moves(search: &Search, board: &Board, tt_move: Option<Move>, ply: u8) -> Vec<MoveEntry> {
@@ -73,9 +73,9 @@ pub fn capture_moves(
 }
 
 // Most Valuable Victim - Least Valuable Aggressor (MVV-LVA)
-pub fn mvvlva(board: &Board, mv: Move) -> i16 {
+pub fn mvvlva(board: &Board, mv: Move) -> i32 {
     #[rustfmt::skip]
-    let mvvlva: [[i16; 7]; 7] = [
+    let mvvlva: [[i32; 7]; 7] = [
         [0,   0,   0,   0,   0,   0,   0],
         [0, 105, 104, 103, 102, 101, 100],
         [0, 205, 204, 203, 202, 201, 200],
@@ -121,31 +121,30 @@ pub fn score_moves(
     mv: Move,
     tt_move: Option<Move>,
     ply: u8,
-) -> i16 {
+) -> i32 {
     if let Some(tmove) = tt_move {
         if mv == tmove {
             // 32000
-            return INFINITY;
+            return INFINITY as i32 + 1_000_000;
         }
     }
 
     if mv.promotion.is_some() {
-        return 31_000;
+        return 310_000;
     }
 
-    // Returns between 10100..10605
+    // Returns between 200100..200605
     if capture_move(board, mv) {
-        return mvvlva(board, mv) + 10_000;
+        return mvvlva(board, mv) + 200_000;
     }
 
     if search.killers[ply as usize][0] == Some(mv) {
-        return 5000;
+        return 100_000;
     } else if search.killers[ply as usize][1] == Some(mv) {
-        return 4500;
+        return 95_000;
     }
 
-    // Will at most return (MAX_PLY * MAX_PLY)
-    search.history[board.side_to_move() as usize][mv.to as usize][mv.from as usize] as i16
+    search.history.get_score(board, mv)
 }
 
 pub fn pick_move(moves: &mut [MoveEntry], index: usize) -> Move {

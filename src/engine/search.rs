@@ -5,6 +5,7 @@ use cozy_chess::{Board, Move};
 use std::cmp::{max, min};
 use std::time::Instant;
 
+use super::history::History;
 use super::movegen::{self};
 use super::tt::TT;
 
@@ -18,7 +19,7 @@ pub struct Search {
     pub tt: TT,
     pub game_history: Vec<u64>,
     pub killers: [[Option<Move>; 2]; MAX_PLY as usize],
-    pub history: [[[u16; 64]; 64]; 2],
+    pub history: History,
 }
 
 impl Search {
@@ -33,7 +34,7 @@ impl Search {
             tt,
             game_history: vec![],
             killers: [[None; 2]; MAX_PLY as usize],
-            history: [[[0; 64]; 64]; 2],
+            history: History::new(),
         }
     }
 
@@ -143,6 +144,7 @@ impl Search {
         let mut best_score: i16 = -INFINITY;
         let mut best_move: Option<Move> = None;
         let mut move_list = movegen::all_moves(self, board, tt_move, ply);
+        let mut quiet_moves: Vec<Move> = vec![];
 
         // Checkmates and stalemates
         if move_list.is_empty() {
@@ -155,6 +157,11 @@ impl Search {
 
         for i in 0..move_list.len() {
             let mv = movegen::pick_move(&mut move_list, i);
+
+            if quiet_move(board, mv) {
+                quiet_moves.push(mv);
+            }
+
             let mut new_board = board.clone();
             new_board.play(mv);
 
@@ -187,8 +194,7 @@ impl Search {
                             self.killers[ply as usize][1] = self.killers[ply as usize][0];
                             self.killers[ply as usize][0] = Some(mv);
 
-                            self.history[board.side_to_move() as usize][mv.to as usize]
-                                [mv.from as usize] += (depth * depth) as u16;
+                            self.history.update_table(board, mv, quiet_moves, depth);
                         }
 
                         break;

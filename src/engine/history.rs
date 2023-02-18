@@ -26,7 +26,7 @@ impl History {
         quiet_moves: Vec<Move>,
         depth: u8,
     ) {
-        let bonus = (depth * depth) as i32;
+        let bonus = std::cmp::min(16 * (depth * depth) as i32, 1200);
 
         // Update the history table for all the quiet moves passed in
         for mv in quiet_moves {

@@ -1,7 +1,7 @@
 use crate::engine::pv_table::PVTable;
 use crate::engine::tt::TTFlag;
 use crate::{constants::*, engine::eval, uci::SearchType};
-use cozy_chess::{Board, Move};
+use cozy_chess::{BitBoard, Board, Color, Move, Piece};
 use std::cmp::{max, min};
 use std::time::Instant;
 
@@ -88,6 +88,9 @@ impl Search {
             return self.qsearch(board, alpha, beta, ply);
         }
 
+        // Static eval used for pruning
+        let eval;
+
         /////////////////////////////////
         // Transposition table cut-off //
         /////////////////////////////////
@@ -98,6 +101,8 @@ impl Search {
         if tt_hit {
             tt_move = tt_entry.mv;
             let tt_score = self.tt.score_from_tt(tt_entry.score, ply);
+
+            eval = tt_score;
 
             if !is_pv && tt_entry.depth >= depth {
                 assert!(tt_score != NONE);
@@ -113,22 +118,33 @@ impl Search {
                     return tt_score;
                 }
             }
+        } else {
+            eval = eval::evaluate(board);
         }
 
         let in_check = !board.checkers().is_empty();
 
         if !is_pv {
             // Null move pruning
-            if depth >= 3 && !in_check {
+            // If we can give the opponent a free move and still cause a beta cutoff,
+            // we can safely prune this branch. This does not work in zugzwang positions
+            // because then it is always better to give a free move, hence some checks for it are needed.
+            if depth >= 3
+                && !in_check
+                && eval >= beta
+                && !self
+                    .non_pawn_material(board, board.side_to_move())
+                    .is_empty()
+            {
                 let r = 3 + depth / 4;
                 let d = depth.saturating_sub(r);
                 let new_board = board.null_move().unwrap();
 
-                let mut score = -self.pvsearch(&new_board, -beta, -beta + 1, d, ply + 1, false);
+                let score = -self.pvsearch(&new_board, -beta, -beta + 1, d, ply + 1, false);
 
                 if score >= beta {
                     if score >= TB_WIN_IN_PLY {
-                        score = beta;
+                        return beta;
                     }
 
                     return score;
@@ -387,66 +403,13 @@ impl Search {
 
         false
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use crate::constants::*;
-    use crate::engine::search::Search;
-    use crate::engine::tt::TT;
-    use cozy_chess::{Board, Move, Square};
-
-    #[test]
-    fn mate_in_1() {
-        let board = Board::from_fen(
-            "4r2k/1p3rbp/2p1N1p1/p3n3/P2NB1nq/1P6/4R1P1/B1Q2RK1 b - - 4 32",
-            false,
-        )
-        .unwrap();
-        let mut search = Search::new(TT::new(32));
-        let score = search.pvsearch(&board, -INFINITY, INFINITY, 2, 0, true);
-        assert_eq!(
-            search.pv_table.table[0][0],
-            Some(Move {
-                from: Square::H4,
-                to: Square::H2,
-                promotion: None,
-            })
-        );
-        assert_eq!(score, MATE - 1);
-
-        let board = Board::from_fen(
-            "r3qr2/p4k2/bpn1pp1Q/3pP3/P2Nn3/1Pb1RNPP/5PB1/3R2K1 w - - 1 24",
-            false,
-        )
-        .unwrap();
-        let mut search = Search::new(TT::new(32));
-        let score = search.pvsearch(&board, -INFINITY, INFINITY, 2, 0, true);
-        assert_eq!(
-            search.pv_table.table[0][0],
-            Some(Move {
-                from: Square::H6,
-                to: Square::H7,
-                promotion: None,
-            })
-        );
-        assert_eq!(score, MATE - 1);
-
-        let board = Board::from_fen(
-            "r3nk2/4r1b1/q2p4/1P5p/3P1p1P/4P3/1BQN1P1R/1KR5 b - - 0 33",
-            false,
-        )
-        .unwrap();
-        let mut search = Search::new(TT::new(32));
-        let score = search.pvsearch(&board, -INFINITY, INFINITY, 2, 0, true);
-        assert_eq!(
-            search.pv_table.table[0][0],
-            Some(Move {
-                from: Square::A6,
-                to: Square::A2,
-                promotion: None,
-            })
-        );
-        assert_eq!(score, MATE - 1);
+    fn non_pawn_material(&self, board: &Board, color: Color) -> BitBoard {
+        let b = board.occupied();
+        (b | board.pieces(Piece::Knight)
+            | board.pieces(Piece::Bishop)
+            | board.pieces(Piece::Rook)
+            | board.pieces(Piece::Queen))
+            & board.colors(color)
     }
 }

@@ -405,8 +405,7 @@ impl Search {
     }
 
     fn non_pawn_material(&self, board: &Board, color: Color) -> BitBoard {
-        let b = board.occupied();
-        (b | board.pieces(Piece::Knight)
+        (board.pieces(Piece::Knight)
             | board.pieces(Piece::Bishop)
             | board.pieces(Piece::Rook)
             | board.pieces(Piece::Queen))

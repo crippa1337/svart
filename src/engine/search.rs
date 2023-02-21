@@ -9,6 +9,8 @@ use super::history::History;
 use super::movegen::{self};
 use super::tt::TT;
 
+const RFP_MARGIN: i16 = 75;
+
 pub struct Search {
     pub stop: bool,
     pub search_type: SearchType,
@@ -124,10 +126,11 @@ impl Search {
 
         let in_check = !board.checkers().is_empty();
 
+        // Pre-search pruning techniques
         if !is_pv {
             // Null move pruning
             // If we can give the opponent a free move and still cause a beta cutoff,
-            // we can safely prune this branch. This does not work in zugzwang positions
+            // we can safely prune this node. This does not work in zugzwang positions
             // because then it is always better to give a free move, hence some checks for it are needed.
             if depth >= 3
                 && !in_check
@@ -149,6 +152,15 @@ impl Search {
 
                     return score;
                 }
+            }
+
+            // Reverse futility pruning
+            // If static eval plus a margin can beat beta, then we can safely prune this node.
+            // The margin is multiplied by depth to make it harder to prune at higher depths
+            // as pruning there can be inaccurate as it prunes a large amount of potential nodes
+            // and static eval isn't the most accurate.
+            if eval >= beta + RFP_MARGIN * depth as i16 {
+                return eval;
             }
         }
 

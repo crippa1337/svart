@@ -65,13 +65,14 @@ impl Search {
             return eval::evaluate(board);
         }
 
+        self.pv_table.length[ply as usize] = ply;
+
         match board.status() {
             GameStatus::Won => return ply as i16 - MATE,
             GameStatus::Drawn => return 8 - (self.nodes as i16 & 7),
             _ => (),
         }
 
-        self.pv_table.length[ply as usize] = ply;
         let hash_key = board.hash();
         let root = ply == 0;
 

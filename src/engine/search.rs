@@ -1,7 +1,7 @@
 use crate::engine::pv_table::PVTable;
 use crate::engine::tt::TTFlag;
 use crate::{constants::*, engine::eval, uci::SearchType};
-use cozy_chess::{BitBoard, Board, Color, Move, Piece};
+use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
 use std::cmp::{max, min};
 use std::time::Instant;
 
@@ -65,15 +65,17 @@ impl Search {
             return eval::evaluate(board);
         }
 
+        match board.status() {
+            GameStatus::Won => return ply as i16 - MATE,
+            GameStatus::Drawn => return 8 - (self.nodes as i16 & 7),
+            _ => (),
+        }
+
         self.pv_table.length[ply as usize] = ply;
         let hash_key = board.hash();
         let root = ply == 0;
 
         if !root {
-            if board.halfmove_clock() >= 100 {
-                return 0;
-            }
-
             if self.repetition(board, hash_key) {
                 return 8 - (self.nodes as i16 & 7);
             }
@@ -173,15 +175,6 @@ impl Search {
         let mut best_move: Option<Move> = None;
         let mut move_list = movegen::all_moves(self, board, tt_move, ply);
         let mut quiet_moves: Vec<Move> = vec![];
-
-        // Checkmates and stalemates
-        if move_list.is_empty() {
-            if in_check {
-                return ply as i16 - MATE;
-            } else {
-                return 0;
-            }
-        }
 
         for i in 0..move_list.len() {
             let mv = movegen::pick_move(&mut move_list, i);

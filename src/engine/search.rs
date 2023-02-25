@@ -1,16 +1,18 @@
-use crate::engine::pv_table::PVTable;
-use crate::engine::tt::TTFlag;
-use crate::{constants::*, engine::eval, uci::SearchType};
+use crate::{constants::*, uci::SearchType};
 use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
 use std::cmp::{max, min};
 use std::time::Instant;
 
-use super::history::{History, StaticVec};
-use super::movegen::{self};
-use super::tt::TT;
+use super::{
+    eval,
+    history::History,
+    movegen,
+    pv_table::PVTable,
+    stat_vec::StaticVec,
+    tt::{TTFlag, TT},
+};
 
 const RFP_MARGIN: i16 = 75;
-const MAX_MOVES_POSITION: usize = 218;
 
 pub struct Search {
     pub stop: bool,
@@ -130,7 +132,10 @@ impl Search {
 
         let in_check = !board.checkers().is_empty();
 
-        // Pre-search pruning techniques
+        ///////////////////////////////////
+        // Pre-search pruning techniques //
+        ///////////////////////////////////
+
         if !is_pv {
             // Null move pruning
             // If we can give the opponent a free move and still cause a beta cutoff,

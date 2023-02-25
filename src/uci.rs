@@ -315,5 +315,5 @@ fn reset_search(search: &mut Search) {
     search.pv_table = crate::engine::pv_table::PVTable::new();
     search.nodes = 0;
     search.killers = [[None; 2]; MAX_PLY as usize];
-    search.history = crate::engine::history::History::new();
+    search.history.age_table();
 }

@@ -5,11 +5,12 @@ use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
 use std::cmp::{max, min};
 use std::time::Instant;
 
-use super::history::History;
+use super::history::{History, StaticVec};
 use super::movegen::{self};
 use super::tt::TT;
 
 const RFP_MARGIN: i16 = 75;
+const MAX_MOVES_POSITION: usize = 218;
 
 pub struct Search {
     pub stop: bool,
@@ -175,13 +176,13 @@ impl Search {
         let mut best_score: i16 = -INFINITY;
         let mut best_move: Option<Move> = None;
         let mut move_list = movegen::all_moves(self, board, tt_move, ply);
-        let mut quiet_moves: Vec<Move> = vec![];
+        let mut quiet_moves = StaticVec::<Option<Move>, MAX_MOVES_POSITION>::new(None);
 
         for i in 0..move_list.len() {
             let mv = movegen::pick_move(&mut move_list, i);
 
             if quiet_move(board, mv) {
-                quiet_moves.push(mv);
+                quiet_moves.push(Some(mv));
             }
 
             let mut new_board = board.clone();
@@ -216,7 +217,15 @@ impl Search {
                             self.killers[ply as usize][1] = self.killers[ply as usize][0];
                             self.killers[ply as usize][0] = Some(mv);
 
-                            self.history.update_table(board, mv, quiet_moves, depth);
+                            // Update best move with a positive bonus
+                            self.history.update_table::<true>(board, mv, depth);
+                            // Update all other quiet moves with a negative bonus
+                            let qi = quiet_moves.as_slice();
+                            let qi = &qi[..quiet_moves.len() - 1];
+                            for qm in qi {
+                                self.history
+                                    .update_table::<false>(board, qm.unwrap(), depth);
+                            }
                         }
 
                         break;

@@ -1,6 +1,7 @@
 use crate::constants::{capture_move, INFINITY};
-use crate::engine::search::Search;
 use cozy_chess::{Board, Color, Move, Piece, Rank, Square};
+
+use super::search::Search;
 
 #[derive(PartialEq)]
 pub struct MoveEntry {

@@ -1,6 +1,7 @@
 use cozy_chess::{Board, Move};
 
 pub const MAX_PLY: u8 = 64;
+pub const MAX_MOVES_POSITION: usize = 218;
 
 pub const NONE: i16 = 32002;
 pub const INFINITY: i16 = 32001;

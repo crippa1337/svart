@@ -1,4 +1,32 @@
 use cozy_chess::{Board, Move};
+use std::cmp::min;
+
+pub struct StaticVec<T: Copy, const N: usize> {
+    data: [T; N],
+    len: usize,
+}
+
+impl<T: Copy, const N: usize> StaticVec<T, N> {
+    pub fn new(default: T) -> Self {
+        Self {
+            data: [default; N],
+            len: 0,
+        }
+    }
+
+    pub fn push(&mut self, item: T) {
+        self.data[self.len] = item;
+        self.len += 1;
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        &self.data[..self.len]
+    }
+}
 
 pub struct History {
     pub table: [[[i32; 64]; 64]; 2],
@@ -19,25 +47,10 @@ impl History {
         self.table[color][from][to]
     }
 
-    pub fn update_table(
-        &mut self,
-        board: &Board,
-        best_move: Move,
-        quiet_moves: Vec<Move>,
-        depth: u8,
-    ) {
-        let bonus = std::cmp::min(16 * (depth * depth) as i32, 1200);
-
-        // Update best move
-        self.update_score(board, best_move, bonus);
-
-        // Decay the history table for all the quiet moves passed in
-        for mv in quiet_moves {
-            if mv == best_move {
-                continue;
-            }
-            self.update_score(board, mv, -bonus)
-        }
+    pub fn update_table<const POSITIVE: bool>(&mut self, board: &Board, mv: Move, depth: u8) {
+        let delta = min(16 * (depth * depth) as i32, 1200);
+        let bonus = if POSITIVE { delta } else { -delta };
+        self.update_score(board, mv, bonus);
     }
 
     pub fn update_score(&mut self, board: &Board, mv: Move, bonus: i32) {
@@ -47,5 +60,13 @@ impl History {
         let to = mv.to as usize;
 
         self.table[color][from][to] += scaled_bonus;
+    }
+
+    pub fn age_table(&mut self) {
+        self.table
+            .iter_mut()
+            .flatten()
+            .flatten()
+            .for_each(|x| *x /= 2);
     }
 }

@@ -18,8 +18,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f4a557c6659b8705d301732f473c9a61659c740ffda3e3485e79d1d4b7a1e12"
 
 [[package]]
+name = "once_cell"
+version = "1.17.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
+
+[[package]]
 name = "svart"
 version = "1.0.0"
 dependencies = [
  "cozy-chess",
+ "once_cell",
 ]

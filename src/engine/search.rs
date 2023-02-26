@@ -1,17 +1,20 @@
 use crate::{constants::*, uci::SearchType};
 use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
+use once_cell::sync::Lazy;
 use std::cmp::{max, min};
 use std::time::Instant;
 
 use super::{
     eval,
     history::History,
+    lmr::LMRTable,
     movegen,
     pv_table::PVTable,
     stat_vec::StaticVec,
     tt::{TTFlag, TT},
 };
 
+static LMR: Lazy<LMRTable> = Lazy::new(LMRTable::new);
 const RFP_MARGIN: i16 = 75;
 
 pub struct Search {
@@ -200,7 +203,18 @@ impl Search {
             if i == 0 {
                 score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1, is_pv);
             } else {
-                score = -self.pvsearch(&new_board, -alpha - 1, -alpha, depth - 1, ply + 1, false);
+                // Late Move Reduction
+                let r = if depth >= 3 && i >= (2 + usize::from(is_pv)) {
+                    let mut r = LMR.reduction(depth, i) as u8;
+                    r += u8::from(!is_pv);
+                    r += u8::from(quiet_move(board, mv));
+                    r = r.min(depth - 1);
+                    r.max(1)
+                } else {
+                    1
+                };
+
+                score = -self.pvsearch(&new_board, -alpha - 1, -alpha, depth - r, ply + 1, false);
                 if alpha < score && score < beta {
                     score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1, true);
                 }

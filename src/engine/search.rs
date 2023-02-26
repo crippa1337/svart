@@ -112,6 +112,7 @@ impl Search {
         if tt_hit {
             let tt_score = self.tt.score_from_tt(tt_entry.score, ply);
             tt_move = tt_entry.mv;
+            // Use the TT score if available since eval is expensive
             eval = tt_score;
 
             if !is_pv && tt_entry.depth >= depth {
@@ -437,7 +438,6 @@ impl Search {
         print_score
     }
 
-    // Tantabus inspired repetition detection
     fn repetition(&self, board: &Board, hash: u64) -> bool {
         for key in self
             .game_history

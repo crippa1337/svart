@@ -21,6 +21,7 @@ pub struct Search {
     pub goal_time: Option<u64>,
     pub pv_table: PVTable,
     pub nodes: u32,
+    pub seldepth: u8,
     pub tt: TT,
     pub game_history: Vec<u64>,
     pub killers: [[Option<Move>; 2]; MAX_PLY as usize],
@@ -36,6 +37,7 @@ impl Search {
             goal_time: None,
             pv_table: PVTable::new(),
             nodes: 0,
+            seldepth: 0,
             tt,
             game_history: vec![],
             killers: [[None; 2]; MAX_PLY as usize],
@@ -68,6 +70,7 @@ impl Search {
             return eval::evaluate(board);
         }
 
+        self.seldepth = max(self.seldepth, ply);
         self.pv_table.length[ply as usize] = ply;
 
         match board.status() {
@@ -267,6 +270,7 @@ impl Search {
             return eval::evaluate(board);
         }
 
+        self.seldepth = max(self.seldepth, ply);
         let is_pv = (beta - alpha) > 1;
         let stand_pat = eval::evaluate(board);
         alpha = max(alpha, stand_pat);
@@ -343,7 +347,7 @@ impl Search {
             SearchType::Infinite => {
                 depth = MAX_PLY;
             }
-            SearchType::Depth(d) => depth = d + 1,
+            SearchType::Depth(d) => depth = d,
         };
 
         let info_timer = Instant::now();
@@ -351,7 +355,8 @@ impl Search {
 
         let mut score: i16 = 0;
 
-        for d in 1..depth {
+        for d in 1..depth + 1 {
+            self.seldepth = 0;
             score = self.aspiration_window(board, score, d);
 
             // Search wasn't complete, do not update best move with garbage
@@ -362,8 +367,9 @@ impl Search {
             best_move = self.pv_table.table[0][0];
 
             println!(
-                "info depth {} score {} nodes {} time {} pv{}",
+                "info depth {} seldepth {} score {} nodes {} time {} pv{}",
                 d,
+                self.seldepth,
                 self.format_score(score),
                 self.nodes,
                 info_timer.elapsed().as_millis(),

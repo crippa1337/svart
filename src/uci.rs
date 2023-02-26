@@ -314,6 +314,7 @@ fn reset_search(search: &mut Search) {
     search.goal_time = None;
     search.pv_table = crate::engine::pv_table::PVTable::new();
     search.nodes = 0;
+    search.seldepth = 0;
     search.killers = [[None; 2]; MAX_PLY as usize];
     search.history.age_table();
 }

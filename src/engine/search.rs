@@ -47,7 +47,7 @@ impl Search {
         &mut self,
         board: &Board,
         mut alpha: i16,
-        mut beta: i16,
+        beta: i16,
         depth: u8,
         ply: u8,
         is_pv: bool,
@@ -107,22 +107,17 @@ impl Search {
         let tt_hit = tt_entry.key == hash_key;
         let mut tt_move: Option<Move> = None;
         if tt_hit {
-            tt_move = tt_entry.mv;
             let tt_score = self.tt.score_from_tt(tt_entry.score, ply);
-
+            tt_move = tt_entry.mv;
             eval = tt_score;
 
             if !is_pv && tt_entry.depth >= depth {
-                assert!(tt_score != NONE);
+                assert!(tt_score != NONE && tt_entry.flags != TTFlag::None);
 
-                match tt_entry.flags {
-                    TTFlag::Exact => return tt_score,
-                    TTFlag::LowerBound => alpha = max(alpha, tt_score),
-                    TTFlag::UpperBound => beta = min(beta, tt_score),
-                    _ => unreachable!("Invalid TTFlag!"),
-                }
-
-                if alpha >= beta {
+                if (tt_entry.flags == TTFlag::Exact)
+                    || (tt_entry.flags == TTFlag::LowerBound && tt_score >= beta)
+                    || (tt_entry.flags == TTFlag::UpperBound && tt_score <= alpha)
+                {
                     return tt_score;
                 }
             }
@@ -240,14 +235,13 @@ impl Search {
         }
 
         // Storing to TT
-        let flag;
-        if best_score >= beta {
-            flag = TTFlag::LowerBound;
+        let flag = if best_score >= beta {
+            TTFlag::LowerBound
         } else if best_score != old_alpha {
-            flag = TTFlag::Exact;
+            TTFlag::Exact
         } else {
-            flag = TTFlag::UpperBound;
-        }
+            TTFlag::UpperBound
+        };
 
         if !self.stop {
             self.tt
@@ -273,14 +267,34 @@ impl Search {
             return eval::evaluate(board);
         }
 
+        let is_pv = (beta - alpha) > 1;
         let stand_pat = eval::evaluate(board);
         alpha = max(alpha, stand_pat);
         if stand_pat >= beta {
             return stand_pat;
         }
 
-        let mut captures = movegen::capture_moves(self, board, None, ply);
+        let hash_key = board.hash();
+        let tt_entry = self.tt.probe(hash_key);
+        let tt_hit = tt_entry.key == hash_key;
+        let mut tt_move: Option<Move> = None;
+        if tt_hit && !is_pv {
+            let tt_score = self.tt.score_from_tt(tt_entry.score, ply);
+            tt_move = tt_entry.mv;
+
+            assert!(tt_score != NONE && tt_entry.flags != TTFlag::None);
+
+            if (tt_entry.flags == TTFlag::Exact)
+                || (tt_entry.flags == TTFlag::LowerBound && tt_score >= beta)
+                || (tt_entry.flags == TTFlag::UpperBound && tt_score <= alpha)
+            {
+                return tt_score;
+            }
+        }
+
+        let mut captures = movegen::capture_moves(self, board, tt_move, ply);
         let mut best_score = stand_pat;
+        let mut best_move: Option<Move> = None;
 
         for i in 0..captures.len() {
             let mv = movegen::pick_move(&mut captures, i);
@@ -296,12 +310,23 @@ impl Search {
 
                 if score > alpha {
                     alpha = score;
+                    best_move = Some(mv);
 
                     if score >= beta {
                         break;
                     }
                 }
             }
+        }
+
+        let flag = if best_score >= beta {
+            TTFlag::LowerBound
+        } else {
+            TTFlag::UpperBound
+        };
+
+        if !self.stop {
+            self.tt.store(hash_key, best_move, best_score, 0, flag, ply);
         }
 
         best_score

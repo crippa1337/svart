@@ -1,5 +1,5 @@
-const BASE_REDUCTION: f64 = 0.77;
-const DIVISOR: f64 = 2.36;
+const BASE_REDUCTION: f64 = 0.75;
+const DIVISOR: f64 = 2.25;
 
 pub struct LMRTable {
     pub table: [[i32; 64]; 64],
@@ -15,7 +15,7 @@ impl LMRTable {
             for m in 0..64 {
                 let ld = f64::ln(d as f64);
                 let lp = f64::ln(m as f64);
-                lmr.table[d][m] = (BASE_REDUCTION * ld * lp / DIVISOR) as i32;
+                lmr.table[d][m] = (BASE_REDUCTION + ld * lp / DIVISOR) as i32;
             }
         }
 

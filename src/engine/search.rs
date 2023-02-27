@@ -204,10 +204,9 @@ impl Search {
                 score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1, is_pv);
             } else {
                 // Late Move Reduction
-                let r = if depth >= 3 && i >= (2 + usize::from(is_pv)) {
-                    let mut r = LMR.reduction(depth, i) as u8;
+                let r = if depth >= 3 {
+                    let mut r = LMR.reduction(depth.min(63), i.min(63)) as u8;
                     r += u8::from(!is_pv);
-                    r += u8::from(quiet_move(board, mv));
                     r = r.min(depth - 1);
                     r.max(1)
                 } else {

@@ -1,17 +1,20 @@
 use crate::{constants::*, uci::SearchType};
 use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
+use once_cell::sync::Lazy;
 use std::cmp::{max, min};
 use std::time::Instant;
 
 use super::{
     eval,
     history::History,
+    lmr::LMRTable,
     movegen,
     pv_table::PVTable,
     stat_vec::StaticVec,
     tt::{TTFlag, TT},
 };
 
+static LMR: Lazy<LMRTable> = Lazy::new(LMRTable::new);
 const RFP_MARGIN: i16 = 75;
 
 pub struct Search {
@@ -136,7 +139,7 @@ impl Search {
         ///////////////////////////////////
 
         if !is_pv {
-            // Null move pruning
+            // Null Move Pruning (NMP)
             // If we can give the opponent a free move and still cause a beta cutoff,
             // we can safely prune this node. This does not work in zugzwang positions
             // because then it is always better to give a free move, hence some checks for it are needed.
@@ -162,7 +165,7 @@ impl Search {
                 }
             }
 
-            // Reverse futility pruning
+            // Reverse Futility Pruning (RFP)
             // If static eval plus a margin can beat beta, then we can safely prune this node.
             // The margin is multiplied by depth to make it harder to prune at higher depths
             // as pruning there can be inaccurate as it prunes a large amount of potential nodes
@@ -181,6 +184,7 @@ impl Search {
         let mut best_move: Option<Move> = None;
         let mut move_list = movegen::all_moves(self, board, tt_move, ply);
         let mut quiet_moves = StaticVec::<Option<Move>, MAX_MOVES_POSITION>::new(None);
+        let lmr_depth = if is_pv { 4 } else { 2 };
 
         for i in 0..move_list.len() {
             let mv = movegen::pick_move(&mut move_list, i);
@@ -194,13 +198,37 @@ impl Search {
 
             self.game_history.push(new_board.hash()); // Repetition detection
             self.nodes += 1;
+            let gives_check = !new_board.checkers().is_empty();
 
             // Principal Variation Search
             let mut score: i16;
             if i == 0 {
                 score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1, is_pv);
             } else {
-                score = -self.pvsearch(&new_board, -alpha - 1, -alpha, depth - 1, ply + 1, false);
+                // Late Move Reduction (LMR)
+                // Assuming our move ordering is good, later moves will be worse
+                // and can be searched with a reduced depth, if they beat alpha
+                // we do a full re-search.
+                let r = if depth >= 3 && i > lmr_depth {
+                    // Probe LMR table (src/lmr.rs)
+                    let mut r = LMR.reduction(depth, i) as u8;
+
+                    // Bonus for non PV nodes
+                    r += u8::from(!is_pv);
+
+                    // Malus for capture moves and checks
+                    r -= u8::from(capture_move(board, mv));
+                    r -= u8::from(gives_check);
+
+                    // Clamping
+                    r = r.min(depth - 1);
+                    r.max(1)
+                } else {
+                    1
+                };
+
+                // Zero window search
+                score = -self.pvsearch(&new_board, -alpha - 1, -alpha, depth - r, ply + 1, false);
                 if alpha < score && score < beta {
                     score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1, true);
                 }

@@ -209,7 +209,7 @@ impl Search {
                 // Assuming our move ordering is good, later moves will be worse
                 // and can be searched with a reduced depth, if they beat alpha
                 // we do a full re-search.
-                let r = if depth >= 3 && i >= lmr_depth {
+                let r = if depth >= 3 && i > lmr_depth {
                     // Probe LMR table (src/lmr.rs)
                     let mut r = LMR.reduction(depth, i) as u8;
 

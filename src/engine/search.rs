@@ -311,11 +311,11 @@ impl Search {
         let tt_entry = self.tt.probe(hash_key);
         let tt_hit = tt_entry.key == hash_key as u16;
         let mut tt_move: Option<Move> = None;
-        if tt_hit && !is_pv {
+        if tt_hit && !is_pv && tt_entry.flag != TTFlag::None {
             let tt_score = self.tt.score_from_tt(tt_entry.score, ply);
             tt_move = tt_entry.mv;
 
-            assert!(tt_score != NONE && tt_entry.flag != TTFlag::None);
+            assert!(tt_score != NONE);
 
             if (tt_entry.flag == TTFlag::Exact)
                 || (tt_entry.flag == TTFlag::LowerBound && tt_score >= beta)

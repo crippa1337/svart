@@ -110,7 +110,7 @@ impl Search {
         /////////////////////////////////
 
         let tt_entry = self.tt.probe(hash_key);
-        let tt_hit = tt_entry.key == hash_key;
+        let tt_hit = tt_entry.key == hash_key as u16;
         let mut tt_move: Option<Move> = None;
         if tt_hit {
             let tt_score = self.tt.score_from_tt(tt_entry.score, ply);
@@ -119,11 +119,11 @@ impl Search {
             eval = tt_score;
 
             if !is_pv && tt_entry.depth >= depth {
-                assert!(tt_score != NONE && tt_entry.flags != TTFlag::None);
+                assert!(tt_score != NONE && tt_entry.flag != TTFlag::None);
 
-                if (tt_entry.flags == TTFlag::Exact)
-                    || (tt_entry.flags == TTFlag::LowerBound && tt_score >= beta)
-                    || (tt_entry.flags == TTFlag::UpperBound && tt_score <= alpha)
+                if (tt_entry.flag == TTFlag::Exact)
+                    || (tt_entry.flag == TTFlag::LowerBound && tt_score >= beta)
+                    || (tt_entry.flag == TTFlag::UpperBound && tt_score <= alpha)
                 {
                     return tt_score;
                 }
@@ -309,17 +309,17 @@ impl Search {
 
         let hash_key = board.hash();
         let tt_entry = self.tt.probe(hash_key);
-        let tt_hit = tt_entry.key == hash_key;
+        let tt_hit = tt_entry.key == hash_key as u16;
         let mut tt_move: Option<Move> = None;
         if tt_hit && !is_pv {
             let tt_score = self.tt.score_from_tt(tt_entry.score, ply);
             tt_move = tt_entry.mv;
 
-            assert!(tt_score != NONE && tt_entry.flags != TTFlag::None);
+            assert!(tt_score != NONE && tt_entry.flag != TTFlag::None);
 
-            if (tt_entry.flags == TTFlag::Exact)
-                || (tt_entry.flags == TTFlag::LowerBound && tt_score >= beta)
-                || (tt_entry.flags == TTFlag::UpperBound && tt_score <= alpha)
+            if (tt_entry.flag == TTFlag::Exact)
+                || (tt_entry.flag == TTFlag::LowerBound && tt_score >= beta)
+                || (tt_entry.flag == TTFlag::UpperBound && tt_score <= alpha)
             {
                 return tt_score;
             }

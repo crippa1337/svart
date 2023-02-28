@@ -11,16 +11,18 @@ pub enum TTFlag {
 
 #[derive(Clone, Copy, Debug)]
 pub struct TTEntry {
-    pub key: u64,         // 8 bytes
+    pub key: u16,         // 2 bytes
+    pub epoch: u16,       // 2 bytes
     pub mv: Option<Move>, // 4 bytes
     pub score: i16,       // 2 bytes
     pub depth: u8,        // 1 byte
-    pub flags: TTFlag,    // 1 byte
+    pub flag: TTFlag,     // 1 byte
 }
 
 #[derive(Clone)]
 pub struct TT {
     pub entries: Vec<TTEntry>,
+    pub epoch: u16,
 }
 
 impl TT {
@@ -33,21 +35,32 @@ impl TT {
                 key: 0,
                 mv: None,
                 score: 0,
+                epoch: 0,
                 depth: 0,
-                flags: TTFlag::None,
+                flag: TTFlag::None,
             });
         }
 
-        Self { entries }
+        Self { entries, epoch: 0 }
     }
 
     pub fn index(&self, key: u64) -> usize {
-        key as usize % self.entries.capacity()
+        // Cool hack Cosmo taught me
+        let key = key as u128;
+        let len = self.entries.len() as u128;
+        ((key * len) >> 64) as usize
     }
 
     pub fn probe(&self, key: u64) -> TTEntry {
-        let index = self.index(key);
-        self.entries[index]
+        self.entries[self.index(key)]
+    }
+
+    pub fn age(&mut self) {
+        self.epoch += 1;
+    }
+
+    pub fn quality(&self, entry: TTEntry) -> u16 {
+        entry.epoch + entry.depth as u16 / 3
     }
 
     pub fn store(
@@ -56,19 +69,24 @@ impl TT {
         mv: Option<Move>,
         score: i16,
         depth: u8,
-        flags: TTFlag,
+        flag: TTFlag,
         ply: u8,
     ) {
-        let index = self.index(key);
-
-        // Always replace scheme
-        self.entries[index] = TTEntry {
-            key,
+        let target_index = self.index(key);
+        let target = self.entries[target_index];
+        let entry = TTEntry {
+            key: key as u16,
             mv,
             score: self.score_to_tt(score, ply),
+            epoch: self.epoch,
             depth,
-            flags,
+            flag,
         };
+
+        // Only replace entries of similar or higher quality
+        if self.quality(entry) >= self.quality(target) {
+            self.entries[target_index] = entry;
+        }
     }
 
     pub fn score_to_tt(&self, score: i16, ply: u8) -> i16 {
@@ -92,5 +110,4 @@ impl TT {
     }
 }
 
-#[allow(dead_code)]
-pub const TT_TEST: () = assert!(std::mem::size_of::<TTEntry>() == 16, "TT IS NOT 16 BYTES");
+const _TT_TEST: () = assert!(std::mem::size_of::<TTEntry>() == 12);

@@ -21,7 +21,7 @@ pub struct TTEntry {
 
 impl TTEntry {
     fn quality(&self) -> u16 {
-        self.epoch + self.depth as u16
+        self.epoch * 2 + self.depth as u16
     }
 }
 

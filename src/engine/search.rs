@@ -105,15 +105,16 @@ impl Search {
             }
 
             // Mate distance pruning
-            let mate_score = MATE - ply as i16;
-            if mate_score < beta && alpha >= mate_score {
-                return mate_score;
+            let mate_alpha = alpha.max(ply as i16 - MATE);
+            let mate_beta = beta.min(MATE - (ply as i16 + 1));
+            if mate_alpha >= mate_beta {
+                return mate_alpha;
             }
         }
 
         // Escape condition
         if depth == 0 {
-            return self.qsearch(board, alpha, beta, ply);
+            return self.qsearch::<PV>(board, alpha, beta, ply);
         }
 
         // Static eval used for pruning
@@ -317,7 +318,13 @@ impl Search {
         best_score
     }
 
-    fn qsearch(&mut self, board: &Board, mut alpha: i16, beta: i16, ply: u8) -> i16 {
+    fn qsearch<const PV: bool>(
+        &mut self,
+        board: &Board,
+        mut alpha: i16,
+        beta: i16,
+        ply: u8,
+    ) -> i16 {
         if let (Some(timer), Some(goal)) = (self.timer, self.goal_time) {
             if self.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= goal {
                 self.stop = true;
@@ -334,7 +341,6 @@ impl Search {
         }
 
         self.seldepth = max(self.seldepth, ply);
-        let is_pv = (beta - alpha) > 1;
         let stand_pat = eval::evaluate(board);
         alpha = max(alpha, stand_pat);
         if stand_pat >= beta {
@@ -345,7 +351,7 @@ impl Search {
         let tt_entry = self.tt.probe(hash_key);
         let tt_hit = tt_entry.key == hash_key as u16;
         let mut tt_move: Option<Move> = None;
-        if tt_hit && !is_pv && tt_entry.flag != TTFlag::None {
+        if tt_hit && !PV && tt_entry.flag != TTFlag::None {
             let tt_score = self.tt.score_from_tt(tt_entry.score, ply);
             tt_move = tt_entry.mv;
 
@@ -370,7 +376,7 @@ impl Search {
 
             self.nodes += 1;
 
-            let score = -self.qsearch(&new_board, -beta, -alpha, ply + 1);
+            let score = -self.qsearch::<PV>(&new_board, -beta, -alpha, ply + 1);
 
             if score > best_score {
                 best_score = score;

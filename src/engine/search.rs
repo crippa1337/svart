@@ -46,6 +46,9 @@ impl Search {
         }
     }
 
+    // Zero Window Search - A way to reduce the search space in alpha-beta like search algorithms,
+    // to perform a boolean test, whether a move produces a worse or better score than a passed value.
+    // (https://www.chessprogramming.org/Null_Window)
     fn zw_search(
         &mut self,
         board: &Board,
@@ -245,7 +248,6 @@ impl Search {
                     1
                 };
 
-                // Zero window search
                 score = -self.zw_search(
                     &new_board,
                     &mut old_pv,
@@ -255,7 +257,7 @@ impl Search {
                     ply + 1,
                 );
                 if alpha < score && score < beta {
-                    score = -self.pvsearch::<true>(
+                    score = -self.pvsearch::<PV>(
                         &new_board,
                         &mut old_pv,
                         -beta,

@@ -307,14 +307,13 @@ fn time_for_move(time: u64, increment: Option<u64>, moves_to_go: Option<u8>) -> 
 }
 
 fn reset_search(search: &mut Search) {
-    // Reset everything except the transposition table
     search.stop = false;
     search.search_type = SearchType::Depth(0);
     search.timer = None;
     search.goal_time = None;
-    search.pv_table = crate::engine::pv_table::PVTable::new();
     search.nodes = 0;
     search.seldepth = 0;
     search.killers = [[None; 2]; MAX_PLY as usize];
     search.history.age_table();
+    search.tt.age();
 }

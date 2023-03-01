@@ -22,7 +22,6 @@ pub struct Search {
     pub search_type: SearchType,
     pub timer: Option<Instant>,
     pub goal_time: Option<u64>,
-    pub pv_table: PVTable,
     pub nodes: u32,
     pub seldepth: u8,
     pub tt: TT,
@@ -38,7 +37,6 @@ impl Search {
             search_type: SearchType::Depth(0),
             timer: None,
             goal_time: None,
-            pv_table: PVTable::new(),
             nodes: 0,
             seldepth: 0,
             tt,
@@ -48,14 +46,29 @@ impl Search {
         }
     }
 
-    pub fn pvsearch(
+    // Zero Window Search - A way to reduce the search space in alpha-beta like search algorithms,
+    // to perform a boolean test, whether a move produces a worse or better score than a passed value.
+    // (https://www.chessprogramming.org/Null_Window)
+    fn zw_search(
         &mut self,
         board: &Board,
+        pv: &mut PVTable,
+        alpha: i16,
+        beta: i16,
+        depth: u8,
+        ply: u8,
+    ) -> i16 {
+        self.pvsearch::<false>(board, pv, alpha, beta, depth, ply)
+    }
+
+    pub fn pvsearch<const PV: bool>(
+        &mut self,
+        board: &Board,
+        pv: &mut PVTable,
         mut alpha: i16,
         beta: i16,
         depth: u8,
         ply: u8,
-        is_pv: bool,
     ) -> i16 {
         // Every 1024 nodes, check if it's time to stop
         if let (Some(timer), Some(goal)) = (self.timer, self.goal_time) {
@@ -74,7 +87,8 @@ impl Search {
         }
 
         self.seldepth = max(self.seldepth, ply);
-        self.pv_table.length[ply as usize] = ply;
+        pv.length = 0;
+        let mut old_pv = PVTable::new();
 
         match board.status() {
             GameStatus::Won => return ply as i16 - MATE,
@@ -110,7 +124,7 @@ impl Search {
         /////////////////////////////////
 
         let tt_entry = self.tt.probe(hash_key);
-        let tt_hit = tt_entry.key == hash_key;
+        let tt_hit = tt_entry.key == hash_key as u16;
         let mut tt_move: Option<Move> = None;
         if tt_hit {
             let tt_score = self.tt.score_from_tt(tt_entry.score, ply);
@@ -118,12 +132,12 @@ impl Search {
             // Use the TT score if available since eval is expensive
             eval = tt_score;
 
-            if !is_pv && tt_entry.depth >= depth {
-                assert!(tt_score != NONE && tt_entry.flags != TTFlag::None);
+            if !PV && tt_entry.depth >= depth {
+                assert!(tt_score != NONE && tt_entry.flag != TTFlag::None);
 
-                if (tt_entry.flags == TTFlag::Exact)
-                    || (tt_entry.flags == TTFlag::LowerBound && tt_score >= beta)
-                    || (tt_entry.flags == TTFlag::UpperBound && tt_score <= alpha)
+                if (tt_entry.flag == TTFlag::Exact)
+                    || (tt_entry.flag == TTFlag::LowerBound && tt_score >= beta)
+                    || (tt_entry.flag == TTFlag::UpperBound && tt_score <= alpha)
                 {
                     return tt_score;
                 }
@@ -138,7 +152,7 @@ impl Search {
         // Pre-search pruning techniques //
         ///////////////////////////////////
 
-        if !is_pv {
+        if !PV {
             // Null Move Pruning (NMP)
             // If we can give the opponent a free move and still cause a beta cutoff,
             // we can safely prune this node. This does not work in zugzwang positions
@@ -154,7 +168,7 @@ impl Search {
                 let d = depth.saturating_sub(r);
                 let new_board = board.null_move().unwrap();
 
-                let score = -self.pvsearch(&new_board, -beta, -beta + 1, d, ply + 1, false);
+                let score = -self.zw_search(&new_board, &mut old_pv, -beta, -beta + 1, d, ply + 1);
 
                 if score >= beta {
                     if score >= TB_WIN_IN_PLY {
@@ -184,7 +198,7 @@ impl Search {
         let mut best_move: Option<Move> = None;
         let mut move_list = movegen::all_moves(self, board, tt_move, ply);
         let mut quiet_moves = StaticVec::<Option<Move>, MAX_MOVES_POSITION>::new(None);
-        let lmr_depth = if is_pv { 4 } else { 2 };
+        let lmr_depth = if PV { 4 } else { 2 };
 
         for i in 0..move_list.len() {
             let mv = movegen::pick_move(&mut move_list, i);
@@ -194,7 +208,7 @@ impl Search {
             }
 
             let mut new_board = board.clone();
-            new_board.play(mv);
+            new_board.play_unchecked(mv);
 
             self.game_history.push(new_board.hash()); // Repetition detection
             self.nodes += 1;
@@ -203,7 +217,14 @@ impl Search {
             // Principal Variation Search
             let mut score: i16;
             if i == 0 {
-                score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1, is_pv);
+                score = -self.pvsearch::<PV>(
+                    &new_board,
+                    &mut old_pv,
+                    -beta,
+                    -alpha,
+                    depth - 1,
+                    ply + 1,
+                );
             } else {
                 // Late Move Reduction (LMR)
                 // Assuming our move ordering is good, later moves will be worse
@@ -214,7 +235,7 @@ impl Search {
                     let mut r = LMR.reduction(depth, i) as u8;
 
                     // Bonus for non PV nodes
-                    r += u8::from(!is_pv);
+                    r += u8::from(!PV);
 
                     // Malus for capture moves and checks
                     r -= u8::from(capture_move(board, mv));
@@ -227,10 +248,23 @@ impl Search {
                     1
                 };
 
-                // Zero window search
-                score = -self.pvsearch(&new_board, -alpha - 1, -alpha, depth - r, ply + 1, false);
+                score = -self.zw_search(
+                    &new_board,
+                    &mut old_pv,
+                    -alpha - 1,
+                    -alpha,
+                    depth - r,
+                    ply + 1,
+                );
                 if alpha < score && score < beta {
-                    score = -self.pvsearch(&new_board, -beta, -alpha, depth - 1, ply + 1, true);
+                    score = -self.pvsearch::<PV>(
+                        &new_board,
+                        &mut old_pv,
+                        -beta,
+                        -alpha,
+                        depth - 1,
+                        ply + 1,
+                    );
                 }
             }
 
@@ -242,7 +276,7 @@ impl Search {
                 if score > alpha {
                     alpha = score;
                     best_move = Some(mv);
-                    self.pv_table.store(board, ply, mv);
+                    pv.store(board, mv, &old_pv);
 
                     if score >= beta {
                         if quiet_move(board, mv) {
@@ -309,17 +343,17 @@ impl Search {
 
         let hash_key = board.hash();
         let tt_entry = self.tt.probe(hash_key);
-        let tt_hit = tt_entry.key == hash_key;
+        let tt_hit = tt_entry.key == hash_key as u16;
         let mut tt_move: Option<Move> = None;
-        if tt_hit && !is_pv {
+        if tt_hit && !is_pv && tt_entry.flag != TTFlag::None {
             let tt_score = self.tt.score_from_tt(tt_entry.score, ply);
             tt_move = tt_entry.mv;
 
-            assert!(tt_score != NONE && tt_entry.flags != TTFlag::None);
+            assert!(tt_score != NONE);
 
-            if (tt_entry.flags == TTFlag::Exact)
-                || (tt_entry.flags == TTFlag::LowerBound && tt_score >= beta)
-                || (tt_entry.flags == TTFlag::UpperBound && tt_score <= alpha)
+            if (tt_entry.flag == TTFlag::Exact)
+                || (tt_entry.flag == TTFlag::LowerBound && tt_score >= beta)
+                || (tt_entry.flag == TTFlag::UpperBound && tt_score <= alpha)
             {
                 return tt_score;
             }
@@ -332,7 +366,7 @@ impl Search {
         for i in 0..captures.len() {
             let mv = movegen::pick_move(&mut captures, i);
             let mut new_board = board.clone();
-            new_board.play(mv);
+            new_board.play_unchecked(mv);
 
             self.nodes += 1;
 
@@ -383,17 +417,18 @@ impl Search {
         let mut best_move: Option<Move> = None;
 
         let mut score: i16 = 0;
+        let mut pv = PVTable::new();
 
         for d in 1..depth + 1 {
             self.seldepth = 0;
-            score = self.aspiration_window(board, score, d);
+            score = self.aspiration_window(board, &mut pv, score, d);
 
             // Search wasn't complete, do not update best move with garbage
             if self.stop && d > 1 {
                 break;
             }
 
-            best_move = self.pv_table.table[0][0];
+            best_move = pv.table[0];
 
             println!(
                 "info depth {} seldepth {} score {} nodes {} time {} pv{}",
@@ -402,14 +437,20 @@ impl Search {
                 self.format_score(score),
                 self.nodes,
                 info_timer.elapsed().as_millis(),
-                self.pv_table.pv_string()
+                pv.pv_string()
             );
         }
 
         println!("bestmove {}", best_move.unwrap());
     }
 
-    fn aspiration_window(&mut self, board: &Board, prev_eval: i16, depth: u8) -> i16 {
+    fn aspiration_window(
+        &mut self,
+        board: &Board,
+        pv: &mut PVTable,
+        prev_eval: i16,
+        depth: u8,
+    ) -> i16 {
         let mut score: i16;
 
         // Window size
@@ -425,7 +466,7 @@ impl Search {
         }
 
         loop {
-            score = self.pvsearch(board, alpha, beta, depth, 0, true);
+            score = self.pvsearch::<true>(board, pv, alpha, beta, depth, 0);
 
             // This result won't be used
             if self.stop {

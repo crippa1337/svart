@@ -19,6 +19,12 @@ pub struct TTEntry {
     pub flag: TTFlag,     // 1 byte
 }
 
+impl TTEntry {
+    fn quality(&self) -> u16 {
+        self.epoch + self.depth as u16
+    }
+}
+
 #[derive(Clone)]
 pub struct TT {
     pub entries: Vec<TTEntry>,
@@ -59,10 +65,6 @@ impl TT {
         self.epoch += 1;
     }
 
-    pub fn quality(&self, entry: TTEntry) -> u16 {
-        entry.epoch + entry.depth as u16 / 3
-    }
-
     pub fn store(
         &mut self,
         key: u64,
@@ -84,7 +86,7 @@ impl TT {
         };
 
         // Only replace entries of similar or higher quality
-        if self.quality(entry) >= self.quality(target) {
+        if entry.quality() >= target.quality() {
             self.entries[target_index] = entry;
         }
     }

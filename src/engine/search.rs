@@ -128,10 +128,11 @@ impl Search {
         let tt_hit = tt_entry.key == hash_key as u16;
         let mut tt_move: Option<Move> = None;
         if tt_hit {
-            let tt_score = self.tt.score_from_tt(tt_entry.score, ply);
-            tt_move = tt_entry.mv;
             // Use the TT score if available since eval is expensive
+            // and any score from the TT is better than the static eval
+            let tt_score = self.tt.score_from_tt(tt_entry.score, ply);
             eval = tt_score;
+            tt_move = tt_entry.mv;
 
             if !PV && tt_entry.depth >= depth {
                 assert!(tt_score != NONE && tt_entry.flag != TTFlag::None);
@@ -153,13 +154,12 @@ impl Search {
         // Pre-search pruning techniques //
         ///////////////////////////////////
 
-        if !PV {
+        if !PV && !in_check {
             // Null Move Pruning (NMP)
             // If we can give the opponent a free move and still cause a beta cutoff,
             // we can safely prune this node. This does not work in zugzwang positions
             // because then it is always better to give a free move, hence some checks for it are needed.
             if depth >= 3
-                && !in_check
                 && eval >= beta
                 && !self
                     .non_pawn_material(board, board.side_to_move())

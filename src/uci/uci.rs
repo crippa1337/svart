@@ -1,5 +1,5 @@
 use crate::{
-    constants::{self, MAX_PLY},
+    constants::{self},
     engine::{search::Search, tt::TT},
 };
 use cozy_chess::{Board, Color, Move, Piece, Square};
@@ -11,7 +11,7 @@ pub enum SearchType {
     Infinite,
 }
 
-pub fn main_loop() {
+pub fn uci_loop() {
     let mut board = Board::default();
     let mut tt_size = 32;
     let mut tt = TT::new(tt_size);
@@ -38,6 +38,10 @@ pub fn main_loop() {
                     continue;
                 }
                 "quit" => {
+                    break;
+                }
+                "bench" => {
+                    super::bench::bench();
                     break;
                 }
                 _ => (),
@@ -290,7 +294,7 @@ pub fn reverse_castling_move(board: &Board, mut mv: Move) -> Move {
 
 fn go(board: &Board, st: SearchType, search: &mut Search) {
     search.iterative_deepening(board, st);
-    reset_search(search);
+    search.reset();
 }
 
 fn time_for_move(time: u64, increment: Option<u64>, moves_to_go: Option<u8>) -> u64 {
@@ -304,16 +308,4 @@ fn time_for_move(time: u64, increment: Option<u64>, moves_to_go: Option<u8>) -> 
     } else {
         time / 20
     }
-}
-
-fn reset_search(search: &mut Search) {
-    search.stop = false;
-    search.search_type = SearchType::Depth(0);
-    search.timer = None;
-    search.goal_time = None;
-    search.nodes = 0;
-    search.seldepth = 0;
-    search.killers = [[None; 2]; MAX_PLY as usize];
-    search.history.age_table();
-    search.tt.age();
 }

@@ -1,4 +1,4 @@
-use crate::{constants::*, uci::SearchType};
+use crate::{constants::*, uci::uci::SearchType};
 use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
 use once_cell::sync::Lazy;
 use std::cmp::{max, min};
@@ -537,5 +537,17 @@ impl Search {
             | board.pieces(Piece::Rook)
             | board.pieces(Piece::Queen))
             & board.colors(color)
+    }
+
+    pub fn reset(&mut self) {
+        self.stop = false;
+        self.search_type = SearchType::Depth(0);
+        self.timer = None;
+        self.goal_time = None;
+        self.nodes = 0;
+        self.seldepth = 0;
+        self.killers = [[None; 2]; MAX_PLY as usize];
+        self.history.age_table();
+        self.tt.age();
     }
 }

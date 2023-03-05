@@ -1,5 +1,5 @@
 use crate::constants::MAX_PLY;
-use crate::uci::reverse_castling_move;
+use crate::uci::uci::reverse_castling_move;
 use cozy_chess::{Board, Move};
 
 pub struct PVTable {

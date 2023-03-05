@@ -199,7 +199,7 @@ impl Search {
         let old_alpha = alpha;
         let mut best_score: i16 = -INFINITY;
         let mut best_move: Option<Move> = None;
-        let mut move_list = movegen::all_moves(self, board, tt_move, ply);
+        let move_list = movegen::all_moves(self, board, tt_move, ply);
         let mut picker = Picker::new(move_list);
         let mut quiet_moves = StaticVec::<Option<Move>, MAX_MOVES_POSITION>::new(None);
         let lmr_depth = if PV { 5 } else { 3 };

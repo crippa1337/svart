@@ -186,7 +186,7 @@ impl Search {
             // The margin is multiplied by depth to make it harder to prune at higher depths
             // as pruning there can be inaccurate as it prunes a large amount of potential nodes
             // and static eval isn't the most accurate.
-            if depth < 9 && eval >= beta + RFP_MARGIN * depth as i16 {
+            if depth < 9 && eval >= beta + RFP_MARGIN * depth {
                 return eval;
             }
         }

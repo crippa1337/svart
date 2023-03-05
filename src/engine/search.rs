@@ -55,7 +55,7 @@ impl Search {
         pv: &mut PVTable,
         alpha: i16,
         beta: i16,
-        depth: u8,
+        depth: i16,
         ply: u8,
     ) -> i16 {
         self.pvsearch::<false>(board, pv, alpha, beta, depth, ply)
@@ -67,7 +67,7 @@ impl Search {
         pv: &mut PVTable,
         mut alpha: i16,
         beta: i16,
-        depth: u8,
+        mut depth: i16,
         ply: u8,
     ) -> i16 {
         // Every 1024 nodes, check if it's time to stop
@@ -87,6 +87,7 @@ impl Search {
         }
 
         self.seldepth = max(self.seldepth, ply);
+        depth = depth.max(0);
         pv.length = 0;
         let mut old_pv = PVTable::new();
 
@@ -134,7 +135,7 @@ impl Search {
             eval = tt_score;
             tt_move = tt_entry.mv;
 
-            if !PV && tt_entry.depth >= depth {
+            if !PV && tt_entry.depth as i16 >= depth {
                 assert!(tt_score != NONE && tt_entry.flag != TTFlag::None);
 
                 if (tt_entry.flag == TTFlag::Exact)
@@ -166,7 +167,7 @@ impl Search {
                     .is_empty()
             {
                 let r = 3 + depth / 4;
-                let d = depth.saturating_sub(r);
+                let d = depth - r;
                 let new_board = board.null_move().unwrap();
 
                 let score = -self.zw_search(&new_board, &mut old_pv, -beta, -beta + 1, d, ply + 1);
@@ -233,14 +234,14 @@ impl Search {
                 // we do a full re-search.
                 let r = if depth >= 3 && i > lmr_depth {
                     // Probe LMR table (src/lmr.rs)
-                    let mut r = LMR.reduction(depth, i) as u8;
+                    let mut r = LMR.reduction(depth, i);
 
                     // Bonus for non PV nodes
-                    r += u8::from(!PV);
+                    r += i16::from(!PV);
 
                     // Malus for capture moves and checks
-                    r -= u8::from(capture_move(board, mv));
-                    r -= u8::from(gives_check);
+                    r -= i16::from(capture_move(board, mv));
+                    r -= i16::from(gives_check);
 
                     // Clamping
                     r = r.min(depth - 1);
@@ -312,7 +313,7 @@ impl Search {
 
         if !self.stop {
             self.tt
-                .store(hash_key, best_move, best_score, depth, flag, ply);
+                .store(hash_key, best_move, best_score, depth as u8, flag, ply);
         }
 
         best_score
@@ -406,15 +407,15 @@ impl Search {
     }
 
     pub fn iterative_deepening(&mut self, board: &Board, st: SearchType) {
-        let depth: u8;
+        let depth: i16;
         match st {
             SearchType::Time(t) => {
-                depth = MAX_PLY;
+                depth = MAX_PLY as i16;
                 self.timer = Some(Instant::now());
                 self.goal_time = Some(t - TIME_OVERHEAD);
             }
             SearchType::Infinite => {
-                depth = MAX_PLY;
+                depth = MAX_PLY as i16;
             }
             SearchType::Depth(d) => depth = d,
         };
@@ -455,7 +456,7 @@ impl Search {
         board: &Board,
         pv: &mut PVTable,
         prev_eval: i16,
-        depth: u8,
+        depth: i16,
     ) -> i16 {
         let mut score: i16;
 

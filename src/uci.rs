@@ -7,7 +7,7 @@ use cozy_chess::{Board, Color, Move, Piece, Square};
 #[derive(Debug, PartialEq)]
 pub enum SearchType {
     Time(u64),
-    Depth(u8),
+    Depth(i16),
     Infinite,
 }
 
@@ -120,7 +120,7 @@ pub fn main_loop() {
                             // Static depth search
                             if words.iter().any(|&x| x == "depth") {
                                 match words[words.iter().position(|&x| x == "depth").unwrap() + 1]
-                                    .parse::<u8>()
+                                    .parse::<i16>()
                                 {
                                     Ok(d) => {
                                         go(&board, SearchType::Depth(d), &mut search);

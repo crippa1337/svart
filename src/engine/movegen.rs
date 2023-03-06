@@ -147,14 +147,25 @@ pub fn score_moves(
     search.history.get_score(board, mv)
 }
 
-pub fn pick_move(moves: &mut [MoveEntry], index: usize) -> Move {
-    let open_list = &mut moves[index..];
-    let best_index = open_list
-        .iter()
-        .enumerate()
-        .max_by_key(|(_, entry)| entry.score)
-        .unwrap()
-        .0;
-    open_list.swap(0, best_index);
-    open_list[0].mv
+pub struct Picker {
+    moves: Vec<MoveEntry>,
+    index: usize,
+}
+
+impl Picker {
+    pub fn new(moves: Vec<MoveEntry>) -> Self {
+        Self { moves, index: 0 }
+    }
+
+    pub fn pick_move(&mut self) -> Option<Move> {
+        let open_list = &mut self.moves[self.index..];
+        let best_index = open_list
+            .iter()
+            .enumerate()
+            .max_by_key(|(_, entry)| entry.score)?
+            .0;
+        self.index += 1;
+        open_list.swap(0, best_index);
+        Some(open_list[0].mv)
+    }
 }

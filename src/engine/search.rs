@@ -4,6 +4,7 @@ use once_cell::sync::Lazy;
 use std::cmp::{max, min};
 use std::time::Instant;
 
+use super::movegen::Picker;
 use super::{
     eval,
     history::History,
@@ -198,13 +199,13 @@ impl Search {
         let old_alpha = alpha;
         let mut best_score: i16 = -INFINITY;
         let mut best_move: Option<Move> = None;
-        let mut move_list = movegen::all_moves(self, board, tt_move, ply);
+        let move_list = movegen::all_moves(self, board, tt_move, ply);
+        let mut picker = Picker::new(move_list);
         let mut quiet_moves = StaticVec::<Option<Move>, MAX_MOVES_POSITION>::new(None);
-        let lmr_depth = if PV { 4 } else { 2 };
+        let lmr_depth = if PV { 5 } else { 3 };
+        let mut moves_played = 0;
 
-        for i in 0..move_list.len() {
-            let mv = movegen::pick_move(&mut move_list, i);
-
+        while let Some(mv) = picker.pick_move() {
             if quiet_move(board, mv) {
                 quiet_moves.push(Some(mv));
             }
@@ -212,13 +213,14 @@ impl Search {
             let mut new_board = board.clone();
             new_board.play_unchecked(mv);
 
-            self.game_history.push(new_board.hash()); // Repetition detection
+            moves_played += 1;
+            self.game_history.push(new_board.hash());
             self.nodes += 1;
             let gives_check = !new_board.checkers().is_empty();
 
             // Principal Variation Search
             let mut score: i16;
-            if i == 0 {
+            if moves_played == 1 {
                 score = -self.pvsearch::<PV>(
                     &new_board,
                     &mut old_pv,
@@ -232,9 +234,9 @@ impl Search {
                 // Assuming our move ordering is good, later moves will be worse
                 // and can be searched with a reduced depth, if they beat alpha
                 // we do a full re-search.
-                let r = if depth >= 3 && i > lmr_depth {
+                let r = if depth >= 3 && moves_played > lmr_depth {
                     // Probe LMR table (src/lmr.rs)
-                    let mut r = LMR.reduction(depth, i);
+                    let mut r = LMR.reduction(depth, moves_played);
 
                     // Bonus for non PV nodes
                     r += i16::from(!PV);
@@ -366,12 +368,12 @@ impl Search {
             }
         }
 
-        let mut captures = movegen::capture_moves(self, board, tt_move, ply);
+        let captures = movegen::capture_moves(self, board, tt_move, ply);
+        let mut picker = Picker::new(captures);
         let mut best_score = stand_pat;
         let mut best_move: Option<Move> = None;
 
-        for i in 0..captures.len() {
-            let mv = movegen::pick_move(&mut captures, i);
+        while let Some(mv) = picker.pick_move() {
             let mut new_board = board.clone();
             new_board.play_unchecked(mv);
 

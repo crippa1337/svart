@@ -22,9 +22,9 @@ impl LMRTable {
         lmr
     }
 
-    pub fn reduction(&self, depth: i16, move_count: usize) -> i16 {
-        let d = (depth as usize).min(63);
-        let c = move_count.min(63);
+    pub fn reduction(&self, depth: i16, move_count: i16) -> i16 {
+        let d = (depth.min(63)) as usize;
+        let c = (move_count.min(63)) as usize;
 
         self.table[d][c]
     }

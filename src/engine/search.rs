@@ -212,12 +212,7 @@ impl Search {
                 quiet_moves.push(Some(mv));
 
                 // Late Move Pruning (LMP)
-                if !PV
-                    && !in_check
-                    && depth < lmr_depth
-                    && is_quiet
-                    && quiet_moves.len() > depth as usize * 8
-                {
+                if !PV && !in_check && depth < lmr_depth && quiet_moves.len() > depth as usize * 8 {
                     picker.skip_quiets = true;
                     continue;
                 }

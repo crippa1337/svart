@@ -205,9 +205,17 @@ impl Search {
         let lmr_depth = if PV { 5 } else { 3 };
         let mut moves_played = 0;
 
-        while let Some(mv) = picker.pick_move() {
-            if quiet_move(board, mv) {
+        while let Some(mv) = picker.pick_move(board) {
+            let is_quiet = quiet_move(board, mv);
+            if is_quiet {
+                assert!(!picker.skip_quiets);
                 quiet_moves.push(Some(mv));
+
+                // Late Move Pruning (LMP)
+                if !PV && !in_check && depth < lmr_depth && quiet_moves.len() > depth as usize * 8 {
+                    picker.skip_quiets = true;
+                    continue;
+                }
             }
 
             let mut new_board = board.clone();
@@ -373,7 +381,7 @@ impl Search {
         let mut best_score = stand_pat;
         let mut best_move: Option<Move> = None;
 
-        while let Some(mv) = picker.pick_move() {
+        while let Some(mv) = picker.pick_move(board) {
             let mut new_board = board.clone();
             new_board.play_unchecked(mv);
 

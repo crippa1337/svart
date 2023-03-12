@@ -59,7 +59,7 @@ const FENS: [&str; 50] = [
 
 pub fn bench() {
     let mut tt = TT::new(32);
-    let mut search = Search::new(tt);
+    let mut search = Search::new(tt, &7, &9, &11);
 
     let mut tot_nodes = 0;
 
@@ -69,7 +69,7 @@ pub fn bench() {
         tot_nodes += search.nodes;
 
         tt = TT::new(32);
-        search = Search::new(tt);
+        search = Search::new(tt, &7, &9, &11);
     }
 
     println!("nodes {tot_nodes}");

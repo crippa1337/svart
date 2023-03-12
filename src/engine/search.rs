@@ -29,10 +29,16 @@ pub struct Search {
     pub game_history: Vec<u64>,
     pub killers: [[Option<Move>; 2]; MAX_PLY as usize],
     pub history: History,
+    pub TABLE1: i16,
+    pub TABLE2: i16,
+    pub TABLE3: i16,
 }
 
 impl Search {
-    pub fn new(tt: TT) -> Self {
+    pub fn new(tt: TT, TABLE1: &i16, TABLE2: &i16, TABLE3: &i16) -> Self {
+        let TABLE1 = *TABLE1;
+        let TABLE2 = *TABLE2;
+        let TABLE3 = *TABLE3;
         Search {
             stop: false,
             search_type: SearchType::Depth(0),
@@ -44,6 +50,9 @@ impl Search {
             game_history: vec![],
             killers: [[None; 2]; MAX_PLY as usize],
             history: History::new(),
+            TABLE1,
+            TABLE2,
+            TABLE3,
         }
     }
 
@@ -206,7 +215,7 @@ impl Search {
         let mut picker = Picker::new(move_list);
 
         let lmr_depth = if PV { 5 } else { 3 };
-        let lmp_table = [0, 7, 9, 14];
+        let lmp_table = [0, self.TABLE1, self.TABLE2, self.TABLE3];
         let mut quiets_to_check = match depth {
             d @ 1..=3 => lmp_table[d as usize],
             _ => 99,

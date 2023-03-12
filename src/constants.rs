@@ -13,7 +13,7 @@ pub const TB_WIN: i16 = MATE_IN;
 pub const TB_WIN_IN_PLY: i16 = TB_WIN - MAX_PLY as i16;
 pub const TB_LOSS_IN_PLY: i16 = -TB_WIN_IN_PLY;
 
-pub const TIME_OVERHEAD: u64 = 10;
+pub const TIME_OVERHEAD: u64 = 5;
 
 pub fn capture_move(board: &Board, mv: Move) -> bool {
     board.colors(!board.side_to_move()).has(mv.to)

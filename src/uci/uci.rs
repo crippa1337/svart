@@ -15,7 +15,10 @@ pub fn uci_loop() {
     let mut board = Board::default();
     let mut tt_size = 32;
     let mut tt = TT::new(tt_size);
-    let mut search = Search::new(tt);
+    let mut TABLE1 = 7;
+    let mut TABLE2 = 9;
+    let mut TABLE3 = 15;
+    let mut search = Search::new(tt, &TABLE1, &TABLE2, &TABLE3);
     let mut uci_set = false;
     let mut board_set = false;
 
@@ -62,25 +65,41 @@ pub fn uci_loop() {
                     "ucinewgame" => {
                         board = Board::startpos();
                         tt = TT::new(tt_size);
-                        search = Search::new(tt);
+                        search = Search::new(tt, &TABLE1, &TABLE2, &TABLE3);
                         board_set = true;
                         break 'main;
                     }
                     "setoption" => {
                         if words[1] == "name" && words[2] == "Hash" && words[3] == "value" {
-                            match words[4].parse::<u32>() {
-                                Ok(s) => {
-                                    // Don't allow hash bigger than max
-                                    if s > 1024 {
-                                        break 'main;
-                                    }
-                                    tt_size = s;
-                                    tt = TT::new(tt_size);
-                                    search = Search::new(tt);
+                            if let Ok(s) = words[4].parse::<u32>() {
+                                // Don't allow hash bigger than max
+                                if s > 1024 {
+                                    break 'main;
                                 }
-                                Err(_) => (),
+                                tt_size = s;
+                                tt = TT::new(tt_size);
+                                search = Search::new(tt, &TABLE1, &TABLE2, &TABLE3);
+                            }
+                        } else if words[1] == "name" && words[2] == "Table1" && words[3] == "value"
+                        {
+                            if let Ok(s) = words[4].parse::<i16>() {
+                                TABLE1 = s;
+                                search.TABLE1 = TABLE1;
+                            }
+                        } else if words[1] == "name" && words[2] == "Table2" && words[3] == "value"
+                        {
+                            if let Ok(s) = words[4].parse::<i16>() {
+                                TABLE2 = s;
+                                search.TABLE2 = TABLE2;
+                            }
+                        } else if words[1] == "name" && words[2] == "Table3" && words[3] == "value"
+                        {
+                            if let Ok(s) = words[4].parse::<i16>() {
+                                TABLE3 = s;
+                                search.TABLE3 = TABLE3;
                             }
                         }
+
                         break 'main;
                     }
                     "position" => {

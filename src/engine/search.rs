@@ -199,22 +199,28 @@ impl Search {
         let old_alpha = alpha;
         let mut best_score: i16 = -INFINITY;
         let mut best_move: Option<Move> = None;
-        let move_list = movegen::all_moves(self, board, tt_move, ply);
-        let mut picker = Picker::new(move_list);
-        let mut quiet_moves = StaticVec::<Option<Move>, MAX_MOVES_POSITION>::new(None);
-        let lmr_depth = if PV { 5 } else { 3 };
         let mut moves_played = 0;
 
-        while let Some(mv) = picker.pick_move(board) {
+        let move_list = movegen::all_moves(self, board, tt_move, ply);
+        let mut quiet_moves = StaticVec::<Option<Move>, MAX_MOVES_POSITION>::new(None);
+        let mut picker = Picker::new(move_list);
+
+        let lmr_depth = if PV { 5 } else { 3 };
+        let lmp_table = [0, 7, 9, 14];
+        let mut quiets_to_check = match depth {
+            d @ 1..=3 => lmp_table[d as usize],
+            _ => 99,
+        };
+
+        while let Some(mv) = picker.pick_move() {
             let is_quiet = quiet_move(board, mv);
             if is_quiet {
-                assert!(!picker.skip_quiets);
                 quiet_moves.push(Some(mv));
+                quiets_to_check -= 1;
 
                 // Late Move Pruning (LMP)
-                if !PV && !in_check && depth < lmr_depth && quiet_moves.len() > depth as usize * 8 {
-                    picker.skip_quiets = true;
-                    continue;
+                if !PV && !in_check && quiets_to_check == 0 {
+                    break;
                 }
             }
 
@@ -381,7 +387,7 @@ impl Search {
         let mut best_score = stand_pat;
         let mut best_move: Option<Move> = None;
 
-        while let Some(mv) = picker.pick_move(board) {
+        while let Some(mv) = picker.pick_move() {
             let mut new_board = board.clone();
             new_board.play_unchecked(mv);
 

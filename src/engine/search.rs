@@ -1,4 +1,4 @@
-use crate::{constants::*, uci::uci::SearchType};
+use crate::{constants::*, uci::handler::SearchType};
 use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
 use once_cell::sync::Lazy;
 use std::cmp::{max, min};
@@ -206,7 +206,7 @@ impl Search {
         let mut picker = Picker::new(move_list);
 
         let lmr_depth = if PV { 5 } else { 3 };
-        let lmp_table = [0, 7, 9, 14];
+        let lmp_table = [0, 5, 8, 18];
         let mut quiets_to_check = match depth {
             d @ 1..=3 => lmp_table[d as usize],
             _ => 99,

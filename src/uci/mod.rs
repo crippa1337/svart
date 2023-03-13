@@ -1,2 +1,2 @@
 mod bench;
-pub mod uci;
+pub mod handler;

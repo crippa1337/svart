@@ -150,6 +150,11 @@ impl Search {
             eval = eval::evaluate(board);
         }
 
+        // Internal Iterative Reduction (IIR)
+        if tt_move.is_none() && depth >= 5 {
+            depth -= 1;
+        }
+
         let in_check = !board.checkers().is_empty();
 
         ///////////////////////////////////

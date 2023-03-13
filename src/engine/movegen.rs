@@ -1,4 +1,4 @@
-use crate::constants::{capture_move, quiet_move, INFINITY};
+use crate::constants::{capture_move, INFINITY};
 use cozy_chess::{Board, Color, Move, Piece, Rank, Square};
 
 use super::search::Search;
@@ -150,30 +150,18 @@ pub fn score_moves(
 pub struct Picker {
     moves: Vec<MoveEntry>,
     index: usize,
-    pub skip_quiets: bool,
 }
 
 impl Picker {
     pub fn new(moves: Vec<MoveEntry>) -> Self {
-        Self {
-            moves,
-            index: 0,
-            skip_quiets: false,
-        }
+        Self { moves, index: 0 }
     }
 
-    pub fn pick_move(&mut self, board: &Board) -> Option<Move> {
+    pub fn pick_move(&mut self) -> Option<Move> {
         let open_list = &mut self.moves[self.index..];
         let best_index = open_list
             .iter()
             .enumerate()
-            .filter(|entry| {
-                if self.skip_quiets {
-                    !quiet_move(board, entry.1.mv)
-                } else {
-                    true
-                }
-            })
             .max_by_key(|(_, entry)| entry.score)?
             .0;
         self.index += 1;

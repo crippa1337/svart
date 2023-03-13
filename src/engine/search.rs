@@ -151,7 +151,7 @@ impl Search {
         }
 
         // Internal Iterative Reduction (IIR)
-        if tt_move.is_none() && depth >= 5 {
+        if tt_move.is_none() && depth >= 7 {
             depth -= 1;
         }
 

@@ -209,7 +209,7 @@ impl Search {
         let lmp_table = [0, 5, 8, 18];
         let mut quiets_to_check = match depth {
             d @ 1..=3 => lmp_table[d as usize],
-            _ => 99,
+            _ => MAX_MOVES_POSITION,
         };
 
         while let Some(mv) = picker.pick_move() {

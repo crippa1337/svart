@@ -17,6 +17,7 @@ use super::{
 
 static LMR: Lazy<LMRTable> = Lazy::new(LMRTable::new);
 const RFP_MARGIN: i16 = 75;
+const LMP_TABLE: [usize; 4] = [0, 5, 8, 18];
 
 pub struct Search {
     pub stop: bool,
@@ -206,9 +207,8 @@ impl Search {
         let mut picker = Picker::new(move_list);
 
         let lmr_depth = if PV { 5 } else { 3 };
-        let lmp_table = [0, 5, 8, 18];
         let mut quiets_to_check = match depth {
-            d @ 1..=3 => lmp_table[d as usize],
+            d @ 1..=3 => LMP_TABLE[d as usize],
             _ => MAX_MOVES_POSITION,
         };
 

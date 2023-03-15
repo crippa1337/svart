@@ -481,7 +481,7 @@ impl Search {
         let init_depth = depth;
 
         // Window size
-        let mut delta = 50;
+        let mut delta = 25;
 
         // Window bounds
         let mut alpha = -INFINITY;

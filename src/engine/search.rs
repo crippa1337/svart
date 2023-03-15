@@ -511,9 +511,7 @@ impl Search {
                 beta = (INFINITY).min(score + delta);
 
                 // Decrease depth if we're not in a mate position
-                if depth > 1 && score.abs() <= MATE_IN {
-                    depth -= 1;
-                }
+                depth -= i16::from(score.abs() < MATE_IN);
             }
             // Search succeeded
             else {

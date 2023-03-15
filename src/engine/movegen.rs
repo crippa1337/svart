@@ -74,6 +74,7 @@ pub fn capture_moves(
 }
 
 // Most Valuable Victim - Least Valuable Aggressor (MVV-LVA)
+#[must_use]
 pub fn mvvlva(board: &Board, mv: Move) -> i32 {
     #[rustfmt::skip]
     let mvvlva: [[i32; 7]; 7] = [
@@ -100,6 +101,7 @@ pub fn mvvlva(board: &Board, mv: Move) -> i32 {
 }
 
 // Used to index MVV-LVA table
+#[must_use]
 pub fn piece_num_at(board: &Board, square: Square) -> i16 {
     let piece = board.piece_on(square);
     if piece.is_none() {
@@ -116,6 +118,7 @@ pub fn piece_num_at(board: &Board, square: Square) -> i16 {
     }
 }
 
+#[must_use]
 pub fn score_moves(
     search: &Search,
     board: &Board,

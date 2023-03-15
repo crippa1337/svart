@@ -20,6 +20,7 @@ pub struct TTEntry {
 }
 
 impl TTEntry {
+    #[must_use]
     fn quality(&self) -> u16 {
         self.epoch * 2 + self.depth as u16
     }
@@ -50,6 +51,7 @@ impl TT {
         Self { entries, epoch: 0 }
     }
 
+    #[must_use]
     pub fn index(&self, key: u64) -> usize {
         // Cool hack Cosmo taught me
         let key = key as u128;
@@ -57,6 +59,7 @@ impl TT {
         ((key * len) >> 64) as usize
     }
 
+    #[must_use]
     pub fn probe(&self, key: u64) -> TTEntry {
         self.entries[self.index(key)]
     }
@@ -91,6 +94,7 @@ impl TT {
         }
     }
 
+    #[must_use]
     pub fn score_to_tt(&self, score: i16, ply: u8) -> i16 {
         if score >= TB_WIN_IN_PLY {
             score + ply as i16
@@ -101,6 +105,7 @@ impl TT {
         }
     }
 
+    #[must_use]
     pub fn score_from_tt(&self, score: i16, ply: u8) -> i16 {
         if score >= TB_WIN_IN_PLY {
             score - ply as i16

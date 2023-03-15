@@ -1,7 +1,6 @@
 use crate::{constants::*, uci::handler::SearchType};
 use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
 use once_cell::sync::Lazy;
-use std::cmp::{max, min};
 use std::time::Instant;
 
 use super::movegen::Picker;
@@ -51,6 +50,7 @@ impl Search {
     // Zero Window Search - A way to reduce the search space in alpha-beta like search algorithms,
     // to perform a boolean test, whether a move produces a worse or better score than a passed value.
     // (https://www.chessprogramming.org/Null_Window)
+    #[must_use]
     fn zw_search(
         &mut self,
         board: &Board,
@@ -63,6 +63,7 @@ impl Search {
         self.pvsearch::<false>(board, pv, alpha, beta, depth, ply)
     }
 
+    #[must_use]
     pub fn pvsearch<const PV: bool>(
         &mut self,
         board: &Board,
@@ -88,7 +89,7 @@ impl Search {
             return eval::evaluate(board);
         }
 
-        self.seldepth = max(self.seldepth, ply);
+        self.seldepth = self.seldepth.max(ply);
         depth = depth.max(0);
         pv.length = 0;
         let mut old_pv = PVTable::new();
@@ -138,7 +139,7 @@ impl Search {
             tt_move = tt_entry.mv;
 
             if !PV && tt_entry.depth as i16 >= depth {
-                assert!(tt_score != NONE && tt_entry.flag != TTFlag::None);
+                debug_assert!(tt_score != NONE && tt_entry.flag != TTFlag::None);
 
                 if (tt_entry.flag == TTFlag::Exact)
                     || (tt_entry.flag == TTFlag::LowerBound && tt_score >= beta)
@@ -335,6 +336,7 @@ impl Search {
         best_score
     }
 
+    #[must_use]
     fn qsearch<const PV: bool>(
         &mut self,
         board: &Board,
@@ -357,9 +359,9 @@ impl Search {
             return eval::evaluate(board);
         }
 
-        self.seldepth = max(self.seldepth, ply);
+        self.seldepth = self.seldepth.max(ply);
         let stand_pat = eval::evaluate(board);
-        alpha = max(alpha, stand_pat);
+        alpha = alpha.max(stand_pat);
         if stand_pat >= beta {
             return stand_pat;
         }
@@ -372,7 +374,7 @@ impl Search {
             let tt_score = self.tt.score_from_tt(tt_entry.score, ply);
             tt_move = tt_entry.mv;
 
-            assert!(tt_score != NONE);
+            debug_assert!(tt_score != NONE);
 
             if (tt_entry.flag == TTFlag::Exact)
                 || (tt_entry.flag == TTFlag::LowerBound && tt_score >= beta)
@@ -484,8 +486,8 @@ impl Search {
         let mut beta = INFINITY;
 
         if depth >= 5 {
-            alpha = max(-INFINITY, prev_eval - delta);
-            beta = min(INFINITY, prev_eval + delta);
+            alpha = (-INFINITY).max(prev_eval - delta);
+            beta = (INFINITY).min(prev_eval + delta);
         }
 
         loop {
@@ -499,11 +501,11 @@ impl Search {
             // Search failed low, adjust window
             if score <= alpha {
                 beta = (alpha + beta) / 2;
-                alpha = max(-INFINITY, score - delta);
+                alpha = (-INFINITY).max(score - delta);
             }
             // Search failed high, adjust window
             else if score >= beta {
-                beta = min(INFINITY, score + delta);
+                beta = (INFINITY).min(score + delta);
             }
             // Search succeeded
             else {
@@ -512,12 +514,12 @@ impl Search {
 
             // Always increase window size on search failure
             delta += delta / 2;
-            assert!(alpha >= -INFINITY && beta <= INFINITY);
+            debug_assert!(alpha >= -INFINITY && beta <= INFINITY);
         }
     }
 
     pub fn format_score(&self, score: i16) -> String {
-        assert!(score < NONE);
+        debug_assert!(score < NONE);
         let print_score: String;
         if score >= MATE_IN {
             print_score = format!("mate {}", (((MATE - score) / 2) + ((MATE - score) & 1)));

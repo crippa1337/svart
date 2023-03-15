@@ -208,7 +208,8 @@ impl Search {
         let mut picker = Picker::new(move_list);
 
         let lmr_depth = if PV { 5 } else { 3 };
-        let mut quiets_to_check = match depth {
+        let mut quiets_checked = 0;
+        let quiets_to_check = match depth {
             d @ 1..=3 => LMP_TABLE[d as usize],
             _ => MAX_MOVES_POSITION,
         };
@@ -217,14 +218,11 @@ impl Search {
             let is_quiet = quiet_move(board, mv);
             if is_quiet {
                 quiet_moves.push(Some(mv));
+                quiets_checked += 1;
 
                 // Late Move Pruning (LMP)
-                if !PV && !in_check {
-                    quiets_to_check -= 1;
-
-                    if quiets_to_check == 0 {
-                        break;
-                    }
+                if !PV && !in_check && quiets_checked >= quiets_to_check {
+                    break;
                 }
             }
 

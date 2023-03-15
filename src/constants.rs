@@ -15,10 +15,12 @@ pub const TB_LOSS_IN_PLY: i16 = -TB_WIN_IN_PLY;
 
 pub const TIME_OVERHEAD: u64 = 10;
 
+#[must_use]
 pub fn capture_move(board: &Board, mv: Move) -> bool {
     board.colors(!board.side_to_move()).has(mv.to)
 }
 
+#[must_use]
 pub fn quiet_move(board: &Board, mv: Move) -> bool {
     !capture_move(board, mv) && mv.promotion.is_none()
 }

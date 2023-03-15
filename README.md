@@ -26,7 +26,7 @@ Compile Svart using <a href="https://doc.rust-lang.org/cargo/">Cargo</a> in ``./
 * [Cosmo Bobak](https://github.com/cosmobobak)
 * [Disservin](https://github.com/disservin)
 * [MinusKelvin](https://github.com/minuskelvin)
-* Plutie
+* [Plutie](https://github.com/uwuplant)
 * [Rak Laptudirm](https://github.com/raklaptudirm)
 * Twipply
 * [Zuppa D.Cipolle](https://github.com/pgg106)

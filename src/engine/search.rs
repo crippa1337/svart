@@ -216,11 +216,14 @@ impl Search {
             let is_quiet = quiet_move(board, mv);
             if is_quiet {
                 quiet_moves.push(Some(mv));
-                quiets_to_check -= 1;
 
                 // Late Move Pruning (LMP)
-                if !PV && !in_check && quiets_to_check == 0 {
-                    break;
+                if !PV && !in_check {
+                    quiets_to_check -= 1;
+
+                    if quiets_to_check == 0 {
+                        break;
+                    }
                 }
             }
 

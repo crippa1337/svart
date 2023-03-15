@@ -3,6 +3,7 @@ use cozy_chess::{Board, Color, Piece};
 
 const PHASE_INC: [i32; 6] = [0, 1, 1, 2, 4, 0];
 
+#[must_use]
 fn p_type(piece: Piece) -> usize {
     match piece {
         Piece::Pawn => 0,
@@ -14,6 +15,7 @@ fn p_type(piece: Piece) -> usize {
     }
 }
 
+#[must_use]
 pub fn evaluate(board: &Board) -> i16 {
     let mut mg = 0;
     let mut eg = 0;
@@ -37,11 +39,13 @@ pub fn evaluate(board: &Board) -> i16 {
         }
     }
 
-    let mg_weight = std::cmp::min(game_phase, 24);
+    let mg_weight = game_phase.min(24);
     let eg_weight = 24 - mg_weight;
 
+    let score = (((mg * mg_weight) + (eg * eg_weight)) / 24) as i16;
+
     match board.side_to_move() {
-        Color::White => (((mg * mg_weight) + (eg * eg_weight)) / 24) as i16,
-        Color::Black => (((mg * mg_weight) + (eg * eg_weight)) / -24) as i16,
+        Color::White => score,
+        Color::Black => -score,
     }
 }

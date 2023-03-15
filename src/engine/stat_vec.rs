@@ -20,6 +20,7 @@ impl<T: Copy, const N: usize> StaticVec<T, N> {
         self.len
     }
 
+    #[must_use]
     pub fn as_slice(&self) -> &[T] {
         &self.data[..self.len]
     }

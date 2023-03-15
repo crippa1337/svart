@@ -1,5 +1,4 @@
 use cozy_chess::{Board, Move};
-use std::cmp::min;
 
 pub struct History {
     pub table: [[[i32; 64]; 64]; 2],
@@ -12,6 +11,7 @@ impl History {
         }
     }
 
+    #[must_use]
     pub fn get_score(&self, board: &Board, mv: Move) -> i32 {
         let color = board.side_to_move() as usize;
         let from = mv.from as usize;
@@ -21,7 +21,7 @@ impl History {
     }
 
     pub fn update_table<const POSITIVE: bool>(&mut self, board: &Board, mv: Move, depth: i16) {
-        let delta = min(16 * (depth * depth) as i32, 1200);
+        let delta = (16 * (depth * depth)).min(1200) as i32;
         let bonus = if POSITIVE { delta } else { -delta };
         self.update_score(board, mv, bonus);
     }

@@ -299,7 +299,7 @@ impl Search {
                     pv.store(board, mv, &old_pv);
 
                     if score >= beta {
-                        if quiet_move(board, mv) {
+                        if is_quiet {
                             self.killers[ply as usize][1] = self.killers[ply as usize][0];
                             self.killers[ply as usize][0] = Some(mv);
 
@@ -449,7 +449,7 @@ impl Search {
             self.seldepth = 0;
             score = self.aspiration_window(board, &mut pv, score, d);
 
-            // Search wasn't complete, do not update best move with garbage
+            // Search wasn't complete
             if self.stop && d > 1 {
                 break;
             }

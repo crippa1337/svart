@@ -20,7 +20,7 @@ Compile Svart using <a href="https://doc.rust-lang.org/cargo/">Cargo</a> in ``./
     cargo build --release
 
 
-# Special thanks
+# Acknowledgements
 * [Algorhythm](https://github.com/Algorhythm-sxv)
 * [Analog Hors](https://github.com/analog-hors)
 * [Cosmo Bobak](https://github.com/cosmobobak)

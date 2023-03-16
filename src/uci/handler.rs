@@ -258,7 +258,7 @@ pub fn uci_loop() {
 }
 
 fn id() {
-    println!("id name Svart {}", env!("CARGO_PKG_VERSION"));
+    println!("id name Svart 2.1");
     println!("id author crippa");
 }
 

@@ -475,12 +475,13 @@ impl Search {
         board: &Board,
         pv: &mut PVTable,
         prev_eval: i16,
-        depth: i16,
+        mut depth: i16,
     ) -> i16 {
         let mut score: i16;
+        let init_depth = depth;
 
         // Window size
-        let mut delta = 50;
+        let mut delta = 25;
 
         // Window bounds
         let mut alpha = -INFINITY;
@@ -503,10 +504,14 @@ impl Search {
             if score <= alpha {
                 beta = (alpha + beta) / 2;
                 alpha = (-INFINITY).max(score - delta);
+                depth = init_depth;
             }
             // Search failed high, adjust window
             else if score >= beta {
                 beta = (INFINITY).min(score + delta);
+
+                // Decrease depth if we're not in a mate position
+                depth -= i16::from(score.abs() < MATE_IN);
             }
             // Search succeeded
             else {

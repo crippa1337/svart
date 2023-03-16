@@ -170,10 +170,16 @@ impl Search {
                     .is_empty()
             {
                 let r = 3 + depth / 4;
-                let d = depth - r;
                 let new_board = board.null_move().unwrap();
 
-                let score = -self.zw_search(&new_board, &mut old_pv, -beta, -beta + 1, d, ply + 1);
+                let score = -self.zw_search(
+                    &new_board,
+                    &mut old_pv,
+                    -beta,
+                    -beta + 1,
+                    depth - r,
+                    ply + 1,
+                );
 
                 if score >= beta {
                     if score >= TB_WIN_IN_PLY {
@@ -221,6 +227,7 @@ impl Search {
                 quiets_checked += 1;
 
                 // Late Move Pruning (LMP)
+                // If we have searched too many moves, we stop searching here
                 if !PV && !in_check && quiets_checked >= quiets_to_check {
                     break;
                 }

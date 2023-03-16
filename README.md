@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="https://github.com/crippa1337/svart/blob/master/images/new_logo.jpg">
+    <img src="https://github.com/crippa1337/svart/blob/master/banner.jpg">
 </div>
 
 # Svart

@@ -18,15 +18,3 @@ Svart is not a complete chess program and requires a <a href="https://www.chessp
 Compile Svart using <a href="https://doc.rust-lang.org/cargo/">Cargo</a> in ``./target/release``.
 
     cargo build --release
-
-
-# Acknowledgements
-* [Algorhythm](https://github.com/Algorhythm-sxv)
-* [Analog Hors](https://github.com/analog-hors)
-* [Cosmo Bobak](https://github.com/cosmobobak)
-* [Disservin](https://github.com/disservin)
-* [MinusKelvin](https://github.com/minuskelvin)
-* [Plutie](https://github.com/uwuplant)
-* [Rak Laptudirm](https://github.com/raklaptudirm)
-* Twipply
-* [Zuppa D.Cipolle](https://github.com/pgg106)

@@ -264,9 +264,7 @@ impl Search {
                     r -= i16::from(capture_move(board, mv));
                     r -= i16::from(gives_check);
 
-                    // Clamping
-                    r = r.min(depth - 1);
-                    r.max(1)
+                    r.clamp(1, depth - 1)
                 } else {
                     1
                 };

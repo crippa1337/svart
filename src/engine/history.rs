@@ -1,5 +1,7 @@
 use cozy_chess::{Board, Move};
 
+pub const MAX_HISTORY: i16 = i16::MAX;
+
 pub struct History {
     pub table: [[[i32; 64]; 64]; 2],
 }
@@ -27,7 +29,7 @@ impl History {
     }
 
     pub fn update_score(&mut self, board: &Board, mv: Move, bonus: i32) {
-        let scaled_bonus = bonus - self.get_score(board, mv) * bonus.abs() / 32768;
+        let scaled_bonus = bonus - self.get_score(board, mv) * bonus.abs() / MAX_HISTORY as i32;
         let color = board.side_to_move() as usize;
         let from = mv.from as usize;
         let to = mv.to as usize;

@@ -47,9 +47,11 @@ impl Search {
         }
     }
 
-    // Zero Window Search - A way to reduce the search space in alpha-beta like search algorithms,
-    // to perform a boolean test, whether a move produces a worse or better score than a passed value.
-    // (https://www.chessprogramming.org/Null_Window)
+    /*
+        Zero Window Search - A way to reduce the search space in alpha-beta like search algorithms,
+        to perform a boolean test, whether a move produces a worse or better score than a passed value.
+        (https://www.chessprogramming.org/Null_Window)
+    */
     #[must_use]
     fn zw_search(
         &mut self,
@@ -124,10 +126,6 @@ impl Search {
         // Static eval used for pruning
         let eval;
 
-        /////////////////////////////////
-        // Transposition table cut-off //
-        /////////////////////////////////
-
         let tt_entry = self.tt.probe(hash_key);
         let tt_hit = tt_entry.key == hash_key as u16;
         let mut tt_move: Option<Move> = None;
@@ -154,15 +152,13 @@ impl Search {
 
         let in_check = !board.checkers().is_empty();
 
-        ///////////////////////////////////
-        // Pre-search pruning techniques //
-        ///////////////////////////////////
-
         if !PV && !in_check {
-            // Null Move Pruning (NMP)
-            // If we can give the opponent a free move and still cause a beta cutoff,
-            // we can safely prune this node. This does not work in zugzwang positions
-            // because then it is always better to give a free move, hence some checks for it are needed.
+            /*
+                Null Move Pruning (NMP)
+                If we can give the opponent a free move and still cause a beta cutoff,
+                we can safely prune this node. This does not work in zugzwang positions
+                because then it is always better to give a free move, hence some checks for it are needed.
+            */
             if depth >= 3
                 && eval >= beta
                 && !self
@@ -190,19 +186,17 @@ impl Search {
                 }
             }
 
-            // Reverse Futility Pruning (RFP)
-            // If static eval plus a margin can beat beta, then we can safely prune this node.
-            // The margin is multiplied by depth to make it harder to prune at higher depths
-            // as pruning there can be inaccurate as it prunes a large amount of potential nodes
-            // and static eval isn't the most accurate.
+            /*
+                Reverse Futility Pruning (RFP)
+                If static eval plus a margin can beat beta, then we can safely prune this node.
+                The margin is multiplied by depth to make it harder to prune at higher depths
+                as pruning there can be inaccurate as it prunes a large amount of potential nodes
+                and static eval isn't the most accurate.
+            */
             if depth < 9 && eval >= beta + RFP_MARGIN * depth {
                 return eval;
             }
         }
-
-        /////////////////
-        // Search body //
-        /////////////////
 
         let old_alpha = alpha;
         let mut best_score: i16 = -INFINITY;
@@ -253,10 +247,12 @@ impl Search {
                     ply + 1,
                 );
             } else {
-                // Late Move Reduction (LMR)
-                // Assuming our move ordering is good, later moves will be worse
-                // and can be searched with a reduced depth, if they beat alpha
-                // we do a full re-search.
+                /*
+                    Late Move Reduction (LMR)
+                    Assuming our move ordering is good, later moves will be worse
+                    and can be searched with a reduced depth, if they beat alpha
+                    we do a full re-search.
+                */
                 let r = if depth >= 3 && moves_played > lmr_depth {
                     // Probe LMR table (src/lmr.rs)
                     let mut r = LMR.reduction(depth, moves_played);
@@ -297,33 +293,37 @@ impl Search {
 
             self.game_history.pop();
 
-            if score > best_score {
-                best_score = score;
+            if score <= best_score {
+                continue;
+            }
+            best_score = score;
 
-                if score > alpha {
-                    alpha = score;
-                    best_move = Some(mv);
-                    pv.store(board, mv, &old_pv);
+            if score <= alpha {
+                continue;
+            }
+            // New best move
+            alpha = score;
+            best_move = Some(mv);
+            pv.store(board, mv, &old_pv);
 
-                    if score >= beta {
-                        if is_quiet {
-                            self.killers[ply as usize][1] = self.killers[ply as usize][0];
-                            self.killers[ply as usize][0] = Some(mv);
+            // Fail-high
+            if score >= beta {
+                if is_quiet {
+                    self.killers[ply as usize][1] = self.killers[ply as usize][0];
+                    self.killers[ply as usize][0] = Some(mv);
 
-                            // Update best move with a positive bonus
-                            self.history.update_table::<true>(board, mv, depth);
-                            // Update all other quiet moves with a negative bonus
-                            let qi = quiet_moves.as_slice();
-                            let qi = &qi[..quiet_moves.len() - 1];
-                            for qm in qi {
-                                self.history
-                                    .update_table::<false>(board, qm.unwrap(), depth);
-                            }
-                        }
-
-                        break;
+                    // Update best move with a positive bonus
+                    self.history.update_table::<true>(board, mv, depth);
+                    // Update all other quiet moves with a negative bonus
+                    let qi = quiet_moves.as_slice();
+                    let qi = &qi[..quiet_moves.len() - 1];
+                    for qm in qi {
+                        self.history
+                            .update_table::<false>(board, qm.unwrap(), depth);
                     }
                 }
+
+                break;
             }
         }
 
@@ -405,17 +405,19 @@ impl Search {
 
             let score = -self.qsearch::<PV>(&new_board, -beta, -alpha, ply + 1);
 
-            if score > best_score {
-                best_score = score;
+            if score <= best_score {
+                continue;
+            }
+            best_score = score;
 
-                if score > alpha {
-                    alpha = score;
-                    best_move = Some(mv);
+            if score <= alpha {
+                continue;
+            }
+            alpha = score;
+            best_move = Some(mv);
 
-                    if score >= beta {
-                        break;
-                    }
-                }
+            if score >= beta {
+                break;
             }
         }
 

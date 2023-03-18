@@ -1,15 +1,14 @@
 <div align="center">
 
-  ### Svart
+  # Svart
   [![License][license-badge]][license-link]
   [![Release][release-badge]][release-link]
   [![Commits][commits-badge]][commits-link]
 
 </div>
+A free and open source UCI chess engine written in Rust.
 
-# Overview
-Svart is a free and open source UCI chess engine written in Rust. <br>
-Svart is not a complete chess program and requires a <a href="https://www.chessprogramming.org/UCI#GUIs">UCI-compatible graphical user interface</a> in order to be used comfortably.
+Svart is not a complete chess program and requires a [UCI-compatible graphical user interface](https://www.chessprogramming.org/UCI#GUIs) in order to be used comfortably.
 
 
 # UCI Options

@@ -1,2 +1,1 @@
-mod accumulator;
 mod network;

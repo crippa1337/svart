@@ -43,3 +43,16 @@ Stats:  W: 30.8%   L: 24.3%   D: 43.8%   TF: 0
 White advantage: -0.00 +/- 15.05
 Elo difference: 22.62 +/- 15.06
 ```
+
+
+# 2.2
+### Improved NMP (#29)
+```
+Score of dev vs master after 1274 games: 347 - 278 - 649 (0.53)
+Ptnml:        WW     WD  DD/WL     LD     LL
+Distr:        45    186    223    159     24
+LLR: 2.99 (-2.94, 2.94) [0.00, 10.00]
+Stats:  W: 27.2%   L: 21.8%   D: 50.9%   TF: 0
+White advantage: 9.00 +/- 13.35
+Elo difference: 18.84 +/- 13.35
+```

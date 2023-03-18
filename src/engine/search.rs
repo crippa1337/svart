@@ -165,7 +165,7 @@ impl Search {
                     .non_pawn_material(board, board.side_to_move())
                     .is_empty()
             {
-                let r = 3 + depth / 4;
+                let r = 3 + depth / 3 + 3.min((eval - beta) / 200);
                 let new_board = board.null_move().unwrap();
 
                 let score = -self.zw_search(

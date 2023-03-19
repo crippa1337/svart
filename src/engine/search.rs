@@ -217,7 +217,6 @@ impl Search {
         while let Some(mv) = picker.pick_move() {
             let is_quiet = quiet_move(board, mv);
             if is_quiet {
-                quiet_moves.push(Some(mv));
                 quiets_checked += 1;
 
                 // Late Move Pruning (LMP)
@@ -225,6 +224,8 @@ impl Search {
                 if !PV && !in_check && quiets_checked >= quiets_to_check {
                     break;
                 }
+
+                quiet_moves.push(Some(mv));
             }
 
             let mut new_board = board.clone();
@@ -443,7 +444,7 @@ impl Search {
             SearchType::Infinite => {
                 depth = MAX_PLY as i16;
             }
-            SearchType::Depth(d) => depth = d,
+            SearchType::Depth(d) => depth = d.min(MAX_PLY as i16),
         };
 
         let info_timer = Instant::now();
@@ -452,7 +453,7 @@ impl Search {
         let mut score: i16 = 0;
         let mut pv = PVTable::new();
 
-        for d in 1..depth + 1 {
+        for d in 1..=depth {
             self.seldepth = 0;
             score = self.aspiration_window(board, &mut pv, score, d);
 

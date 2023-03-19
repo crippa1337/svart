@@ -7,6 +7,7 @@ use cozy_chess::{Board, Color, Move, Piece, Square};
 #[derive(Debug, PartialEq)]
 pub enum SearchType {
     Time(u64),
+    Nodes(u64),
     Depth(i16),
     Infinite,
 }
@@ -128,6 +129,15 @@ pub fn uci_loop() {
                                 {
                                     Ok(d) => {
                                         go(&board, SearchType::Depth(d), &mut search);
+                                    }
+                                    Err(_) => (),
+                                }
+                            } else if words.iter().any(|&x| x == "nodes") {
+                                match words[words.iter().position(|&x| x == "nodes").unwrap() + 1]
+                                    .parse::<u64>()
+                                {
+                                    Ok(n) => {
+                                        go(&board, SearchType::Nodes(n), &mut search);
                                     }
                                     Err(_) => (),
                                 }

@@ -23,7 +23,7 @@ pub struct Search {
     pub search_type: SearchType,
     pub timer: Option<Instant>,
     pub goal_time: Option<u64>,
-    pub nodes: u32,
+    pub nodes: u64,
     pub seldepth: u8,
     pub tt: TT,
     pub game_history: Vec<u64>,
@@ -435,6 +435,7 @@ impl Search {
 
     pub fn iterative_deepening(&mut self, board: &Board, st: SearchType) {
         let depth: i16;
+        let mut goal_nodes: Option<u64> = None;
         match st {
             SearchType::Time(t) => {
                 depth = MAX_PLY as i16;
@@ -445,6 +446,10 @@ impl Search {
                 depth = MAX_PLY as i16;
             }
             SearchType::Depth(d) => depth = d.min(MAX_PLY as i16),
+            SearchType::Nodes(n) => {
+                depth = MAX_PLY as i16;
+                goal_nodes = Some(n);
+            }
         };
 
         let info_timer = Instant::now();
@@ -456,6 +461,12 @@ impl Search {
         for d in 1..=depth {
             self.seldepth = 0;
             score = self.aspiration_window(board, &mut pv, score, d);
+
+            if let Some(nodes) = goal_nodes {
+                if self.nodes >= nodes {
+                    break;
+                }
+            }
 
             // Search wasn't complete
             if self.stop && d > 1 {

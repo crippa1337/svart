@@ -23,7 +23,7 @@ impl History {
     }
 
     pub fn update_table<const POSITIVE: bool>(&mut self, board: &Board, mv: Move, depth: i32) {
-        let delta = (16 * (depth * depth)).min(1200) as i32;
+        let delta = (16 * (depth * depth)).min(1200);
         let bonus = if POSITIVE { delta } else { -delta };
         self.update_score(board, mv, bonus);
     }

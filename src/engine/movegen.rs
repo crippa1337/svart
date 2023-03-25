@@ -133,7 +133,7 @@ pub fn score_moves(
 ) -> i32 {
     if let Some(tmove) = tt_move {
         if mv == tmove {
-            return INFINITY as i32 + 1_000_000;
+            return INFINITY + 1_000_000;
         }
     }
 

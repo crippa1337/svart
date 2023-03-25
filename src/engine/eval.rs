@@ -16,7 +16,7 @@ fn p_type(piece: Piece) -> usize {
 }
 
 #[must_use]
-pub fn evaluate(board: &Board) -> i16 {
+pub fn evaluate(board: &Board) -> i32 {
     let mut mg = 0;
     let mut eg = 0;
     let mut game_phase = 0;
@@ -42,7 +42,7 @@ pub fn evaluate(board: &Board) -> i16 {
     let mg_weight = game_phase.min(24);
     let eg_weight = 24 - mg_weight;
 
-    let score = (((mg * mg_weight) + (eg * eg_weight)) / 24) as i16;
+    let score = ((mg * mg_weight) + (eg * eg_weight)) / 24;
 
     match board.side_to_move() {
         Color::White => score,

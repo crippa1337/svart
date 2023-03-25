@@ -9,7 +9,12 @@ pub struct MoveEntry {
     pub score: i32,
 }
 
-pub fn all_moves(search: &Search, board: &Board, tt_move: Option<Move>, ply: u8) -> Vec<MoveEntry> {
+pub fn all_moves(
+    search: &Search,
+    board: &Board,
+    tt_move: Option<Move>,
+    ply: i32,
+) -> Vec<MoveEntry> {
     let mut move_list: Vec<Move> = Vec::new();
 
     board.generate_moves(|moves| {
@@ -32,7 +37,7 @@ pub fn capture_moves(
     search: &Search,
     board: &Board,
     tt_move: Option<Move>,
-    ply: u8,
+    ply: i32,
 ) -> Vec<MoveEntry> {
     let enemy_pieces = board.colors(!board.side_to_move());
     let mut captures_list: Vec<Move> = Vec::new();
@@ -124,7 +129,7 @@ pub fn score_moves(
     board: &Board,
     mv: Move,
     tt_move: Option<Move>,
-    ply: u8,
+    ply: i32,
 ) -> i32 {
     if let Some(tmove) = tt_move {
         if mv == tmove {

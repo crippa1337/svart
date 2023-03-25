@@ -1,5 +1,6 @@
 # A script to convert PGN files to the marlinflow format
 # FEN | EVAL | WDL
+# Evaluations are always reported from white's perspective
 
 
 import chess

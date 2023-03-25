@@ -20,6 +20,12 @@ Svart is not a complete chess program and requires a [UCI-compatible graphical u
 Compile Svart using <a href="https://doc.rust-lang.org/cargo/">Cargo</a> in ``./target/release``.
 
     cargo build --release
+
+# History
+
+| Version  | CCRL Blitz | CCRL 40/15 |
+| -------- | ---------- | ---------- |
+| Svart 2  | 2471±20    | 2417±116   |
     
 [commits-badge]:https://img.shields.io/github/commits-since/crippa1337/svart/latest?style=for-the-badge
 [commits-link]:https://github.com/crippa1337/svart/commits/master

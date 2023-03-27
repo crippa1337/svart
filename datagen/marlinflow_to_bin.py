@@ -41,7 +41,7 @@ def convert_bias(json_bias, q):
     return biases
 
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 1:
         print("Usage: python marlinflow_to_bin.py <json_file>")
         sys.exit(1)
 

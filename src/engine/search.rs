@@ -126,6 +126,7 @@ impl Search {
         // Static eval used for pruning
         let eval;
 
+        self.tt.prefetch(hash_key);
         let tt_entry = self.tt.probe(hash_key);
         let tt_hit = tt_entry.key == hash_key as u16;
         let mut tt_move: Option<Move> = None;
@@ -326,6 +327,8 @@ impl Search {
             }
         }
 
+        self.tt.prefetch(hash_key);
+
         let flag = if best_score >= beta {
             TTFlag::LowerBound
         } else if best_score != old_alpha {
@@ -379,9 +382,11 @@ impl Search {
         }
 
         let hash_key = board.hash();
+        self.tt.prefetch(hash_key);
         let tt_entry = self.tt.probe(hash_key);
         let tt_hit = tt_entry.key == hash_key as u16;
         let mut tt_move: Option<Move> = None;
+
         if tt_hit && !PV && tt_entry.flag != TTFlag::None {
             let tt_score = self.tt.score_from_tt(tt_entry.score, ply) as i32;
             tt_move = tt_entry.mv;
@@ -424,6 +429,8 @@ impl Search {
                 break;
             }
         }
+
+        self.tt.prefetch(hash_key);
 
         let flag = if best_score >= beta {
             TTFlag::LowerBound

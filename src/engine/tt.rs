@@ -94,6 +94,18 @@ impl TT {
         }
     }
 
+    // hint to cpu that this memory adress will be accessed soon
+    // by slapping it in the cpu cache
+    pub fn prefetch(&self, key: u64) {
+        let index = self.index(key);
+        let entry = &self.entries[index];
+        #[cfg(target_arch = "x86_64")]
+        unsafe {
+            use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
+            _mm_prefetch((entry as *const TTEntry).cast::<i8>(), _MM_HINT_T0);
+        }
+    }
+
     #[must_use]
     pub fn score_to_tt(&self, score: i16, ply: i32) -> i16 {
         if score >= TB_WIN_IN_PLY as i16 {

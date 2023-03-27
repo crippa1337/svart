@@ -91,10 +91,12 @@ impl Search {
             return eval::evaluate(board);
         }
 
+        let hash_key = board.hash();
+        self.tt.prefetch(hash_key);
         self.seldepth = self.seldepth.max(ply);
         depth = depth.max(0);
-        pv.length = 0;
         let mut old_pv = PVTable::new();
+        pv.length = 0;
 
         match board.status() {
             GameStatus::Won => return ply - MATE,
@@ -102,7 +104,6 @@ impl Search {
             _ => (),
         }
 
-        let hash_key = board.hash();
         let root = ply == 0;
 
         if !root {
@@ -126,7 +127,6 @@ impl Search {
         // Static eval used for pruning
         let eval;
 
-        self.tt.prefetch(hash_key);
         let tt_entry = self.tt.probe(hash_key);
         let tt_hit = tt_entry.key == hash_key as u16;
         let mut tt_move: Option<Move> = None;
@@ -374,15 +374,16 @@ impl Search {
             return eval::evaluate(board);
         }
 
+        let hash_key = board.hash();
+        self.tt.prefetch(hash_key);
         self.seldepth = self.seldepth.max(ply);
+
         let stand_pat = eval::evaluate(board);
         alpha = alpha.max(stand_pat);
         if stand_pat >= beta {
             return stand_pat;
         }
 
-        let hash_key = board.hash();
-        self.tt.prefetch(hash_key);
         let tt_entry = self.tt.probe(hash_key);
         let tt_hit = tt_entry.key == hash_key as u16;
         let mut tt_move: Option<Move> = None;

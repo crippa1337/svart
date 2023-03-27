@@ -1,1 +1,1 @@
-mod network;
+mod inference;

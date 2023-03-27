@@ -14,7 +14,7 @@ pub enum SearchType {
 
 pub fn uci_loop() {
     let mut board = Board::default();
-    let mut tt_size = 32;
+    let mut tt_size = 16;
     let mut tt = TT::new(tt_size);
     let mut search = Search::new(tt);
     let mut uci_set = false;
@@ -72,7 +72,7 @@ pub fn uci_loop() {
                             match words[4].parse::<u32>() {
                                 Ok(s) => {
                                     // Don't allow hash bigger than max
-                                    if s > 1024 {
+                                    if s > 1024000 {
                                         break 'main;
                                     }
                                     tt_size = s;
@@ -268,12 +268,12 @@ pub fn uci_loop() {
 }
 
 fn id() {
-    println!("id name Svart 2.2");
+    println!("id name Svart 3");
     println!("id author crippa");
 }
 
 fn options() {
-    println!("option name Hash type spin default 32 min 1 max 1024");
+    println!("option name Hash type spin default 16 min 1 max 1024000");
 }
 
 fn check_castling_move(board: &Board, mut mv: Move) -> Move {

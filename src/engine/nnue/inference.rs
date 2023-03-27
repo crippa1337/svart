@@ -46,25 +46,23 @@ impl Default for Accumulator {
 }
 
 impl Accumulator {
-    // efficiently updates the weights of a feature, either on or off
+    // efficiently update the change of a feature
     fn update_weights<const ON: bool>(&mut self, idx: (usize, usize)) {
         fn update<const ON: bool>(acc: &mut [i16; HIDDEN], idx: usize) {
-            let feature_weights = acc
+            // cant come up with a better name for the iterator
+            let iter = acc
                 .iter_mut()
-                // zips a column of the weight matrix, this
-                // being the weights for the feature we're toggling
                 .zip(&MODEL.feature_weights[idx..idx + HIDDEN]);
 
-            for (acc_val, &weight) in feature_weights {
+            for (activation, &weight) in iter {
                 if ON {
-                    *acc_val += weight;
+                    *activation += weight;
                 } else {
-                    *acc_val -= weight;
+                    *activation -= weight;
                 }
             }
         }
 
-        // update both perspectives
         update::<ON>(&mut self.white, idx.0);
         update::<ON>(&mut self.black, idx.1);
     }

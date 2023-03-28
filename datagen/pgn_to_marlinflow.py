@@ -2,7 +2,6 @@
 # FEN | EVAL | WDL
 # Evaluations are always reported from white's perspective
 
-
 import chess
 import chess.pgn
 import sys

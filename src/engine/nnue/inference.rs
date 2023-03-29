@@ -114,7 +114,7 @@ impl NNUEState {
 }
 
 // Returns white's and black's feature weight index respectively
-// i.e where the features weight column is in the weight matrix.
+// i.e where the feature's weight column is in the weight matrix.
 #[must_use]
 fn weight_column_index(sq: Square, piece: Piece, color: Color) -> (usize, usize) {
     // The jump from one perspective to the other
@@ -132,8 +132,8 @@ fn weight_column_index(sq: Square, piece: Piece, color: Color) -> (usize, usize)
 
     let c = color as usize;
 
+    // STM's perspective is treated as being on top
     let white_idx = c * COLOR_STRIDE + p * PIECE_STRIDE + sq as usize;
-    // We want to have the board be from the perspective of STM
     let black_idx = (1 ^ c) * COLOR_STRIDE + p * PIECE_STRIDE + sq.flip_rank() as usize;
 
     (white_idx * HIDDEN, black_idx * HIDDEN)

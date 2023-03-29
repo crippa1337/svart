@@ -1,4 +1,4 @@
-// Svart uses a (768->256)x2->1 perspective NNUE, largely inspired by Viridithas and Carp.
+// Svart uses a 768->256x2->1 perspective NNUE, largely inspired by Viridithas and Carp.
 // A huge thanks to Cosmo and Dede for their help with the implementation.
 //
 // I hope to further improve the network as well as make the code more original in the future.
@@ -9,8 +9,8 @@ const FEATURES: usize = 768;
 const HIDDEN: usize = 256;
 
 // clipped relu bounds
-const CR_MIN: i32 = 0;
-const CR_MAX: i32 = 255;
+const CR_MIN: i16 = 0;
+const CR_MAX: i16 = 255;
 
 // quantization
 const QAB: i32 = 255 * 64;
@@ -41,7 +41,7 @@ pub struct NNUEState {
 
 // The accumulator represents the
 // hidden layer from both perspectives
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 struct Accumulator {
     white: [i16; HIDDEN],
     black: [i16; HIDDEN],
@@ -124,6 +124,31 @@ impl NNUEState {
 
         self.accumulators[self.current_acc].efficiently_update::<ACTIVATE>(idx);
     }
+
+    pub fn evaluate(&self, stm: Color) -> i32 {
+        let acc = self.accumulators[self.current_acc];
+
+        let (us, them) = match stm {
+            Color::White => (acc.white.iter(), acc.black.iter()),
+            Color::Black => (acc.black.iter(), acc.white.iter()),
+        };
+
+        // Add on the bias
+        let mut output = MODEL.output_bias as i32;
+
+        // Add on the activations from one perspective with clipped ReLU
+        for (&value, &weight) in us.zip(&MODEL.output_weights[..HIDDEN]) {
+            output += (value.clamp(CR_MIN, CR_MAX) as i32) * (weight as i32);
+        }
+
+        // ... other perspective
+        for (&value, &weight) in them.zip(&MODEL.output_weights[HIDDEN..]) {
+            output += (value.clamp(CR_MIN, CR_MAX) as i32) * (weight as i32);
+        }
+
+        // Quantization
+        output * SCALE / QAB
+    }
 }
 
 // Returns white's and black's feature weight index respectively
@@ -149,4 +174,35 @@ fn weight_column_index(sq: Square, piece: Piece, color: Color) -> (usize, usize)
     let black_idx = (1 ^ c) * COLOR_STRIDE + p * PIECE_STRIDE + sq.flip_rank() as usize;
 
     (white_idx * HIDDEN, black_idx * HIDDEN)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn nnue_indexing() {
+        let idx1 = weight_column_index(Square::A8, Piece::Pawn, Color::White);
+        let idx2 = weight_column_index(Square::H1, Piece::Pawn, Color::White);
+        let idx3 = weight_column_index(Square::A1, Piece::Pawn, Color::Black);
+        let idx4 = weight_column_index(Square::E1, Piece::King, Color::White);
+
+        assert_eq!(idx1, (14336, 98304));
+        assert_eq!(idx2, (1792, 114432));
+        assert_eq!(idx3, (98304, 14336));
+        assert_eq!(idx4, (82944, 195584));
+    }
+
+    #[test]
+    fn nnue_update_feature() {
+        let board: Board = Board::default();
+        let mut state = NNUEState::from_board(&board);
+
+        let old_acc = state.accumulators[0];
+
+        state.update_feature::<ACTIVATE>(Square::A3, Piece::Pawn, Color::White);
+        state.update_feature::<DEACTIVATE>(Square::A3, Piece::Pawn, Color::White);
+
+        assert_eq!(old_acc, state.accumulators[0]);
+    }
 }

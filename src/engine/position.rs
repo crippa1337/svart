@@ -84,12 +84,12 @@ impl Position {
     }
 
     #[must_use]
-    pub fn capture_move(self, mv: Move) -> bool {
+    pub fn is_capture(self, mv: Move) -> bool {
         self.board.colors(!self.board.side_to_move()).has(mv.to)
     }
 
     #[must_use]
-    pub fn quiet_move(self, mv: Move) -> bool {
-        mv.promotion.is_none() && !self.capture_move(mv)
+    pub fn is_quiet(self, mv: Move) -> bool {
+        mv.promotion.is_none() && !self.is_capture(mv)
     }
 }

@@ -3,7 +3,7 @@
 //
 // I hope to further improve the network as well as make the code more original in the future.
 use crate::constants::MAX_PLY;
-use cozy_chess::{Board, Color, Piece, Square};
+use cozy_chess::{Board, Color, Move, Piece, Square};
 
 const FEATURES: usize = 768;
 const HIDDEN: usize = 256;
@@ -16,8 +16,8 @@ const CR_MAX: i32 = 255;
 const QAB: i32 = 255 * 64;
 const SCALE: i32 = 400;
 
-const ACTIVATE: bool = true;
-const DEACTIVATE: bool = false;
+pub const ACTIVATE: bool = true;
+pub const DEACTIVATE: bool = false;
 
 struct Parameters {
     feature_weights: [i16; FEATURES * HIDDEN],
@@ -34,16 +34,17 @@ static MODEL: Parameters = Parameters {
     output_bias: unsafe { std::mem::transmute(*include_bytes!("net/output_bias.bin")) },
 };
 
-// the accumulator represents the
-// hidden layer from both perspectives
-struct Accumulator {
-    white: [i16; HIDDEN],
-    black: [i16; HIDDEN],
-}
-
 pub struct NNUEState {
     accumulators: [Accumulator; MAX_PLY as usize],
     current_acc: usize,
+}
+
+// The accumulator represents the
+// hidden layer from both perspectives
+#[derive(Clone, Copy)]
+struct Accumulator {
+    white: [i16; HIDDEN],
+    black: [i16; HIDDEN],
 }
 
 impl Default for Accumulator {
@@ -57,8 +58,8 @@ impl Default for Accumulator {
 
 impl Accumulator {
     // efficiently update the change of a feature
-    fn update_hidden<const ON: bool>(&mut self, idx: (usize, usize)) {
-        fn update_perspective<const ON: bool>(acc: &mut [i16; HIDDEN], idx: usize) {
+    fn efficiently_update<const ACTIVATE: bool>(&mut self, idx: (usize, usize)) {
+        fn update_perspective<const ACTIVATE: bool>(acc: &mut [i16; HIDDEN], idx: usize) {
             // we iterate over the weights corresponding to the feature that has been changed
             // and then update the activations in the hidden layer accordingly
             let feature_weights = acc
@@ -67,7 +68,7 @@ impl Accumulator {
                 .zip(&MODEL.feature_weights[idx..idx + HIDDEN]);
 
             for (activation, &weight) in feature_weights {
-                if ON {
+                if ACTIVATE {
                     *activation += weight;
                 } else {
                     *activation -= weight;
@@ -75,8 +76,8 @@ impl Accumulator {
             }
         }
 
-        update_perspective::<ON>(&mut self.white, idx.0);
-        update_perspective::<ON>(&mut self.black, idx.1);
+        update_perspective::<ACTIVATE>(&mut self.white, idx.0);
+        update_perspective::<ACTIVATE>(&mut self.black, idx.1);
     }
 }
 
@@ -106,10 +107,22 @@ impl NNUEState {
             let color = board.color_on(sq).unwrap();
             let idx = weight_column_index(sq, piece, color);
 
-            boxed.accumulators[0].update_hidden::<ACTIVATE>(idx);
+            boxed.accumulators[0].efficiently_update::<ACTIVATE>(idx);
         }
 
         boxed
+    }
+
+    /// Copy and push the current accumulator to the "top"
+    pub fn push(&mut self) {
+        self.accumulators[self.current_acc + 1] = self.accumulators[self.current_acc];
+        self.current_acc += 1;
+    }
+
+    pub fn update_feature<const ACTIVATE: bool>(&mut self, sq: Square, piece: Piece, color: Color) {
+        let idx = weight_column_index(sq, piece, color);
+
+        self.accumulators[self.current_acc].efficiently_update::<ACTIVATE>(idx);
     }
 }
 
@@ -132,7 +145,6 @@ fn weight_column_index(sq: Square, piece: Piece, color: Color) -> (usize, usize)
 
     let c = color as usize;
 
-    // STM's perspective is treated as being on top
     let white_idx = c * COLOR_STRIDE + p * PIECE_STRIDE + sq as usize;
     let black_idx = (1 ^ c) * COLOR_STRIDE + p * PIECE_STRIDE + sq.flip_rank() as usize;
 

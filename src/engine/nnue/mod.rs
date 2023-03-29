@@ -1,1 +1,1 @@
-mod inference;
+pub mod inference;

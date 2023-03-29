@@ -1,12 +1,28 @@
 use super::nnue::inference::{NNUEState, ACTIVATE, DEACTIVATE};
 use cozy_chess::{Board, Color, File, Move, Piece, Rank, Square};
 
-struct Position {
-    board: Board,
-    nnue_state: Box<NNUEState>,
+pub struct Position {
+    pub board: Board,
+    pub nnue_state: Box<NNUEState>,
 }
 
 impl Position {
+    pub fn default() -> Self {
+        Self {
+            board: Board::default(),
+            nnue_state: NNUEState::from_board(&Board::default()),
+        }
+    }
+
+    pub fn from_fen(fen: &str) -> Self {
+        let board = Board::from_fen(fen, false).expect("Invalid FEN");
+
+        Self {
+            board: board.clone(),
+            nnue_state: NNUEState::from_board(&board),
+        }
+    }
+
     pub fn play_move(&mut self, mv: Move) {
         self.nnue_state.push();
 
@@ -91,5 +107,9 @@ impl Position {
     #[must_use]
     pub fn is_quiet(self, mv: Move) -> bool {
         mv.promotion.is_none() && !self.is_capture(mv)
+    }
+
+    pub fn evaluate(&self) -> i32 {
+        self.nnue_state.evaluate(self.board.side_to_move())
     }
 }

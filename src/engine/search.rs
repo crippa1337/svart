@@ -224,7 +224,29 @@ impl Search {
             }
 
             let mut new_b = board.clone();
+            // let mut board2 = board.clone();
             play_move(&mut new_b, &mut self.nnue, mv);
+            // board2.play_unchecked(mv);
+
+            // let mut state1 = self.nnue.clone();
+            // let state2 = NNUEState::from_board(&board2);
+            // assert_eq!(
+            //     state1.accumulators[self.nnue.current_acc],
+            //     state2.accumulators[0]
+            // );
+            // assert_ne!(
+            //     state1.accumulators[self.nnue.current_acc - 1],
+            //     state2.accumulators[0]
+            // );
+            // state1.refresh(&new_b);
+            // assert_eq!(
+            //     state1.accumulators[self.nnue.current_acc],
+            //     state2.accumulators[0]
+            // );
+            // assert_ne!(
+            //     state1.accumulators[self.nnue.current_acc - 1],
+            //     state2.accumulators[0]
+            // );
 
             moves_played += 1;
             self.game_history.push(board.hash());

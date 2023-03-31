@@ -36,14 +36,14 @@ static MODEL: Parameters = Parameters {
 
 #[derive(Clone)]
 pub struct NNUEState {
-    accumulators: [Accumulator; MAX_PLY as usize],
-    current_acc: usize,
+    pub accumulators: [Accumulator; MAX_PLY as usize],
+    pub current_acc: usize,
 }
 
 // The accumulator represents the
 // hidden layer from both perspectives
 #[derive(Clone, Copy, PartialEq, Debug)]
-struct Accumulator {
+pub struct Accumulator {
     white: [i16; HIDDEN],
     black: [i16; HIDDEN],
 }
@@ -343,7 +343,7 @@ mod tests {
         assert_eq!(state1.accumulators[1], state2.accumulators[0]);
         assert_ne!(state1.accumulators[0], state2.accumulators[0]);
         state1.refresh(&board);
-        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
         assert_eq!(state1.accumulators[1], state2.accumulators[0]);
+        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
     }
 }

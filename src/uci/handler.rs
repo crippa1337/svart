@@ -20,7 +20,7 @@ pub fn uci_loop() {
     let mut uci_set = false;
     let mut board_set = false;
 
-    'input: loop {
+    loop {
         let mut line = String::new();
         std::io::stdin().read_line(&mut line).unwrap();
         line = line.trim().to_string();

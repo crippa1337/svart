@@ -43,8 +43,8 @@ pub fn play_move(board: &mut Board, nnue: &mut Box<NNUEState>, mv: Move) {
             nnue.update_feature::<ACTIVATE>(Square::new(File::G, rank), Piece::King, stm);
         // Queen side
         } else {
-            nnue.update_feature::<ACTIVATE>(Square::new(File::C, rank), Piece::King, stm);
             nnue.update_feature::<ACTIVATE>(Square::new(File::D, rank), Piece::Rook, stm);
+            nnue.update_feature::<ACTIVATE>(Square::new(File::C, rank), Piece::King, stm);
         }
     } else {
         // The only thing left is to add the moved piece to it's target-square.

@@ -1,6 +1,6 @@
 use crate::{
     constants::{self},
-    engine::{position::play_move, search::Search, tt::TT},
+    engine::{search::Search, tt::TT},
 };
 use cozy_chess::{Board, Color, Move, Piece, Square};
 
@@ -36,7 +36,6 @@ pub fn uci_loop() {
                     options();
                     println!("uciok");
                     uci_set = true;
-                    continue;
                 }
                 "quit" => {
                     break;

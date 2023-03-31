@@ -227,7 +227,7 @@ mod tests {
     }
 
     #[test]
-    fn pov_preserved() {
+    fn nnue_moves() {
         let board = Board::default();
         let tt = TT::new(16);
         let mut search = Search::new(tt);
@@ -238,9 +238,49 @@ mod tests {
             let mv = mv.mv;
             let mut new_b = board.clone();
             play_move(&mut new_b, &mut search.nnue, mv);
+            assert_ne!(initial_white, search.nnue.accumulators[1].white);
+            assert_ne!(initial_black, search.nnue.accumulators[1].black);
             search.nnue.pop();
             assert_eq!(initial_white, search.nnue.accumulators[0].white);
             assert_eq!(initial_black, search.nnue.accumulators[0].black);
         }
+    }
+
+    #[test]
+    fn nnue_incremental() {
+        // 1
+        let mut board = Board::default();
+        let tt = TT::new(16);
+        let mut search = Search::new(tt);
+        let moves = movegen::all_moves(&search, &board, None, 0);
+        play_move(&mut board, &mut search.nnue, moves[0].mv);
+
+        let mut board2 = Board::default();
+        board2.play_unchecked(moves[0].mv);
+
+        let mut state1 = search.nnue;
+        let state2 = NNUEState::from_board(&board2);
+        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
+        state1.refresh(&board);
+        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
+
+        // 2
+        let mut board =
+            Board::from_fen("4r1k1/4r1p1/8/p2R1P1K/5P1P/1QP3q1/1P6/3R4 b - - 0 1", false).unwrap();
+        let tt = TT::new(16);
+        let mut search = Search::new(tt);
+        search.nnue = NNUEState::from_board(&board);
+        let moves = movegen::all_moves(&search, &board, None, 0);
+        play_move(&mut board, &mut search.nnue, moves[0].mv);
+
+        let mut board2 =
+            Board::from_fen("4r1k1/4r1p1/8/p2R1P1K/5P1P/1QP3q1/1P6/3R4 b - - 0 1", false).unwrap();
+        board2.play_unchecked(moves[0].mv);
+
+        let mut state1 = search.nnue;
+        let state2 = NNUEState::from_board(&board2);
+        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
+        state1.refresh(&board);
+        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
     }
 }

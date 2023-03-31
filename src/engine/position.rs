@@ -1,5 +1,5 @@
 use super::nnue::inference::{NNUEState, ACTIVATE, DEACTIVATE};
-use cozy_chess::{Board, Color, File, Move, Piece, Rank, Square};
+use cozy_chess::{Board, File, Move, Piece, Rank, Square};
 
 pub struct Position {
     pub board: Board,

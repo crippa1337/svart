@@ -11,9 +11,9 @@ pub enum TTFlag {
 
 #[derive(Clone, Copy, Debug)]
 pub struct TTEntry {
+    pub mv: Option<Move>, // 4 bytes
     pub key: u16,         // 2 bytes
     pub epoch: u16,       // 2 bytes
-    pub mv: Option<Move>, // 4 bytes
     pub score: i16,       // 2 bytes
     pub depth: u8,        // 1 byte
     pub flag: TTFlag,     // 1 byte

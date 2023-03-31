@@ -2,23 +2,25 @@
 # FEN | EVAL | WDL
 # Evaluations are always reported from white's perspective
 
+import random
 import chess
 import chess.pgn
 import sys
 
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         print("Usage: python pgn_to_marlinflow.py <pgn_file> <output_file>")
         sys.exit(1)
 
     pgn_file = sys.argv[1]
     output_file = sys.argv[2]
     
+    lines = []
+    count = 0
     positions = 0
     games = 0
 
     with open(pgn_file, "r") as pgn:
-        with open(output_file, "a") as output:
             while True:
                 game = chess.pgn.read_game(pgn)
                 
@@ -47,14 +49,25 @@ def main():
                         eval = int(float(eval) * 100)
                         if board.turn == chess.BLACK:
                             eval = -eval
-                        
-                        output.write(f"{board.fen()} | {eval} | {wdl}\n")
+                            
+                        lines.append(f"{board.fen()} | {eval} | {wdl}\n")    
+                        count += 1
                         positions += 1
                         
-                        if positions % 1000000 == 0:
-                            print(f"Processed {positions / 1000000}M positions and {games} games")
+                        if count >= 1000000:
+                            print(f"Processed {positions} positions and {games} games")
+                            print("Writing to file...")
+                            random.shuffle(lines)
+                            with open(output_file, "a") as output:
+                                output.writelines(lines)
+                            print("Done! Dumping lines...\n")
+                            lines = []
+                            count = 0
                             
                     board.push(position.move)
+                    
+    with open(output_file, "a") as output:
+        output.writelines(lines)
                     
 if __name__ == "__main__":
     main()

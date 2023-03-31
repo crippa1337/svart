@@ -320,6 +320,8 @@ impl Search {
             TTFlag::UpperBound
         };
 
+        debug_assert!((-INFINITY..=INFINITY).contains(&best_score));
+
         if !self.stop {
             self.tt.store(
                 hash_key,

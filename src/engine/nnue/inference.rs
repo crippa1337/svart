@@ -85,9 +85,7 @@ impl Accumulator {
 impl NNUEState {
     // Referencing Viridithas' implementation:
     //
-    //                 pov i16 hidden stack
-    // The NNUEState is 2 * 2 * 256 * 250 + 8 bytes = 256,008 bytes large at the time of writing.
-    // This would blow the stack if it were to be allocated on it, so we have to box it.
+    // The NNUEState is too large to be allocated on the stack at the time of writing, so we have to box it.
     // This is done by allocating the memory manually and then constructing the object in place.
     // Why not just box normally? Because rustc in debug mode will first allocate on the stack
     // before moving it to the heap when boxxing, which would blow the stack.
@@ -140,6 +138,7 @@ impl NNUEState {
 
     pub fn update_feature<const ACTIVATE: bool>(&mut self, sq: Square, piece: Piece, color: Color) {
         let idx = weight_column_index(sq, piece, color);
+
         self.accumulators[self.current_acc].efficiently_update::<ACTIVATE>(idx);
     }
 

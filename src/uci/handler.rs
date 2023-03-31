@@ -68,7 +68,6 @@ pub fn uci_loop() {
                 "setoption" => {
                     if words[1] == "name" && words[2] == "Hash" && words[3] == "value" {
                         if let Ok(s) = words[4].parse::<u32>() {
-                            // Don't allow hash bigger than max
                             if s > 1024000 {
                                 continue;
                             }
@@ -98,6 +97,7 @@ pub fn uci_loop() {
                         if let Ok(b) = Board::from_fen(fen.trim(), false) {
                             board = b;
                             board_set = true;
+                            search.game_history = vec![board.hash()]
                         }
                     }
 
@@ -240,7 +240,7 @@ pub fn uci_loop() {
                     continue;
                 }
                 "quit" => {
-                    break 'input;
+                    break;
                 }
                 _ => {
                     continue;

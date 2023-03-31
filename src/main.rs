@@ -2,7 +2,6 @@ mod constants;
 mod engine;
 mod uci;
 
-use crate::engine::position::Position;
 use uci::handler::uci_loop;
 
 fn main() {

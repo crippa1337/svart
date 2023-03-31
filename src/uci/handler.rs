@@ -1,6 +1,6 @@
 use crate::{
     constants::{self},
-    engine::{search::Search, tt::TT},
+    engine::{position::Position, search::Search, tt::TT},
 };
 use cozy_chess::{Board, Color, Move, Piece, Square};
 
@@ -12,8 +12,13 @@ pub enum SearchType {
     Infinite,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum UCIError {
+    InvalidPosition,
+}
+
 pub fn uci_loop() {
-    let mut board = Board::default();
+    let mut position = Position::default();
     let mut tt_size = 16;
     let mut tt = TT::new(tt_size);
     let mut search = Search::new(tt);
@@ -61,7 +66,7 @@ pub fn uci_loop() {
                         break 'main;
                     }
                     "ucinewgame" => {
-                        board = Board::startpos();
+                        position = Position::default();
                         tt = TT::new(tt_size);
                         search = Search::new(tt);
                         board_set = true;
@@ -86,9 +91,9 @@ pub fn uci_loop() {
                     }
                     "position" => {
                         if words[1] == "startpos" {
-                            board = Board::startpos();
+                            position = Position::default();
                             board_set = true;
-                            search.game_history = vec![board.hash()]
+                            search.game_history = vec![position.board.hash()]
                         } else if words[1] == "fen" {
                             // Put together the split fen string
                             let mut fen = String::new();
@@ -99,9 +104,9 @@ pub fn uci_loop() {
                                 fen.push_str(words[i]);
                                 fen.push(' ');
                             }
-                            match Board::from_fen(fen.trim(), false) {
-                                Ok(b) => {
-                                    board = b;
+                            match Position::from_fen(fen.trim()) {
+                                Ok(p) => {
+                                    position = p;
                                     board_set = true;
                                 }
                                 Err(_) => (),
@@ -113,9 +118,9 @@ pub fn uci_loop() {
                                 words.iter().position(|&x| x == "moves").unwrap() + 1..words.len()
                             {
                                 let mut mv: Move = words[i].parse().unwrap();
-                                mv = check_castling_move(&board, mv);
-                                board.play(mv);
-                                search.game_history.push(board.hash());
+                                mv = check_castling_move(&position.board, mv);
+                                position.play_move(mv);
+                                search.game_history.push(position.hash());
                             }
                         }
                         break 'main;
@@ -128,7 +133,7 @@ pub fn uci_loop() {
                                     .parse::<i32>()
                                 {
                                     Ok(d) => {
-                                        go(&board, SearchType::Depth(d), &mut search);
+                                        go(&mut position, SearchType::Depth(d), &mut search);
                                     }
                                     Err(_) => (),
                                 }
@@ -137,13 +142,13 @@ pub fn uci_loop() {
                                     .parse::<u64>()
                                 {
                                     Ok(n) => {
-                                        go(&board, SearchType::Nodes(n), &mut search);
+                                        go(&mut position, SearchType::Nodes(n), &mut search);
                                     }
                                     Err(_) => (),
                                 }
                             // Infinite search
                             } else if words.iter().any(|&x| x == "infinite") {
-                                go(&board, SearchType::Infinite, &mut search);
+                                go(&mut position, SearchType::Infinite, &mut search);
                             // Static time search
                             } else if words.iter().any(|&x| x == "movetime") {
                                 match words
@@ -151,13 +156,13 @@ pub fn uci_loop() {
                                     .parse::<u64>()
                                 {
                                     Ok(d) => {
-                                        go(&board, SearchType::Time(d), &mut search);
+                                        go(&mut position, SearchType::Time(d), &mut search);
                                     }
                                     Err(_) => (),
                                 }
                             // Time search
                             } else if words.iter().any(|&x| x == "wtime" || x == "btime") {
-                                if board.side_to_move() == Color::White {
+                                if position.board.side_to_move() == Color::White {
                                     match words
                                         [words.iter().position(|&x| x == "wtime").unwrap() + 1]
                                         .parse::<u64>()
@@ -195,7 +200,7 @@ pub fn uci_loop() {
                                             };
 
                                             go(
-                                                &board,
+                                                &mut position,
                                                 SearchType::Time(time_for_move(t, inc, mtg)),
                                                 &mut search,
                                             );
@@ -241,7 +246,7 @@ pub fn uci_loop() {
                                             };
 
                                             go(
-                                                &board,
+                                                &mut position,
                                                 SearchType::Time(time_for_move(t, inc, mtg)),
                                                 &mut search,
                                             );
@@ -302,8 +307,8 @@ pub fn reverse_castling_move(board: &Board, mut mv: Move) -> Move {
     mv
 }
 
-fn go(board: &Board, st: SearchType, search: &mut Search) {
-    search.iterative_deepening(board, st);
+fn go(position: &mut Position, st: SearchType, search: &mut Search) {
+    search.iterative_deepening(position, st);
     search.reset();
 }
 

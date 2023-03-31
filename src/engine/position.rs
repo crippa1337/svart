@@ -1,6 +1,8 @@
 use super::nnue::inference::{NNUEState, ACTIVATE, DEACTIVATE};
+use crate::uci::handler::UCIError;
 use cozy_chess::{Board, File, Move, Piece, Rank, Square};
 
+#[derive(Clone)]
 pub struct Position {
     pub board: Board,
     pub nnue_state: Box<NNUEState>,
@@ -14,12 +16,13 @@ impl Position {
         }
     }
 
-    pub fn from_fen(fen: &str) -> Self {
-        let board = Board::from_fen(fen, false).expect("Invalid FEN");
-
-        Self {
-            board: board.clone(),
-            nnue_state: NNUEState::from_board(&board),
+    pub fn from_fen(fen: &str) -> Result<Position, UCIError> {
+        match Board::from_fen(fen, false) {
+            Ok(board) => Ok(Self {
+                board: board.clone(),
+                nnue_state: NNUEState::from_board(&board),
+            }),
+            Err(_) => Err(UCIError::InvalidPosition),
         }
     }
 
@@ -90,9 +93,7 @@ impl Position {
                 .update_feature::<ACTIVATE>(mv.to, new_piece, stm)
         }
 
-        let mut new_board = self.board.clone();
-        new_board.play_unchecked(mv);
-        self.board = new_board;
+        self.board.play_unchecked(mv);
     }
 
     pub fn play_null(&mut self) {
@@ -100,16 +101,24 @@ impl Position {
     }
 
     #[must_use]
-    pub fn is_capture(self, mv: Move) -> bool {
+    pub fn is_capture(&self, mv: Move) -> bool {
         self.board.colors(!self.board.side_to_move()).has(mv.to)
     }
 
     #[must_use]
-    pub fn is_quiet(self, mv: Move) -> bool {
+    pub fn is_quiet(&self, mv: Move) -> bool {
         mv.promotion.is_none() && !self.is_capture(mv)
     }
 
     pub fn evaluate(&self) -> i32 {
         self.nnue_state.evaluate(self.board.side_to_move())
+    }
+
+    pub fn hash(&self) -> u64 {
+        self.board.hash()
+    }
+
+    pub fn status(&self) -> cozy_chess::GameStatus {
+        self.board.status()
     }
 }

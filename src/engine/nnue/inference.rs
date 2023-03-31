@@ -3,7 +3,7 @@
 //
 // I hope to further improve the network as well as make the code more original in the future.
 use crate::constants::MAX_PLY;
-use cozy_chess::{Board, Color, Move, Piece, Square};
+use cozy_chess::{Board, Color, Piece, Square};
 
 const FEATURES: usize = 768;
 const HIDDEN: usize = 256;
@@ -34,6 +34,7 @@ static MODEL: Parameters = Parameters {
     output_bias: unsafe { std::mem::transmute(*include_bytes!("net/output_bias.bin")) },
 };
 
+#[derive(Clone)]
 pub struct NNUEState {
     accumulators: [Accumulator; MAX_PLY as usize],
     current_acc: usize,

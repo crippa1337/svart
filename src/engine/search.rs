@@ -4,8 +4,8 @@ use once_cell::sync::Lazy;
 use std::time::Instant;
 
 use super::movegen::Picker;
+use super::position::Position;
 use super::{
-    eval,
     history::History,
     lmr::LMRTable,
     movegen,
@@ -55,20 +55,20 @@ impl Search {
     #[must_use]
     fn zw_search(
         &mut self,
-        board: &Board,
+        position: &mut Position,
         pv: &mut PVTable,
         alpha: i32,
         beta: i32,
         depth: i32,
         ply: i32,
     ) -> i32 {
-        self.pvsearch::<false>(board, pv, alpha, beta, depth, ply)
+        self.pvsearch::<false>(position, pv, alpha, beta, depth, ply)
     }
 
     #[must_use]
     pub fn pvsearch<const PV: bool>(
         &mut self,
-        board: &Board,
+        position: &mut Position,
         pv: &mut PVTable,
         mut alpha: i32,
         beta: i32,
@@ -88,17 +88,17 @@ impl Search {
         }
 
         if ply >= MAX_PLY {
-            return eval::evaluate(board);
+            return position.evaluate();
         }
 
-        let hash_key = board.hash();
+        let hash_key = position.hash();
         self.tt.prefetch(hash_key);
         self.seldepth = self.seldepth.max(ply);
         depth = depth.max(0);
         let mut old_pv = PVTable::new();
         pv.length = 0;
 
-        match board.status() {
+        match position.status() {
             GameStatus::Won => return ply - MATE,
             GameStatus::Drawn => return 8 - (self.nodes as i32 & 7),
             _ => (),
@@ -107,7 +107,7 @@ impl Search {
         let root = ply == 0;
 
         if !root {
-            if self.repetition(board, hash_key) {
+            if self.repetition(&position.board, hash_key) {
                 return 8 - (self.nodes as i32 & 7);
             }
 
@@ -121,7 +121,7 @@ impl Search {
 
         // Escape condition
         if depth == 0 {
-            return self.qsearch::<PV>(board, alpha, beta, ply);
+            return self.qsearch::<PV>(position, alpha, beta, ply);
         }
 
         // Static eval used for pruning
@@ -148,10 +148,10 @@ impl Search {
                 }
             }
         } else {
-            eval = eval::evaluate(board);
+            eval = position.evaluate();
         }
 
-        let in_check = !board.checkers().is_empty();
+        let in_check = !position.board.checkers().is_empty();
 
         if !PV && !in_check {
             /*
@@ -163,14 +163,15 @@ impl Search {
             if depth >= 3
                 && eval >= beta
                 && !self
-                    .non_pawn_material(board, board.side_to_move())
+                    .non_pawn_material(&position.board, position.board.side_to_move())
                     .is_empty()
             {
                 let r = 3 + depth / 3 + 3.min((eval.saturating_sub(beta)) / 200);
-                let new_board = board.null_move().unwrap();
+                let mut new_pos = position.clone();
+                new_pos.play_null();
 
                 let score = -self.zw_search(
-                    &new_board,
+                    &mut new_pos,
                     &mut old_pv,
                     -beta,
                     -beta + 1,
@@ -204,7 +205,7 @@ impl Search {
         let mut best_move: Option<Move> = None;
         let mut moves_played = 0;
 
-        let move_list = movegen::all_moves(self, board, tt_move, ply);
+        let move_list = movegen::all_moves(self, position, tt_move, ply);
         let mut quiet_moves = StaticVec::<Option<Move>, MAX_MOVES_POSITION>::new(None);
         let mut picker = Picker::new(move_list);
 
@@ -216,7 +217,7 @@ impl Search {
         };
 
         while let Some(mv) = picker.pick_move() {
-            let is_quiet = quiet_move(board, mv);
+            let is_quiet = position.is_quiet(mv);
             if is_quiet {
                 quiets_checked += 1;
 
@@ -229,18 +230,18 @@ impl Search {
                 quiet_moves.push(Some(mv));
             }
 
-            let mut new_board = board.clone();
-            new_board.play_unchecked(mv);
+            let mut new_pos = position.clone();
+            new_pos.play_move(mv);
 
             moves_played += 1;
-            self.game_history.push(new_board.hash());
+            self.game_history.push(new_pos.board.hash());
             self.nodes += 1;
-            let gives_check = !new_board.checkers().is_empty();
+            let gives_check = !new_pos.board.checkers().is_empty();
 
             let mut score: i32;
             if moves_played == 1 {
                 score = -self.pvsearch::<PV>(
-                    &new_board,
+                    &mut new_pos,
                     &mut old_pv,
                     -beta,
                     -alpha,
@@ -262,7 +263,7 @@ impl Search {
                     r += i32::from(!PV);
 
                     // Malus for capture moves and checks
-                    r -= i32::from(capture_move(board, mv));
+                    r -= i32::from(position.is_capture(mv));
                     r -= i32::from(gives_check);
 
                     r.clamp(1, depth - 1)
@@ -271,7 +272,7 @@ impl Search {
                 };
 
                 score = -self.zw_search(
-                    &new_board,
+                    &mut new_pos,
                     &mut old_pv,
                     -alpha - 1,
                     -alpha,
@@ -281,7 +282,7 @@ impl Search {
 
                 if alpha < score && score < beta {
                     score = -self.pvsearch::<PV>(
-                        &new_board,
+                        &mut new_pos,
                         &mut old_pv,
                         -beta,
                         -alpha,
@@ -304,7 +305,7 @@ impl Search {
             // New best move
             alpha = score;
             best_move = Some(mv);
-            pv.store(board, mv, &old_pv);
+            pv.store(&position.board, mv, &old_pv);
 
             // Fail-high
             if score >= beta {
@@ -314,12 +315,13 @@ impl Search {
                     self.killers[ply as usize][0] = Some(mv);
 
                     // History Heuristic
-                    self.history.update_table::<true>(board, mv, depth);
+                    self.history
+                        .update_table::<true>(&position.board, mv, depth);
                     let qi = quiet_moves.as_slice();
                     let qi = &qi[..quiet_moves.len() - 1];
                     for qm in qi {
                         self.history
-                            .update_table::<false>(board, qm.unwrap(), depth);
+                            .update_table::<false>(&position.board, qm.unwrap(), depth);
                     }
                 }
 
@@ -354,7 +356,7 @@ impl Search {
     #[must_use]
     fn qsearch<const PV: bool>(
         &mut self,
-        board: &Board,
+        position: &Position,
         mut alpha: i32,
         beta: i32,
         ply: i32,
@@ -371,14 +373,14 @@ impl Search {
         }
 
         if ply >= MAX_PLY {
-            return eval::evaluate(board);
+            return position.evaluate();
         }
 
-        let hash_key = board.hash();
+        let hash_key = position.hash();
         self.tt.prefetch(hash_key);
         self.seldepth = self.seldepth.max(ply);
 
-        let stand_pat = eval::evaluate(board);
+        let stand_pat = position.evaluate();
         alpha = alpha.max(stand_pat);
         if stand_pat >= beta {
             return stand_pat;
@@ -402,18 +404,18 @@ impl Search {
             }
         }
 
-        let captures = movegen::capture_moves(self, board, tt_move, ply);
+        let captures = movegen::capture_moves(self, position, tt_move, ply);
         let mut picker = Picker::new(captures);
         let mut best_score = stand_pat;
         let mut best_move: Option<Move> = None;
 
         while let Some(mv) = picker.pick_move() {
-            let mut new_board = board.clone();
-            new_board.play_unchecked(mv);
+            let mut new_pos = position.clone();
+            new_pos.play_move(mv);
 
             self.nodes += 1;
 
-            let score = -self.qsearch::<PV>(&new_board, -beta, -alpha, ply + 1);
+            let score = -self.qsearch::<PV>(&new_pos, -beta, -alpha, ply + 1);
 
             if score <= best_score {
                 continue;
@@ -447,7 +449,7 @@ impl Search {
         best_score
     }
 
-    pub fn iterative_deepening(&mut self, board: &Board, st: SearchType) {
+    pub fn iterative_deepening(&mut self, position: &mut Position, st: SearchType) {
         let depth: i32;
         let mut goal_nodes: Option<u64> = None;
         match st {
@@ -474,7 +476,7 @@ impl Search {
 
         for d in 1..=depth {
             self.seldepth = 0;
-            score = self.aspiration_window(board, &mut pv, score, d);
+            score = self.aspiration_window(position, &mut pv, score, d);
 
             if let Some(nodes) = goal_nodes {
                 if self.nodes >= nodes {
@@ -504,7 +506,7 @@ impl Search {
 
     fn aspiration_window(
         &mut self,
-        board: &Board,
+        position: &mut Position,
         pv: &mut PVTable,
         prev_eval: i32,
         mut depth: i32,
@@ -525,7 +527,7 @@ impl Search {
         }
 
         loop {
-            score = self.pvsearch::<true>(board, pv, alpha, beta, depth, 0);
+            score = self.pvsearch::<true>(position, pv, alpha, beta, depth, 0);
 
             if self.stop {
                 return 0;

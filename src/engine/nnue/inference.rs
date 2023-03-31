@@ -114,15 +114,32 @@ impl NNUEState {
         boxed
     }
 
+    pub fn refresh(&mut self, board: &Board) {
+        // reset the accumulator
+        self.accumulators[self.current_acc] = Accumulator::default();
+
+        // update the accumulator
+        for sq in board.occupied() {
+            let piece = board.piece_on(sq).unwrap();
+            let color = board.color_on(sq).unwrap();
+            let idx = weight_column_index(sq, piece, color);
+
+            self.accumulators[self.current_acc].efficiently_update::<ACTIVATE>(idx);
+        }
+    }
+
     /// Copy and push the current accumulator to the "top"
     pub fn push(&mut self) {
         self.accumulators[self.current_acc + 1] = self.accumulators[self.current_acc];
         self.current_acc += 1;
     }
 
+    pub fn pop(&mut self) {
+        self.current_acc -= 1;
+    }
+
     pub fn update_feature<const ACTIVATE: bool>(&mut self, sq: Square, piece: Piece, color: Color) {
         let idx = weight_column_index(sq, piece, color);
-
         self.accumulators[self.current_acc].efficiently_update::<ACTIVATE>(idx);
     }
 
@@ -179,6 +196,8 @@ fn weight_column_index(sq: Square, piece: Piece, color: Color) -> (usize, usize)
 
 #[cfg(test)]
 mod tests {
+    use crate::engine::{movegen, position::play_move, search::Search, tt::TT};
+
     use super::*;
 
     #[test]
@@ -205,5 +224,23 @@ mod tests {
         state.update_feature::<DEACTIVATE>(Square::A3, Piece::Pawn, Color::White);
 
         assert_eq!(old_acc, state.accumulators[0]);
+    }
+
+    #[test]
+    fn pov_preserved() {
+        let board = Board::default();
+        let tt = TT::new(16);
+        let mut search = Search::new(tt);
+        let moves = movegen::all_moves(&search, &board, None, 0);
+        let initial_white = search.nnue.accumulators[0].white;
+        let initial_black = search.nnue.accumulators[0].black;
+        for mv in moves {
+            let mv = mv.mv;
+            let mut new_b = board.clone();
+            play_move(&mut new_b, &mut search.nnue, mv);
+            search.nnue.pop();
+            assert_eq!(initial_white, search.nnue.accumulators[0].white);
+            assert_eq!(initial_black, search.nnue.accumulators[0].black);
+        }
     }
 }

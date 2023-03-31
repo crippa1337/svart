@@ -1,6 +1,6 @@
 use crate::{
     constants::{self},
-    engine::{position::Position, search::Search, tt::TT},
+    engine::{position::play_move, search::Search, tt::TT},
 };
 use cozy_chess::{Board, Color, Move, Piece, Square};
 
@@ -12,13 +12,8 @@ pub enum SearchType {
     Infinite,
 }
 
-#[derive(Debug, PartialEq)]
-pub enum UCIError {
-    InvalidPosition,
-}
-
 pub fn uci_loop() {
-    let mut position = Position::default();
+    let mut board = Board::default();
     let mut tt_size = 16;
     let mut tt = TT::new(tt_size);
     let mut search = Search::new(tt);
@@ -53,219 +48,204 @@ pub fn uci_loop() {
                 _ => (),
             }
         } else {
-            'main: loop {
-                match words[0] {
-                    "uci" => {
-                        id();
-                        options();
-                        println!("uciok");
-                        break 'main;
+            match words[0] {
+                "uci" => {
+                    id();
+                    options();
+                    println!("uciok");
+                    continue;
+                }
+                "isready" => {
+                    println!("readyok");
+                    continue;
+                }
+                "ucinewgame" => {
+                    board = Board::default();
+                    tt = TT::new(tt_size);
+                    search = Search::new(tt);
+                    board_set = true;
+                    continue;
+                }
+                "setoption" => {
+                    if words[1] == "name" && words[2] == "Hash" && words[3] == "value" {
+                        if let Ok(s) = words[4].parse::<u32>() {
+                            // Don't allow hash bigger than max
+                            if s > 1024000 {
+                                continue;
+                            }
+                            tt_size = s;
+                            tt = TT::new(tt_size);
+                            search = Search::new(tt);
+                        }
                     }
-                    "isready" => {
-                        println!("readyok");
-                        break 'main;
-                    }
-                    "ucinewgame" => {
-                        position = Position::default();
-                        tt = TT::new(tt_size);
-                        search = Search::new(tt);
+                    continue;
+                }
+                "position" => {
+                    if words[1] == "startpos" {
+                        board = Board::default();
+                        search.nnue.refresh(&board);
                         board_set = true;
-                        break 'main;
-                    }
-                    "setoption" => {
-                        if words[1] == "name" && words[2] == "Hash" && words[3] == "value" {
-                            match words[4].parse::<u32>() {
-                                Ok(s) => {
-                                    // Don't allow hash bigger than max
-                                    if s > 1024000 {
-                                        break 'main;
-                                    }
-                                    tt_size = s;
-                                    tt = TT::new(tt_size);
-                                    search = Search::new(tt);
-                                }
-                                Err(_) => (),
+                        search.game_history = vec![board.hash()]
+                    } else if words[1] == "fen" {
+                        // Put together the split fen string
+                        let mut fen = String::new();
+                        for word in words.iter().skip(2) {
+                            if *word == "moves" {
+                                break;
                             }
+                            fen.push_str(word);
+                            fen.push(' ');
                         }
-                        break 'main;
-                    }
-                    "position" => {
-                        if words[1] == "startpos" {
-                            position = Position::default();
+
+                        if let Ok(b) = Board::from_fen(fen.trim(), false) {
+                            board = b;
+                            search.nnue.refresh(&board);
                             board_set = true;
-                            search.game_history = vec![position.board.hash()]
-                        } else if words[1] == "fen" {
-                            // Put together the split fen string
-                            let mut fen = String::new();
-                            for i in 2..words.len() {
-                                if words[i] == "moves" {
-                                    break;
-                                }
-                                fen.push_str(words[i]);
-                                fen.push(' ');
-                            }
-                            match Position::from_fen(fen.trim()) {
-                                Ok(p) => {
-                                    position = p;
-                                    board_set = true;
-                                }
-                                Err(_) => (),
-                            }
                         }
+                    }
 
-                        if words.iter().any(|&x| x == "moves") && board_set {
-                            for i in
-                                words.iter().position(|&x| x == "moves").unwrap() + 1..words.len()
+                    if words.iter().any(|&x| x == "moves") && board_set {
+                        for i in words.iter().position(|&x| x == "moves").unwrap() + 1..words.len()
+                        {
+                            let mut mv: Move = words[i].parse().unwrap();
+                            mv = check_castling_move(&board, mv);
+                            board.play_unchecked(mv);
+                            search.game_history.push(board.hash());
+                        }
+                        search.nnue.refresh(&board);
+                    }
+                }
+                "go" => {
+                    if board_set {
+                        // Static depth search
+                        if words.iter().any(|&x| x == "depth") {
+                            if let Ok(d) = words
+                                [words.iter().position(|&x| x == "depth").unwrap() + 1]
+                                .parse::<i32>()
                             {
-                                let mut mv: Move = words[i].parse().unwrap();
-                                mv = check_castling_move(&position.board, mv);
-                                position.play_move(mv);
-                                search.game_history.push(position.hash());
+                                go(&board, SearchType::Depth(d), &mut search);
                             }
-                        }
-                        break 'main;
-                    }
-                    "go" => {
-                        if board_set {
-                            // Static depth search
-                            if words.iter().any(|&x| x == "depth") {
-                                match words[words.iter().position(|&x| x == "depth").unwrap() + 1]
-                                    .parse::<i32>()
-                                {
-                                    Ok(d) => {
-                                        go(&mut position, SearchType::Depth(d), &mut search);
-                                    }
-                                    Err(_) => (),
-                                }
-                            } else if words.iter().any(|&x| x == "nodes") {
-                                match words[words.iter().position(|&x| x == "nodes").unwrap() + 1]
+                        } else if words.iter().any(|&x| x == "nodes") {
+                            if let Ok(n) = words
+                                [words.iter().position(|&x| x == "nodes").unwrap() + 1]
+                                .parse::<u64>()
+                            {
+                                go(&board, SearchType::Nodes(n), &mut search);
+                            }
+                        // Infinite search
+                        } else if words.iter().any(|&x| x == "infinite") {
+                            go(&board, SearchType::Infinite, &mut search);
+                        // Static time search
+                        } else if words.iter().any(|&x| x == "movetime") {
+                            if let Ok(t) = words
+                                [words.iter().position(|&x| x == "movetime").unwrap() + 1]
+                                .parse::<u64>()
+                            {
+                                go(&board, SearchType::Time(t), &mut search);
+                            }
+                        // Time search
+                        } else if words.iter().any(|&x| x == "wtime" || x == "btime") {
+                            if board.side_to_move() == Color::White {
+                                match words[words.iter().position(|&x| x == "wtime").unwrap() + 1]
                                     .parse::<u64>()
                                 {
-                                    Ok(n) => {
-                                        go(&mut position, SearchType::Nodes(n), &mut search);
+                                    Ok(t) => {
+                                        // Increment
+                                        let inc: Option<u64> = if words.iter().any(|&x| x == "winc")
+                                        {
+                                            match words[words
+                                                .iter()
+                                                .position(|&x| x == "winc")
+                                                .unwrap()
+                                                + 1]
+                                            .parse::<u64>()
+                                            {
+                                                Ok(i) => Some(i),
+                                                Err(_) => None,
+                                            }
+                                        } else {
+                                            None
+                                        };
+                                        let mtg = if words.iter().any(|&x| x == "movestogo") {
+                                            match words[words
+                                                .iter()
+                                                .position(|&x| x == "movestogo")
+                                                .unwrap()
+                                                + 1]
+                                            .parse::<u8>()
+                                            {
+                                                Ok(m) => Some(m),
+                                                Err(_) => None,
+                                            }
+                                        } else {
+                                            None
+                                        };
+
+                                        go(
+                                            &board,
+                                            SearchType::Time(time_for_move(t, inc, mtg)),
+                                            &mut search,
+                                        );
                                     }
                                     Err(_) => (),
                                 }
-                            // Infinite search
-                            } else if words.iter().any(|&x| x == "infinite") {
-                                go(&mut position, SearchType::Infinite, &mut search);
-                            // Static time search
-                            } else if words.iter().any(|&x| x == "movetime") {
-                                match words
-                                    [words.iter().position(|&x| x == "movetime").unwrap() + 1]
-                                    .parse::<u64>()
-                                {
-                                    Ok(d) => {
-                                        go(&mut position, SearchType::Time(d), &mut search);
-                                    }
-                                    Err(_) => (),
-                                }
-                            // Time search
-                            } else if words.iter().any(|&x| x == "wtime" || x == "btime") {
-                                if position.board.side_to_move() == Color::White {
-                                    match words
-                                        [words.iter().position(|&x| x == "wtime").unwrap() + 1]
-                                        .parse::<u64>()
-                                    {
-                                        Ok(t) => {
-                                            // Increment
-                                            let inc: Option<u64> =
-                                                if words.iter().any(|&x| x == "winc") {
-                                                    match words[words
-                                                        .iter()
-                                                        .position(|&x| x == "winc")
-                                                        .unwrap()
-                                                        + 1]
-                                                    .parse::<u64>()
-                                                    {
-                                                        Ok(i) => Some(i),
-                                                        Err(_) => None,
-                                                    }
-                                                } else {
-                                                    None
-                                                };
-                                            let mtg = if words.iter().any(|&x| x == "movestogo") {
-                                                match words[words
-                                                    .iter()
-                                                    .position(|&x| x == "movestogo")
-                                                    .unwrap()
-                                                    + 1]
-                                                .parse::<u8>()
-                                                {
-                                                    Ok(m) => Some(m),
-                                                    Err(_) => None,
-                                                }
-                                            } else {
-                                                None
-                                            };
-
-                                            go(
-                                                &mut position,
-                                                SearchType::Time(time_for_move(t, inc, mtg)),
-                                                &mut search,
-                                            );
-                                        }
-                                        Err(_) => (),
-                                    }
-                                } else {
-                                    match words
-                                        [words.iter().position(|&x| x == "btime").unwrap() + 1]
-                                        .parse::<u64>()
-                                    {
-                                        Ok(t) => {
-                                            // Increment
-                                            let inc: Option<u64> =
-                                                if words.iter().any(|&x| x == "binc") {
-                                                    match words[words
-                                                        .iter()
-                                                        .position(|&x| x == "binc")
-                                                        .unwrap()
-                                                        + 1]
-                                                    .parse::<u64>()
-                                                    {
-                                                        Ok(i) => Some(i),
-                                                        Err(_) => None,
-                                                    }
-                                                } else {
-                                                    None
-                                                };
-
-                                            let mtg = if words.iter().any(|&x| x == "movestogo") {
-                                                match words[words
-                                                    .iter()
-                                                    .position(|&x| x == "movestogo")
-                                                    .unwrap()
-                                                    + 1]
-                                                .parse::<u8>()
-                                                {
-                                                    Ok(m) => Some(m),
-                                                    Err(_) => None,
-                                                }
-                                            } else {
-                                                None
-                                            };
-
-                                            go(
-                                                &mut position,
-                                                SearchType::Time(time_for_move(t, inc, mtg)),
-                                                &mut search,
-                                            );
-                                        }
-                                        Err(_) => (),
-                                    }
-                                };
                             } else {
-                                break 'main;
-                            }
+                                match words[words.iter().position(|&x| x == "btime").unwrap() + 1]
+                                    .parse::<u64>()
+                                {
+                                    Ok(t) => {
+                                        // Increment
+                                        let inc: Option<u64> = if words.iter().any(|&x| x == "binc")
+                                        {
+                                            match words[words
+                                                .iter()
+                                                .position(|&x| x == "binc")
+                                                .unwrap()
+                                                + 1]
+                                            .parse::<u64>()
+                                            {
+                                                Ok(i) => Some(i),
+                                                Err(_) => None,
+                                            }
+                                        } else {
+                                            None
+                                        };
+
+                                        let mtg = if words.iter().any(|&x| x == "movestogo") {
+                                            match words[words
+                                                .iter()
+                                                .position(|&x| x == "movestogo")
+                                                .unwrap()
+                                                + 1]
+                                            .parse::<u8>()
+                                            {
+                                                Ok(m) => Some(m),
+                                                Err(_) => None,
+                                            }
+                                        } else {
+                                            None
+                                        };
+
+                                        go(
+                                            &board,
+                                            SearchType::Time(time_for_move(t, inc, mtg)),
+                                            &mut search,
+                                        );
+                                    }
+                                    Err(_) => (),
+                                }
+                            };
+                        } else {
+                            continue;
                         }
-                        break 'main;
                     }
-                    "quit" => {
-                        break 'input;
-                    }
-                    _ => {
-                        break 'main;
-                    }
+                    continue;
+                }
+                "quit" => {
+                    break 'input;
+                }
+                _ => {
+                    continue;
                 }
             }
         }
@@ -307,8 +287,8 @@ pub fn reverse_castling_move(board: &Board, mut mv: Move) -> Move {
     mv
 }
 
-fn go(position: &mut Position, st: SearchType, search: &mut Search) {
-    search.iterative_deepening(position, st);
+fn go(board: &Board, st: SearchType, search: &mut Search) {
+    search.iterative_deepening(board, st);
     search.reset();
 }
 

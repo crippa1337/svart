@@ -1,7 +1,7 @@
 use crate::constants::INFINITY;
-use cozy_chess::{Color, Move, Piece, Rank, Square};
+use cozy_chess::{Board, Color, Move, Piece, Rank, Square};
 
-use super::{position::Position, search::Search};
+use super::{position::is_capture, search::Search};
 
 #[derive(PartialEq)]
 pub struct MoveEntry {
@@ -11,13 +11,13 @@ pub struct MoveEntry {
 
 pub fn all_moves(
     search: &Search,
-    position: &Position,
+    board: &Board,
     tt_move: Option<Move>,
     ply: i32,
 ) -> Vec<MoveEntry> {
     let mut move_list: Vec<Move> = Vec::new();
 
-    position.board.generate_moves(|moves| {
+    board.generate_moves(|moves| {
         move_list.extend(moves);
         false
     });
@@ -26,7 +26,7 @@ pub fn all_moves(
         .iter()
         .map(|mv| MoveEntry {
             mv: *mv,
-            score: score_moves(search, position, *mv, tt_move, ply),
+            score: score_moves(search, board, *mv, tt_move, ply),
         })
         .collect();
 
@@ -35,11 +35,10 @@ pub fn all_moves(
 
 pub fn capture_moves(
     search: &Search,
-    position: &Position,
+    board: &Board,
     tt_move: Option<Move>,
     ply: i32,
 ) -> Vec<MoveEntry> {
-    let board = &position.board;
     let enemy_pieces = board.colors(!board.side_to_move());
     let mut captures_list: Vec<Move> = Vec::new();
 
@@ -72,7 +71,7 @@ pub fn capture_moves(
         .iter()
         .map(|mv| MoveEntry {
             mv: *mv,
-            score: score_moves(search, position, *mv, tt_move, ply),
+            score: score_moves(search, board, *mv, tt_move, ply),
         })
         .collect();
 
@@ -81,7 +80,7 @@ pub fn capture_moves(
 
 // Most Valuable Victim - Least Valuable Aggressor (MVV-LVA)
 #[must_use]
-pub fn mvvlva(position: &Position, mv: Move) -> i32 {
+pub fn mvvlva(board: &Board, mv: Move) -> i32 {
     #[rustfmt::skip]
     let mvvlva: [[i32; 7]; 7] = [
         [0,   0,   0,   0,   0,   0,   0],
@@ -95,8 +94,8 @@ pub fn mvvlva(position: &Position, mv: Move) -> i32 {
 
     let from_square = mv.from;
     let to_square = mv.to;
-    let attacker = piece_num_at(position, from_square);
-    let mut victim = piece_num_at(position, to_square);
+    let attacker = piece_num_at(board, from_square);
+    let mut victim = piece_num_at(board, to_square);
 
     // En Passant
     if victim == 0 {
@@ -108,8 +107,8 @@ pub fn mvvlva(position: &Position, mv: Move) -> i32 {
 
 // Used to index MVV-LVA table
 #[must_use]
-pub fn piece_num_at(position: &Position, square: Square) -> i16 {
-    let piece = position.board.piece_on(square);
+pub fn piece_num_at(board: &Board, square: Square) -> i16 {
+    let piece = board.piece_on(square);
     if piece.is_none() {
         return 0;
     }
@@ -127,7 +126,7 @@ pub fn piece_num_at(position: &Position, square: Square) -> i16 {
 #[must_use]
 pub fn score_moves(
     search: &Search,
-    position: &Position,
+    board: &Board,
     mv: Move,
     tt_move: Option<Move>,
     ply: i32,
@@ -143,8 +142,8 @@ pub fn score_moves(
     }
 
     // Returns between 200100..200605
-    if position.is_capture(mv) {
-        return mvvlva(position, mv) + 200_000;
+    if is_capture(board, mv) {
+        return mvvlva(board, mv) + 200_000;
     }
 
     if search.killers[ply as usize][0] == Some(mv) {
@@ -153,7 +152,7 @@ pub fn score_moves(
         return 95_000;
     }
 
-    search.history.get_score(&position.board, mv)
+    search.history.get_score(board, mv)
 }
 
 pub struct Picker {

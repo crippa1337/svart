@@ -1,4 +1,4 @@
-pub const MAX_PLY: i32 = 250;
+pub const MAX_PLY: i32 = 128;
 pub const MAX_MOVES_POSITION: usize = 218;
 
 pub const NONE: i32 = 32002;

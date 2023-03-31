@@ -16,8 +16,8 @@ pub fn play_move(board: &mut Board, nnue: &mut Box<NNUEState>, mv: Move) {
 
     // Remove the target-square piece
     // This also handles the move of the rook in castling
-    if let Some((color, piece)) = board.color_on(mv.to).zip(board.piece_on(mv.to)) {
-        nnue.update_feature::<DEACTIVATE>(mv.to, piece, color);
+    if let Some((color, p)) = board.color_on(mv.to).zip(board.piece_on(mv.to)) {
+        nnue.update_feature::<DEACTIVATE>(mv.to, p, color);
     }
 
     // Remove the en passant'd pawn

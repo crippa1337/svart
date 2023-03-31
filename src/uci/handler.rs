@@ -74,6 +74,7 @@ pub fn uci_loop() {
                             tt_size = s;
                             tt = TT::new(tt_size);
                             search = Search::new(tt);
+                            search.nnue.refresh(&board);
                         }
                     }
                     continue;

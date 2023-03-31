@@ -143,7 +143,7 @@ impl NNUEState {
     }
 
     pub fn evaluate(&self, stm: Color) -> i32 {
-        let acc = self.accumulators[self.current_acc];
+        let acc = &self.accumulators[self.current_acc];
 
         let (us, them) = match stm {
             Color::White => (acc.white.iter(), acc.black.iter()),
@@ -247,103 +247,36 @@ mod tests {
 
     #[test]
     fn nnue_incremental() {
-        //////////
-        // 1111 //
-        //////////
-
-        let mut board = Board::default();
-        let tt = TT::new(16);
-        let mut search = Search::new(tt);
-        let moves = movegen::all_moves(&search, &board, None, 0);
-        play_move(&mut board, &mut search.nnue, moves[0].mv);
-
-        let mut board2 = Board::default();
-        board2.play_unchecked(moves[0].mv);
-
-        let mut state1 = search.nnue;
-        let state2 = NNUEState::from_board(&board2);
-        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
-        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
-        state1.refresh(&board);
-        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
-        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
-
-        //////////
-        // 2222 //
-        //////////
-
-        let mut board =
-            Board::from_fen("4r1k1/4r1p1/8/p2R1P1K/5P1P/1QP3q1/1P6/3R4 b - - 0 1", false).unwrap();
-        let tt = TT::new(16);
-        let mut search = Search::new(tt);
-        search.nnue = NNUEState::from_board(&board);
-        let moves = movegen::all_moves(&search, &board, None, 0);
-        play_move(&mut board, &mut search.nnue, moves[0].mv);
-
-        let mut board2 =
-            Board::from_fen("4r1k1/4r1p1/8/p2R1P1K/5P1P/1QP3q1/1P6/3R4 b - - 0 1", false).unwrap();
-        board2.play_unchecked(moves[0].mv);
-
-        let mut state1 = search.nnue;
-        let state2 = NNUEState::from_board(&board2);
-        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
-        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
-        state1.refresh(&board);
-        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
-        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
-
-        //////////
-        // 3333 //
-        //////////
-
-        let mut board = Board::from_fen(
+        let fens: [&str; 7] = [
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            "4r1k1/4r1p1/8/p2R1P1K/5P1P/1QP3q1/1P6/3R4 b - - 0 1",
             "1n2k3/r3r1bn/pp1p4/1P1q1p1p/3P4/P3P1RP/1BQN1PR1/1K6 w - - 6 28",
-            false,
-        )
-        .unwrap();
-        let tt = TT::new(16);
-        let mut search = Search::new(tt);
-        search.nnue = NNUEState::from_board(&board);
-        let moves = movegen::all_moves(&search, &board, None, 0);
-        play_move(&mut board, &mut search.nnue, moves[0].mv);
+            "8/3r1b2/3r1Pk1/1N6/5ppP/1q2P1Q1/7K/4RB2 w - - 0 66",
+            "rnbqkbnr/1pp1ppp1/p7/2PpP2p/8/8/PP1P1PPP/RNBQKBNR w KQkq d6 0 5",
+            "rnbqkbnr/1pp1p3/p4pp1/2PpP2p/8/3B1N2/PP1P1PPP/RNBQK2R w KQkq - 0 7",
+            "rnbqk2r/1pp1p1P1/p4np1/2Pp3p/8/3B1N2/PP1P1PPP/RNBQK2R w KQkq - 1 9",
+        ];
 
-        let mut board2 = Board::from_fen(
-            "1n2k3/r3r1bn/pp1p4/1P1q1p1p/3P4/P3P1RP/1BQN1PR1/1K6 w - - 6 28",
-            false,
-        )
-        .unwrap();
-        board2.play_unchecked(moves[0].mv);
+        for fen in fens {
+            let mut board = Board::from_fen(fen, false).unwrap();
+            let tt = TT::new(16);
+            let mut search = Search::new(tt);
+            search.nnue.refresh(&board);
+            let moves = movegen::all_moves(&search, &board, None, 0);
 
-        let mut state1 = search.nnue;
-        let state2 = NNUEState::from_board(&board2);
-        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
-        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
-        state1.refresh(&board);
-        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
-        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
+            for mv in moves {
+                let mut board2 = Board::from_fen(fen, false).unwrap();
 
-        //////////
-        // 4444 //
-        //////////
+                board2.play_unchecked(mv.mv);
+                play_move(&mut board, &mut search.nnue, mv.mv);
 
-        let mut board =
-            Board::from_fen("8/3r1b2/3r1Pk1/1N6/5ppP/1q2P1Q1/7K/4RB2 w - - 0 66", false).unwrap();
-        let tt = TT::new(16);
-        let mut search = Search::new(tt);
-        search.nnue = NNUEState::from_board(&board);
-        let moves = movegen::all_moves(&search, &board, None, 0);
-        play_move(&mut board, &mut search.nnue, moves[0].mv);
+                let state2 = NNUEState::from_board(&board2);
+                assert_eq!(search.nnue.accumulators[1], state2.accumulators[0]);
+                assert_ne!(search.nnue.accumulators[0], state2.accumulators[0]);
 
-        let mut board2 =
-            Board::from_fen("8/3r1b2/3r1Pk1/1N6/5ppP/1q2P1Q1/7K/4RB2 w - - 0 66", false).unwrap();
-        board2.play_unchecked(moves[0].mv);
-
-        let mut state1 = search.nnue;
-        let state2 = NNUEState::from_board(&board2);
-        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
-        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
-        state1.refresh(&board);
-        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
-        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
+                search.nnue.pop();
+                board = Board::from_fen(fen, false).unwrap();
+            }
+        }
     }
 }

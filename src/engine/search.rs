@@ -55,7 +55,7 @@ impl Search {
     #[must_use]
     fn zw_search(
         &mut self,
-        position: &mut Position,
+        position: &Position,
         pv: &mut PVTable,
         alpha: i32,
         beta: i32,
@@ -68,7 +68,7 @@ impl Search {
     #[must_use]
     pub fn pvsearch<const PV: bool>(
         &mut self,
-        position: &mut Position,
+        position: &Position,
         pv: &mut PVTable,
         mut alpha: i32,
         beta: i32,
@@ -170,14 +170,8 @@ impl Search {
                 let mut new_pos = position.clone();
                 new_pos.play_null();
 
-                let score = -self.zw_search(
-                    &mut new_pos,
-                    &mut old_pv,
-                    -beta,
-                    -beta + 1,
-                    depth - r,
-                    ply + 1,
-                );
+                let score =
+                    -self.zw_search(&new_pos, &mut old_pv, -beta, -beta + 1, depth - r, ply + 1);
 
                 if score >= beta {
                     if score >= TB_WIN_IN_PLY {
@@ -240,14 +234,8 @@ impl Search {
 
             let mut score: i32;
             if moves_played == 1 {
-                score = -self.pvsearch::<PV>(
-                    &mut new_pos,
-                    &mut old_pv,
-                    -beta,
-                    -alpha,
-                    depth - 1,
-                    ply + 1,
-                );
+                score =
+                    -self.pvsearch::<PV>(&new_pos, &mut old_pv, -beta, -alpha, depth - 1, ply + 1);
             } else {
                 /*
                     Late Move Reduction (LMR)
@@ -272,7 +260,7 @@ impl Search {
                 };
 
                 score = -self.zw_search(
-                    &mut new_pos,
+                    &new_pos,
                     &mut old_pv,
                     -alpha - 1,
                     -alpha,
@@ -282,7 +270,7 @@ impl Search {
 
                 if alpha < score && score < beta {
                     score = -self.pvsearch::<PV>(
-                        &mut new_pos,
+                        &new_pos,
                         &mut old_pv,
                         -beta,
                         -alpha,
@@ -449,7 +437,7 @@ impl Search {
         best_score
     }
 
-    pub fn iterative_deepening(&mut self, position: &mut Position, st: SearchType) {
+    pub fn iterative_deepening(&mut self, position: &Position, st: SearchType) {
         let depth: i32;
         let mut goal_nodes: Option<u64> = None;
         match st {
@@ -506,7 +494,7 @@ impl Search {
 
     fn aspiration_window(
         &mut self,
-        position: &mut Position,
+        position: &Position,
         pv: &mut PVTable,
         prev_eval: i32,
         mut depth: i32,

@@ -248,7 +248,10 @@ mod tests {
 
     #[test]
     fn nnue_incremental() {
-        // 1
+        //////////
+        // 1111 //
+        //////////
+
         let mut board = Board::default();
         let tt = TT::new(16);
         let mut search = Search::new(tt);
@@ -261,10 +264,15 @@ mod tests {
         let mut state1 = search.nnue;
         let state2 = NNUEState::from_board(&board2);
         assert_eq!(state1.accumulators[1], state2.accumulators[0]);
+        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
         state1.refresh(&board);
+        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
         assert_eq!(state1.accumulators[1], state2.accumulators[0]);
 
-        // 2
+        //////////
+        // 2222 //
+        //////////
+
         let mut board =
             Board::from_fen("4r1k1/4r1p1/8/p2R1P1K/5P1P/1QP3q1/1P6/3R4 b - - 0 1", false).unwrap();
         let tt = TT::new(16);
@@ -280,7 +288,63 @@ mod tests {
         let mut state1 = search.nnue;
         let state2 = NNUEState::from_board(&board2);
         assert_eq!(state1.accumulators[1], state2.accumulators[0]);
+        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
         state1.refresh(&board);
+        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
+        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
+
+        //////////
+        // 3333 //
+        //////////
+
+        let mut board = Board::from_fen(
+            "1n2k3/r3r1bn/pp1p4/1P1q1p1p/3P4/P3P1RP/1BQN1PR1/1K6 w - - 6 28",
+            false,
+        )
+        .unwrap();
+        let tt = TT::new(16);
+        let mut search = Search::new(tt);
+        search.nnue = NNUEState::from_board(&board);
+        let moves = movegen::all_moves(&search, &board, None, 0);
+        play_move(&mut board, &mut search.nnue, moves[0].mv);
+
+        let mut board2 = Board::from_fen(
+            "1n2k3/r3r1bn/pp1p4/1P1q1p1p/3P4/P3P1RP/1BQN1PR1/1K6 w - - 6 28",
+            false,
+        )
+        .unwrap();
+        board2.play_unchecked(moves[0].mv);
+
+        let mut state1 = search.nnue;
+        let state2 = NNUEState::from_board(&board2);
+        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
+        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
+        state1.refresh(&board);
+        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
+        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
+
+        //////////
+        // 4444 //
+        //////////
+
+        let mut board =
+            Board::from_fen("8/3r1b2/3r1Pk1/1N6/5ppP/1q2P1Q1/7K/4RB2 w - - 0 66", false).unwrap();
+        let tt = TT::new(16);
+        let mut search = Search::new(tt);
+        search.nnue = NNUEState::from_board(&board);
+        let moves = movegen::all_moves(&search, &board, None, 0);
+        play_move(&mut board, &mut search.nnue, moves[0].mv);
+
+        let mut board2 =
+            Board::from_fen("8/3r1b2/3r1Pk1/1N6/5ppP/1q2P1Q1/7K/4RB2 w - - 0 66", false).unwrap();
+        board2.play_unchecked(moves[0].mv);
+
+        let mut state1 = search.nnue;
+        let state2 = NNUEState::from_board(&board2);
+        assert_eq!(state1.accumulators[1], state2.accumulators[0]);
+        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
+        state1.refresh(&board);
+        assert_ne!(state1.accumulators[0], state2.accumulators[0]);
         assert_eq!(state1.accumulators[1], state2.accumulators[0]);
     }
 }

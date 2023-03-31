@@ -110,6 +110,7 @@ pub fn uci_loop() {
                             search.game_history.push(board.hash());
                         }
                     }
+
                     search.nnue.refresh(&board);
                 }
                 "go" => {

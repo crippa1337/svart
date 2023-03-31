@@ -4,9 +4,9 @@ version = 3
 
 [[package]]
 name = "cozy-chess"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "259f73da7eb1a8537c40e361aa93cfa3dc15d75a88f12fdff639892785e1d3b9"
+checksum = "f0aa2dcdbe66b10019af0f81ee4f404ca12c1d24e56f47e7f2588954f8bfa306"
 dependencies = [
  "cozy-chess-types",
 ]

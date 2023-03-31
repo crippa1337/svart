@@ -82,7 +82,6 @@ pub fn uci_loop() {
                 "position" => {
                     if words[1] == "startpos" {
                         board = Board::default();
-                        search.nnue.refresh(&board);
                         board_set = true;
                         search.game_history = vec![board.hash()]
                     } else if words[1] == "fen" {
@@ -98,7 +97,6 @@ pub fn uci_loop() {
 
                         if let Ok(b) = Board::from_fen(fen.trim(), false) {
                             board = b;
-                            search.nnue.refresh(&board);
                             board_set = true;
                         }
                     }
@@ -111,8 +109,8 @@ pub fn uci_loop() {
                             board.play_unchecked(mv);
                             search.game_history.push(board.hash());
                         }
-                        search.nnue.refresh(&board);
                     }
+                    search.nnue.refresh(&board);
                 }
                 "go" => {
                     if board_set {

@@ -224,29 +224,7 @@ impl Search {
             }
 
             let mut new_b = board.clone();
-            // let mut board2 = board.clone();
             play_move(&mut new_b, &mut self.nnue, mv);
-            // board2.play_unchecked(mv);
-
-            // let mut state1 = self.nnue.clone();
-            // let state2 = NNUEState::from_board(&board2);
-            // assert_eq!(
-            //     state1.accumulators[self.nnue.current_acc],
-            //     state2.accumulators[0]
-            // );
-            // assert_ne!(
-            //     state1.accumulators[self.nnue.current_acc - 1],
-            //     state2.accumulators[0]
-            // );
-            // state1.refresh(&new_b);
-            // assert_eq!(
-            //     state1.accumulators[self.nnue.current_acc],
-            //     state2.accumulators[0]
-            // );
-            // assert_ne!(
-            //     state1.accumulators[self.nnue.current_acc - 1],
-            //     state2.accumulators[0]
-            // );
 
             moves_played += 1;
             self.game_history.push(board.hash());
@@ -323,8 +301,7 @@ impl Search {
                     let qi = quiet_moves.as_slice();
                     let qi = &qi[..quiet_moves.len() - 1];
                     for qm in qi {
-                        self.history
-                            .update_table::<false>(board, qm.unwrap(), depth);
+                        self.history.update_table::<false>(board, qm.unwrap(), depth);
                     }
                 }
 
@@ -345,14 +322,7 @@ impl Search {
         debug_assert!((-INFINITY..=INFINITY).contains(&best_score));
 
         if !self.stop {
-            self.tt.store(
-                hash_key,
-                best_move,
-                best_score as i16,
-                depth as u8,
-                flag,
-                ply,
-            );
+            self.tt.store(hash_key, best_move, best_score as i16, depth as u8, flag, ply);
         }
 
         best_score
@@ -444,15 +414,10 @@ impl Search {
 
         self.tt.prefetch(hash_key);
 
-        let flag = if best_score >= beta {
-            TTFlag::LowerBound
-        } else {
-            TTFlag::UpperBound
-        };
+        let flag = if best_score >= beta { TTFlag::LowerBound } else { TTFlag::UpperBound };
 
         if !self.stop {
-            self.tt
-                .store(hash_key, best_move, best_score as i16, 0, flag, ply);
+            self.tt.store(hash_key, best_move, best_score as i16, 0, flag, ply);
         }
 
         best_score

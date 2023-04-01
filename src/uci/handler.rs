@@ -44,6 +44,10 @@ pub fn uci_loop() {
                     super::bench::bench();
                     break;
                 }
+                "datagen" => {
+                    crate::engine::nnue::datagen::script::root();
+                    break;
+                }
                 _ => (),
             }
         } else {

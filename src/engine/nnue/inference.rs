@@ -113,10 +113,11 @@ impl NNUEState {
     }
 
     pub fn refresh(&mut self, board: &Board) {
-        // reset the accumulator
+        // reset the accumulator stack
+        self.current_acc = 0;
         self.accumulators[self.current_acc] = Accumulator::default();
 
-        // update the accumulator
+        // update the first accumulator
         for sq in board.occupied() {
             let piece = board.piece_on(sq).unwrap();
             let color = board.color_on(sq).unwrap();

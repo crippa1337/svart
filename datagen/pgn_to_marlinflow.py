@@ -67,6 +67,7 @@ def main():
                     board.push(position.move)
                     
     with open(output_file, "a") as output:
+        random.shuffle(lines)
         output.writelines(lines)
                     
 if __name__ == "__main__":

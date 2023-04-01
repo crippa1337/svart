@@ -1,4 +1,9 @@
-use std::{chrono, io::stdin};
+use std::{
+    fs::File,
+    io::{stdin, BufWriter, Write},
+    path::PathBuf,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 const DEFAULT: &str = "\x1b[0m";
 const WHITE: &str = "\x1b[38;5;15m";
@@ -6,9 +11,10 @@ const ORANGE: &str = "\x1b[38;5;208m";
 const GREEN: &str = "\x1b[38;5;40m";
 const RED: &str = "\x1b[38;5;196m";
 
+static FENS: AtomicU64 = AtomicU64::new(0);
+
 #[derive(Debug)]
-enum SearchType
-{
+enum SearchType {
     Depth(i32),
     Nodes(u64),
 }
@@ -29,8 +35,7 @@ impl Parameters {
     }
 }
 
-pub fn root(
-) {
+pub fn root() {
     // Get the number of games to generate
     println!("How many games would you like to gen? [1, 100M]");
     let mut inp_games = String::new();
@@ -114,14 +119,29 @@ pub fn root(
     generate_main(params);
 }
 
-fn generate_main(
-    params: Parameters,
-) {
-    let run_id = chrono::Utc::now();
-    println!("{RED}ATTENTION: {DEFAULT}This run will be saved to {}");
+fn generate_main(params: Parameters) {
+    let run_id = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+    println!("{RED}ATTENTION: {DEFAULT}This run will be saved to data-{run_id}");
     println!(
-        "{GREEN}Generating {DEFAULT}{} games with {} threads...",
-        params.games, params.threads
+        "{GREEN}Generating {DEFAULT}{} games with {} threads on {:?}...",
+        params.games, params.threads, params.st
     );
-    println!("Search type: {:?}", params.st);
+
+    let data_dir = PathBuf::from("data").join(run_id);
+    std::fs::create_dir_all(&data_dir).unwrap();
+
+    std::thread::scope(|s| {
+        for i in 0..params.threads {
+            let path = &data_dir;
+            let tprms = &params;
+            s.spawn(move || {
+                generate_thread(i, path, tprms);
+            });
+        }
+    })
+}
+
+fn generate_thread(id: usize, data_dir: &PathBuf, options: &Parameters) {
+    let mut output_file = File::create(data_dir.join(format!("thread_{id}.txt"))).unwrap();
+    let mut output_buffer = BufWriter::new(&mut output_file);
 }

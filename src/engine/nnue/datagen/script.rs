@@ -115,6 +115,7 @@ pub fn root() -> Result<(), Box<dyn Error>> {
     generate_main(params);
 
     println!("We're done B)");
+    println!("Wins: {WW:?}, Losses: {BW:?}, Draws: {DR:?}");
     Ok(())
 }
 
@@ -157,7 +158,7 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
 
     'main: for games_played in 0..games_per_thread {
         // Information print from main thread
-        if id == 0 && games_played != 0 && games_played % 10_000 == 0 {
+        if id == 0 && games_played != 0 && games_played % 75 == 0 {
             let fens = FENS.load(Ordering::Relaxed);
             let elapsed = timer.elapsed().as_secs_f64();
             let fens_per_sec = fens as f64 / elapsed;
@@ -166,18 +167,11 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
             let time_per_game = elapsed / games_played as f64;
             let etr = (games_per_thread - games_played) as f64 * time_per_game;
 
-            println!("{GREEN}Generated {DEFAULT}{fens} FENs [{fens_per_sec:.2} FEN/s]");
-            println!("Main thread has played: {games_played}/{} [{percentage:.2}%]", options.games);
-            println!("{GREEN}Time per game: {DEFAULT}{time_per_game:.2}s. {RED}ETR: {etr:.2}s");
-
-            // Cool addition I robbed from Viri
-            let est_completion_date = chrono::Local::now()
-                .checked_add_signed(chrono::Duration::seconds(
-                    (games_per_thread - games_played) as i64 * time_per_game as i64,
-                ))
-                .unwrap();
-            let time_completion = est_completion_date.format("%Y-%m-%d %H:%M:%S");
-            eprintln!("{WHITE}Estimated completion time: {time_completion}");
+            println!("\n{GREEN}Generated {DEFAULT}{fens} FENs [{fens_per_sec:.2} FEN/s]");
+            println!("Main thread has played: {games_played} [{percentage:.2}%]");
+            println!(
+                "{GREEN}Time per game: {DEFAULT}{time_per_game:.2}s. {RED}ETL: {etr:.2}s{DEFAULT}"
+            );
 
             stdout().flush().unwrap();
         }
@@ -191,13 +185,16 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
         // First we get a 'random' starting position
         for _ in 0..12 {
             let moves = movegen::pure_moves(&board);
+            if moves.is_empty() {
+                continue 'main;
+            }
             let mv = moves[rng.usize(..moves.len())];
             board.play_unchecked(mv);
         }
         search.nnue.refresh(&board);
 
-        // ... make sure that the position isn't absurd
-        let (score, _) = search.data_search(&board, SearchType::Depth(10));
+        // ... make sure that the exit isn't absurd
+        let (score, _) = search.data_search(&board, SearchType::Depth(8));
         if score.abs() > 1000 {
             continue 'main;
         }
@@ -209,7 +206,7 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
                 break (GameStatus::Drawn, None);
             }
             if status != GameStatus::Ongoing {
-                break (status, Some(board.side_to_move()));
+                break (status, Some(!board.side_to_move()));
             }
 
             search.reset();
@@ -231,9 +228,9 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
 
         // Always report wins from white's perspective
         let result_output = match (game_result, winner) {
-            (GameStatus::Drawn, _) => "1/2-1/2".to_string(),
-            (GameStatus::Won, Some(Color::White)) => "1-0".to_string(),
-            (GameStatus::Won, Some(Color::Black)) => "0-1".to_string(),
+            (GameStatus::Drawn, _) => "0.5".to_string(),
+            (GameStatus::Won, Some(Color::White)) => "1".to_string(),
+            (GameStatus::Won, Some(Color::Black)) => "0".to_string(),
             _ => unreachable!(),
         };
 

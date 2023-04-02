@@ -34,7 +34,6 @@ static MODEL: Parameters = Parameters {
     output_bias: unsafe { std::mem::transmute(*include_bytes!("net/output_bias.bin")) },
 };
 
-#[derive(Clone)]
 pub struct NNUEState {
     pub accumulators: [Accumulator; MAX_PLY as usize],
     pub current_acc: usize,
@@ -50,10 +49,7 @@ pub struct Accumulator {
 
 impl Default for Accumulator {
     fn default() -> Self {
-        Self {
-            white: MODEL.feature_bias,
-            black: MODEL.feature_bias,
-        }
+        Self { white: MODEL.feature_bias, black: MODEL.feature_bias }
     }
 }
 

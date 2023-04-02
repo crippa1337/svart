@@ -107,9 +107,10 @@ pub fn uci_loop() {
                     }
 
                     if words.iter().any(|&x| x == "moves") && board_set {
-                        for i in words.iter().position(|&x| x == "moves").unwrap() + 1..words.len()
+                        for word in
+                            words.iter().skip(words.iter().position(|&x| x == "moves").unwrap() + 1)
                         {
-                            let mut mv: Move = words[i].parse().unwrap();
+                            let mut mv: Move = word.parse().unwrap();
                             mv = check_castling_move(&board, mv);
                             board.play_unchecked(mv);
                             search.game_history.push(board.hash());

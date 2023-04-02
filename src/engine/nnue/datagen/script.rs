@@ -115,7 +115,6 @@ pub fn root() -> Result<(), Box<dyn Error>> {
     generate_main(params);
 
     println!("We're done B)");
-    println!("Wins: {WW:?}, Losses: {BW:?}, Draws: {DR:?}");
     Ok(())
 }
 

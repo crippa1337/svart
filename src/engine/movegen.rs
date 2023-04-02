@@ -9,6 +9,17 @@ pub struct MoveEntry {
     pub score: i32,
 }
 
+pub fn pure_moves(board: &Board) -> Vec<Move> {
+    let mut move_list: Vec<Move> = Vec::new();
+
+    board.generate_moves(|moves| {
+        move_list.extend(moves);
+        false
+    });
+
+    move_list
+}
+
 pub fn all_moves(
     search: &Search,
     board: &Board,
@@ -24,10 +35,7 @@ pub fn all_moves(
 
     let move_list: Vec<MoveEntry> = move_list
         .iter()
-        .map(|mv| MoveEntry {
-            mv: *mv,
-            score: score_moves(search, board, *mv, tt_move, ply),
-        })
+        .map(|mv| MoveEntry { mv: *mv, score: score_moves(search, board, *mv, tt_move, ply) })
         .collect();
 
     move_list
@@ -69,10 +77,7 @@ pub fn capture_moves(
     // Assigns a score to each move based on MVV-LVA
     let captures_list: Vec<MoveEntry> = captures_list
         .iter()
-        .map(|mv| MoveEntry {
-            mv: *mv,
-            score: score_moves(search, board, *mv, tt_move, ply),
-        })
+        .map(|mv| MoveEntry { mv: *mv, score: score_moves(search, board, *mv, tt_move, ply) })
         .collect();
 
     captures_list
@@ -167,11 +172,7 @@ impl Picker {
 
     pub fn pick_move(&mut self) -> Option<Move> {
         let open_list = &mut self.moves[self.index..];
-        let best_index = open_list
-            .iter()
-            .enumerate()
-            .max_by_key(|(_, entry)| entry.score)?
-            .0;
+        let best_index = open_list.iter().enumerate().max_by_key(|(_, entry)| entry.score)?.0;
         self.index += 1;
         open_list.swap(0, best_index);
         Some(open_list[0].mv)

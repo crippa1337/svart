@@ -579,4 +579,53 @@ impl Search {
         self.history.age_table();
         self.tt.age();
     }
+
+    pub fn hard_reset(&mut self) {
+        self.stop = false;
+        self.search_type = SearchType::Depth(0);
+        self.timer = None;
+        self.goal_time = None;
+        self.nodes = 0;
+        self.seldepth = 0;
+        self.killers = [[None; 2]; MAX_PLY as usize];
+        self.tt.reset();
+    }
+
+    pub fn data_search(&mut self, board: &Board, st: SearchType) -> (i32, Move) {
+        let depth: i32;
+        let mut goal_nodes: Option<u64> = None;
+        match st {
+            SearchType::Depth(d) => depth = d.min(MAX_PLY),
+            SearchType::Nodes(n) => {
+                depth = MAX_PLY;
+                goal_nodes = Some(n);
+            }
+            _ => unreachable!(),
+        };
+
+        let mut best_move: Option<Move> = None;
+        self.nnue.refresh(board);
+
+        let mut score = 0;
+        let mut pv = PVTable::new();
+
+        for d in 1..=depth {
+            self.seldepth = 0;
+            score = self.aspiration_window(board, &mut pv, score, d);
+
+            if let Some(nodes) = goal_nodes {
+                if self.nodes >= nodes {
+                    break;
+                }
+            }
+
+            if self.stop && d > 1 {
+                break;
+            }
+
+            best_move = pv.table[0];
+        }
+
+        (score, best_move.unwrap())
+    }
 }

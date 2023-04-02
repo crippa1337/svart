@@ -4,7 +4,7 @@ use crate::{
 };
 use cozy_chess::{Board, Color, Move, Piece, Square};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum SearchType {
     Time(u64),
     Nodes(u64),
@@ -45,7 +45,7 @@ pub fn uci_loop() {
                     break;
                 }
                 "datagen" => {
-                    crate::engine::nnue::datagen::script::root();
+                    crate::engine::nnue::datagen::script::root().unwrap();
                     break;
                 }
                 _ => (),

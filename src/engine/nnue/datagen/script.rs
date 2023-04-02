@@ -1,8 +1,23 @@
 use std::{
+    error::Error,
     fs::File,
-    io::{stdin, BufWriter, Write},
-    path::PathBuf,
+    io::{stdin, stdout, BufWriter, Write},
+    path::{Path, PathBuf},
     sync::atomic::{AtomicU64, Ordering},
+    time::Instant,
+};
+
+use cozy_chess::{Board, Color, GameStatus, Piece};
+
+use crate::{
+    constants,
+    engine::{
+        movegen,
+        position::{is_quiet, play_move},
+        search::Search,
+        tt::TT,
+    },
+    uci::handler::SearchType,
 };
 
 const DEFAULT: &str = "\x1b[0m";
@@ -12,12 +27,6 @@ const GREEN: &str = "\x1b[38;5;40m";
 const RED: &str = "\x1b[38;5;196m";
 
 static FENS: AtomicU64 = AtomicU64::new(0);
-
-#[derive(Debug)]
-enum SearchType {
-    Depth(i32),
-    Nodes(u64),
-}
 
 #[derive(Debug)]
 struct Parameters {
@@ -35,17 +44,13 @@ impl Parameters {
     }
 }
 
-pub fn root() {
+pub fn root() -> Result<(), Box<dyn Error>> {
     // Get the number of games to generate
     println!("How many games would you like to gen? [1, 100M]");
     let mut inp_games = String::new();
     stdin().read_line(&mut inp_games).unwrap();
-    let games = match inp_games.trim().parse::<usize>() {
-        Ok(games) => games,
-        Err(games) => {
-            panic!("Invalid games input! {games}")
-        }
-    };
+
+    let games = inp_games.trim().parse::<usize>()?;
     if !(1..=100_000_000).contains(&games) {
         panic!("Invalid game range! {games}, needs to be between [1, 100M]")
     }
@@ -54,12 +59,8 @@ pub fn root() {
     println!("How many threads would you like to use? [1, 64]");
     let mut inp_threads = String::new();
     stdin().read_line(&mut inp_threads).unwrap();
-    let threads = match inp_threads.trim().parse::<usize>() {
-        Ok(threads) => threads,
-        Err(threads) => {
-            panic!("Invalid threads input! {threads}")
-        }
-    };
+
+    let threads = inp_threads.trim().parse::<usize>()?;
     if !(1..=64).contains(&threads) {
         panic!("Invalid thread range! {threads}, needs to be between [1, 64]")
     }
@@ -68,35 +69,30 @@ pub fn root() {
     println!("What search type would you like to use? [depth, nodes]");
     let mut inp_st = String::new();
     stdin().read_line(&mut inp_st).unwrap();
+
     let st = match inp_st.trim().to_lowercase().as_str() {
         "depth" => {
             println!("What depth would you like to use? [1, 100]");
             let mut inp_depth = String::new();
             stdin().read_line(&mut inp_depth).unwrap();
-            let depth = match inp_depth.trim().parse::<i32>() {
-                Ok(depth) => depth,
-                Err(depth) => {
-                    panic!("Invalid depth input! {depth}")
-                }
-            };
+
+            let depth = inp_depth.trim().parse::<i32>()?;
             if !(1..=100).contains(&depth) {
                 panic!("Invalid depth range! {depth}, needs to be between [1, 100]")
             }
+
             SearchType::Depth(depth)
         }
         "nodes" => {
             println!("What nodes would you like to use? [1, 100M]");
             let mut inp_nodes = String::new();
             stdin().read_line(&mut inp_nodes).unwrap();
-            let nodes = match inp_nodes.trim().parse::<u64>() {
-                Ok(nodes) => nodes,
-                Err(nodes) => {
-                    panic!("Invalid nodes input! {nodes}")
-                }
-            };
+
+            let nodes = inp_nodes.trim().parse::<u64>()?;
             if !(1..=100_000_000).contains(&nodes) {
                 panic!("Invalid nodes range! {nodes}, needs to be between [1, 100M]")
             }
+
             SearchType::Nodes(nodes)
         }
         _ => {
@@ -117,6 +113,9 @@ pub fn root() {
     stdin().read_line(&mut String::new()).unwrap();
 
     generate_main(params);
+
+    println!("We're done B)");
+    Ok(())
 }
 
 fn generate_main(params: Parameters) {
@@ -141,7 +140,127 @@ fn generate_main(params: Parameters) {
     })
 }
 
-fn generate_thread(id: usize, data_dir: &PathBuf, options: &Parameters) {
+fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
+    let tt = TT::new(16);
+    let mut search = Search::new(tt);
+    let rng = fastrand::Rng::new();
+
+    let mut board;
+    let mut game_buffer: Vec<(i32, String)> = vec![];
+    let mut hashes: Vec<u64> = vec![];
+
     let mut output_file = File::create(data_dir.join(format!("thread_{id}.txt"))).unwrap();
     let mut output_buffer = BufWriter::new(&mut output_file);
+
+    let games_per_thread = (options.games / options.threads).max(1); // at least one game
+    let timer = Instant::now();
+
+    'main: for games_played in 0..games_per_thread {
+        // Information print from main thread
+        if id == 0 && games_played != 0 && games_played % 10_000 == 0 {
+            let fens = FENS.load(Ordering::Relaxed);
+            let elapsed = timer.elapsed().as_secs_f64();
+            let fens_per_sec = fens as f64 / elapsed;
+            let percentage = (games_played as f64 / games_per_thread as f64) * 100.0;
+
+            let time_per_game = elapsed / games_played as f64;
+            let etr = (games_per_thread - games_played) as f64 * time_per_game;
+
+            println!("{GREEN}Generated {DEFAULT}{fens} FENs [{fens_per_sec:.2} FEN/s]");
+            println!("Main thread has played: {games_played}/{} [{percentage:.2}%]", options.games);
+            println!("{GREEN}Time per game: {DEFAULT}{time_per_game:.2}s. {RED}ETR: {etr:.2}s");
+
+            // Cool addition I robbed from Viri
+            let est_completion_date = chrono::Local::now()
+                .checked_add_signed(chrono::Duration::seconds(
+                    (games_per_thread - games_played) as i64 * time_per_game as i64,
+                ))
+                .unwrap();
+            let time_completion = est_completion_date.format("%Y-%m-%d %H:%M:%S");
+            eprintln!("{WHITE}Estimated completion time: {time_completion}");
+
+            stdout().flush().unwrap();
+        }
+
+        // Reset everything from previous game
+        output_buffer.flush().unwrap();
+        board = Board::default();
+        search.hard_reset();
+
+        // Play a new game
+        // First we get a 'random' starting position
+        for _ in 0..12 {
+            let moves = movegen::pure_moves(&board);
+            let mv = moves[rng.usize(..moves.len())];
+            board.play_unchecked(mv);
+        }
+        search.nnue.refresh(&board);
+
+        // ... make sure that the position isn't absurd
+        let (score, _) = search.data_search(&board, SearchType::Depth(10));
+        if score.abs() > 1000 {
+            continue 'main;
+        }
+
+        // ... play the rest of the game
+        let (game_result, winner) = loop {
+            let status = board.status();
+            if draw(&board, &mut hashes) {
+                break (GameStatus::Drawn, None);
+            }
+            if status != GameStatus::Ongoing {
+                break (status, Some(board.side_to_move()));
+            }
+
+            search.reset();
+            let (mut score, best_move) = search.data_search(&board, options.st);
+
+            // filter noisy positions
+            let not_in_check = board.checkers().is_empty();
+            let okay_score = score.abs() < constants::TB_WIN_IN_PLY;
+            let okay_move = is_quiet(&board, best_move);
+            if not_in_check && okay_score && okay_move {
+                // Always report scores from white's perspective
+                score = if board.side_to_move() == Color::White { score } else { -score };
+
+                game_buffer.push((score, format!("{}", board)));
+            }
+
+            play_move(&mut board, &mut search.nnue, best_move);
+        };
+
+        // Always report wins from white's perspective
+        let result_output = match (game_result, winner) {
+            (GameStatus::Drawn, _) => "1/2-1/2".to_string(),
+            (GameStatus::Won, Some(Color::White)) => "1-0".to_string(),
+            (GameStatus::Won, Some(Color::Black)) => "0-1".to_string(),
+            _ => unreachable!(),
+        };
+
+        // Writing the result
+        FENS.fetch_add(game_buffer.len() as u64, Ordering::SeqCst);
+        for (score, fen) in game_buffer.drain(..) {
+            writeln!(output_buffer, "{fen} | {score} | {result_output}").unwrap();
+        }
+    }
+
+    fn draw(board: &Board, hashes: &mut Vec<u64>) -> bool {
+        // Material draw
+        if board.occupied().len() == 2
+            || board.occupied().len() == 3
+                && !(board.pieces(Piece::Bishop) | board.pieces(Piece::Knight)).is_empty()
+        {
+            return true;
+        }
+
+        // 3-fold repetition
+        let hash = board.hash();
+        hashes.push(hash);
+        if hashes.iter().filter(|&&h| h == hash).count() >= 3 {
+            return true;
+        }
+
+        // 50-move rule is handled by board.status()
+        false
+    }
 }

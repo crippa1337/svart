@@ -127,6 +127,31 @@ impl TT {
             score
         }
     }
+
+    pub fn reset(&mut self) {
+        for entry in self.entries.iter_mut() {
+            *entry = TTEntry { key: 0, mv: None, score: 0, epoch: 0, depth: 0, flag: TTFlag::None };
+        }
+    }
 }
 
 const _TT_TEST: () = assert!(std::mem::size_of::<TTEntry>() == 12);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tt_reset() {
+        let mut tt = TT::new(1);
+        tt.store(5, None, 1, 3, TTFlag::UpperBound, 22);
+        assert_eq!(tt.probe(5).score, 1);
+        tt.reset();
+        let entry = tt.probe(5);
+        assert_eq!(entry.score, 0);
+        assert_eq!(entry.flag, TTFlag::None);
+        assert_eq!(entry.depth, 0);
+        assert_eq!(entry.key, 0);
+        assert_eq!(entry.mv, None);
+    }
+}

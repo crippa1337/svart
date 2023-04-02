@@ -57,8 +57,24 @@ pub fn play_move(board: &mut Board, nnue: &mut Box<NNUEState>, mv: Move) {
 }
 
 #[must_use]
+pub fn is_ep(board: &Board, mv: Move) -> bool {
+    let stm = board.side_to_move();
+    let piece = board.piece_on(mv.from).unwrap();
+
+    if piece == Piece::Pawn {
+        if let Some(ep_file) = board.en_passant() {
+            if mv.to == Square::new(ep_file, Rank::Sixth.relative_to(stm)) {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+#[must_use]
 pub fn is_capture(board: &Board, mv: Move) -> bool {
-    board.colors(!board.side_to_move()).has(mv.to)
+    board.colors(!board.side_to_move()).has(mv.to) || is_ep(board, mv)
 }
 
 #[must_use]

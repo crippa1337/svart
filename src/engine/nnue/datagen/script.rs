@@ -192,6 +192,11 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
         }
         search.nnue.refresh(&board);
 
+        // ... make sure that the position isn't over
+        if board.status() != GameStatus::Ongoing {
+            continue 'main;
+        }
+
         // ... make sure that the exit isn't absurd
         let (score, _) = search.data_search(&board, SearchType::Depth(8));
         if score.abs() > 1000 {

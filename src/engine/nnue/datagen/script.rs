@@ -184,18 +184,15 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
         // First we get a 'random' starting position
         for _ in 0..12 {
             let moves = movegen::pure_moves(&board);
-            if moves.is_empty() {
-                continue 'main;
-            }
             let mv = moves[rng.usize(..moves.len())];
             board.play_unchecked(mv);
+
+            // ... make sure that the position isn't over
+            if board.status() != GameStatus::Ongoing {
+                continue 'main;
+            }
         }
         search.nnue.refresh(&board);
-
-        // ... make sure that the position isn't over
-        if board.status() != GameStatus::Ongoing {
-            continue 'main;
-        }
 
         // ... make sure that the exit isn't absurd
         let (score, _) = search.data_search(&board, SearchType::Depth(8));

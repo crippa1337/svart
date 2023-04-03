@@ -245,6 +245,9 @@ pub fn uci_loop() {
                     }
                     continue;
                 }
+                "eval" => {
+                    println!("{}", search.nnue.evaluate(board.side_to_move()));
+                }
                 "quit" => {
                     break;
                 }

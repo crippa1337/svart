@@ -11,9 +11,9 @@ pub enum TTFlag {
 
 #[derive(Clone, Copy, Debug)]
 pub struct TTEntry {
+    pub mv: Option<Move>, // 4 bytes
     pub key: u16,         // 2 bytes
     pub epoch: u16,       // 2 bytes
-    pub mv: Option<Move>, // 4 bytes
     pub score: i16,       // 2 bytes
     pub depth: u8,        // 1 byte
     pub flag: TTFlag,     // 1 byte
@@ -75,7 +75,7 @@ impl TT {
         score: i16,
         depth: u8,
         flag: TTFlag,
-        ply: u8,
+        ply: i32,
     ) {
         let target_index = self.index(key);
         let target = self.entries[target_index];
@@ -94,11 +94,23 @@ impl TT {
         }
     }
 
+    // hint to cpu that this memory adress will be accessed soon
+    // by slapping it in the cpu cache
+    pub fn prefetch(&self, key: u64) {
+        let index = self.index(key);
+        let entry = &self.entries[index];
+        #[cfg(target_arch = "x86_64")]
+        unsafe {
+            use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
+            _mm_prefetch((entry as *const TTEntry).cast::<i8>(), _MM_HINT_T0);
+        }
+    }
+
     #[must_use]
-    pub fn score_to_tt(&self, score: i16, ply: u8) -> i16 {
-        if score >= TB_WIN_IN_PLY {
+    pub fn score_to_tt(&self, score: i16, ply: i32) -> i16 {
+        if score >= TB_WIN_IN_PLY as i16 {
             score + ply as i16
-        } else if score <= TB_LOSS_IN_PLY {
+        } else if score <= TB_LOSS_IN_PLY as i16 {
             score - ply as i16
         } else {
             score
@@ -106,15 +118,40 @@ impl TT {
     }
 
     #[must_use]
-    pub fn score_from_tt(&self, score: i16, ply: u8) -> i16 {
-        if score >= TB_WIN_IN_PLY {
+    pub fn score_from_tt(&self, score: i16, ply: i32) -> i16 {
+        if score >= TB_WIN_IN_PLY as i16 {
             score - ply as i16
-        } else if score <= TB_LOSS_IN_PLY {
+        } else if score <= TB_LOSS_IN_PLY as i16 {
             score + ply as i16
         } else {
             score
+        }
+    }
+
+    pub fn reset(&mut self) {
+        for entry in self.entries.iter_mut() {
+            *entry = TTEntry { key: 0, mv: None, score: 0, epoch: 0, depth: 0, flag: TTFlag::None };
         }
     }
 }
 
 const _TT_TEST: () = assert!(std::mem::size_of::<TTEntry>() == 12);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tt_reset() {
+        let mut tt = TT::new(1);
+        tt.store(5, None, 1, 3, TTFlag::UpperBound, 22);
+        assert_eq!(tt.probe(5).score, 1);
+        tt.reset();
+        let entry = tt.probe(5);
+        assert_eq!(entry.score, 0);
+        assert_eq!(entry.flag, TTFlag::None);
+        assert_eq!(entry.depth, 0);
+        assert_eq!(entry.key, 0);
+        assert_eq!(entry.mv, None);
+    }
+}

@@ -1,7 +1,7 @@
-use crate::constants::{capture_move, INFINITY};
+use crate::constants::INFINITY;
 use cozy_chess::{Board, Color, Move, Piece, Rank, Square};
 
-use super::search::Search;
+use super::{position::is_capture, search::Search};
 
 #[derive(PartialEq)]
 pub struct MoveEntry {
@@ -9,7 +9,23 @@ pub struct MoveEntry {
     pub score: i32,
 }
 
-pub fn all_moves(search: &Search, board: &Board, tt_move: Option<Move>, ply: u8) -> Vec<MoveEntry> {
+pub fn pure_moves(board: &Board) -> Vec<Move> {
+    let mut move_list: Vec<Move> = Vec::new();
+
+    board.generate_moves(|moves| {
+        move_list.extend(moves);
+        false
+    });
+
+    move_list
+}
+
+pub fn all_moves(
+    search: &Search,
+    board: &Board,
+    tt_move: Option<Move>,
+    ply: i32,
+) -> Vec<MoveEntry> {
     let mut move_list: Vec<Move> = Vec::new();
 
     board.generate_moves(|moves| {
@@ -19,10 +35,7 @@ pub fn all_moves(search: &Search, board: &Board, tt_move: Option<Move>, ply: u8)
 
     let move_list: Vec<MoveEntry> = move_list
         .iter()
-        .map(|mv| MoveEntry {
-            mv: *mv,
-            score: score_moves(search, board, *mv, tt_move, ply),
-        })
+        .map(|mv| MoveEntry { mv: *mv, score: score_moves(search, board, *mv, tt_move, ply) })
         .collect();
 
     move_list
@@ -32,7 +45,7 @@ pub fn capture_moves(
     search: &Search,
     board: &Board,
     tt_move: Option<Move>,
-    ply: u8,
+    ply: i32,
 ) -> Vec<MoveEntry> {
     let enemy_pieces = board.colors(!board.side_to_move());
     let mut captures_list: Vec<Move> = Vec::new();
@@ -64,10 +77,7 @@ pub fn capture_moves(
     // Assigns a score to each move based on MVV-LVA
     let captures_list: Vec<MoveEntry> = captures_list
         .iter()
-        .map(|mv| MoveEntry {
-            mv: *mv,
-            score: score_moves(search, board, *mv, tt_move, ply),
-        })
+        .map(|mv| MoveEntry { mv: *mv, score: score_moves(search, board, *mv, tt_move, ply) })
         .collect();
 
     captures_list
@@ -124,11 +134,11 @@ pub fn score_moves(
     board: &Board,
     mv: Move,
     tt_move: Option<Move>,
-    ply: u8,
+    ply: i32,
 ) -> i32 {
     if let Some(tmove) = tt_move {
         if mv == tmove {
-            return INFINITY as i32 + 1_000_000;
+            return INFINITY + 1_000_000;
         }
     }
 
@@ -137,7 +147,7 @@ pub fn score_moves(
     }
 
     // Returns between 200100..200605
-    if capture_move(board, mv) {
+    if is_capture(board, mv) {
         return mvvlva(board, mv) + 200_000;
     }
 
@@ -162,11 +172,7 @@ impl Picker {
 
     pub fn pick_move(&mut self) -> Option<Move> {
         let open_list = &mut self.moves[self.index..];
-        let best_index = open_list
-            .iter()
-            .enumerate()
-            .max_by_key(|(_, entry)| entry.score)?
-            .0;
+        let best_index = open_list.iter().enumerate().max_by_key(|(_, entry)| entry.score)?.0;
         self.index += 1;
         open_list.swap(0, best_index);
         Some(open_list[0].mv)

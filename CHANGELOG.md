@@ -56,3 +56,14 @@ Stats:  W: 27.2%   L: 21.8%   D: 50.9%   TF: 0
 White advantage: 9.00 +/- 13.35
 Elo difference: 18.84 +/- 13.35
 ```
+
+
+# 3
+### Introduction of NNUE (#30)
+```
+Score of svart3 vs svart2 after 512 rounds: 855 - 41 - 128 (0.90)
+Ptnml:        WW     WD  DD/WL     LD     LL
+Distr:       357    110     35     10      0
+Stats:  W: 83.5%   L: 4.0%   D: 12.5%   TF: 0
+Elo difference: 376.85 +/- 28.65
+```

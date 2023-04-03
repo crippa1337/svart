@@ -13,11 +13,11 @@ Svart is not a complete chess program and requires a [UCI-compatible graphical u
 
 # UCI Options
 ### Hash
-> Megabytes of memory allocated for the <a href="https://en.wikipedia.org/wiki/Transposition_table">Transposition Table</a>.
+> Megabytes of memory allocated for the [Transposition Table](https://en.wikipedia.org/wiki/Transposition_table).
     
     
 # Compilation
-Compile Svart using <a href="https://doc.rust-lang.org/cargo/">Cargo</a> in ``./target/release``.
+Compile Svart using [Cargo](https://doc.rust-lang.org/cargo/) in ``./target/release``.
 
     cargo build --release
 

@@ -1,8 +1,6 @@
-use cozy_chess::Board;
-
-use crate::engine::{search::Search, tt::TT};
-
 use super::handler::SearchType;
+use crate::engine::{nnue::inference::NNUEState, search::Search, tt::TT};
+use cozy_chess::Board;
 
 const FENS: [&str; 50] = [
     "r3k2r/2pb1ppp/2pp1q2/p7/1nP1B3/1P2P3/P2N1PPP/R2QK2R w KQkq a6 0 14",
@@ -60,11 +58,11 @@ const FENS: [&str; 50] = [
 pub fn bench() {
     let mut tt = TT::new(32);
     let mut search = Search::new(tt);
-
     let mut tot_nodes = 0;
 
     for fen in FENS.iter() {
         let board = Board::from_fen(fen, false).unwrap();
+        search.nnue = NNUEState::from_board(&board);
         search.iterative_deepening(&board, SearchType::Depth(10));
         tot_nodes += search.nodes;
 

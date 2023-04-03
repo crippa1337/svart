@@ -245,8 +245,8 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
     fn draw(board: &Board, hashes: &mut Vec<u64>) -> bool {
         // Material draw
         if board.occupied().len() == 2
-            || board.occupied().len() == 3
-                && !(board.pieces(Piece::Bishop) | board.pieces(Piece::Knight)).is_empty()
+            || (board.occupied().len() == 3
+                && !(board.pieces(Piece::Bishop) | board.pieces(Piece::Knight)).is_empty())
         {
             return true;
         }

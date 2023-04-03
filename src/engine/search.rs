@@ -423,7 +423,7 @@ impl Search {
         best_score
     }
 
-    pub fn iterative_deepening(&mut self, board: &Board, st: SearchType) {
+    pub fn iterative_deepening(&mut self, board: &Board, st: SearchType, pretty: bool) {
         let depth: i32;
         let mut goal_nodes: Option<u64> = None;
         match st {
@@ -464,15 +464,26 @@ impl Search {
 
             best_move = pv.table[0];
 
-            println!(
-                "info depth {} seldepth {} score {} nodes {} time {} pv{}",
-                d,
-                self.seldepth,
-                self.format_score(score),
-                self.nodes,
-                info_timer.elapsed().as_millis(),
-                pv.pv_string()
-            );
+            if pretty {
+                crate::uci::handler::pretty_print(
+                    d,
+                    self.seldepth,
+                    score,
+                    self.nodes,
+                    info_timer.elapsed().as_millis(),
+                    pv.pv_string(),
+                );
+            } else {
+                println!(
+                    "info depth {} seldepth {} score {} nodes {} time {} pv{}",
+                    d,
+                    self.seldepth,
+                    self.format_score(score),
+                    self.nodes,
+                    info_timer.elapsed().as_millis(),
+                    pv.pv_string()
+                );
+            }
         }
 
         println!("bestmove {}", best_move.unwrap());

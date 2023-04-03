@@ -66,7 +66,7 @@ pub fn bench() {
     for fen in FENS.iter() {
         let board = Board::from_fen(fen, false).unwrap();
         search.nnue = NNUEState::from_board(&board);
-        search.iterative_deepening(&board, SearchType::Depth(12));
+        search.iterative_deepening(&board, SearchType::Depth(12), false);
         tot_nodes += search.nodes;
 
         tt = TT::new(16);

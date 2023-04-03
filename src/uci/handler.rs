@@ -1,5 +1,5 @@
 use crate::{
-    constants::{self},
+    constants::{MATE, TIME_OVERHEAD},
     engine::{search::Search, tt::TT},
 };
 use cozy_chess::{Board, Color, Move, Piece, Square};
@@ -48,6 +48,12 @@ pub fn uci_loop() {
                     crate::engine::nnue::datagen::script::root().unwrap();
                     break;
                 }
+                "position" => set_position(&mut board, &mut search, &mut board_set, words),
+                "go" => {
+                    if board_set {
+                        search.iterative_deepening(&board, SearchType::Infinite, true);
+                    }
+                }
                 _ => (),
             }
         } else {
@@ -83,42 +89,7 @@ pub fn uci_loop() {
                     }
                     continue;
                 }
-                "position" => {
-                    if words[1] == "startpos" {
-                        board = Board::default();
-                        board_set = true;
-                        search.game_history = vec![board.hash()]
-                    } else if words[1] == "fen" {
-                        // Put together the split fen string
-                        let mut fen = String::new();
-                        for word in words.iter().skip(2) {
-                            if *word == "moves" {
-                                break;
-                            }
-                            fen.push_str(word);
-                            fen.push(' ');
-                        }
-
-                        if let Ok(b) = Board::from_fen(fen.trim(), false) {
-                            board = b;
-                            board_set = true;
-                            search.game_history = vec![board.hash()]
-                        }
-                    }
-
-                    if words.iter().any(|&x| x == "moves") && board_set {
-                        for word in
-                            words.iter().skip(words.iter().position(|&x| x == "moves").unwrap() + 1)
-                        {
-                            let mut mv: Move = word.parse().unwrap();
-                            mv = check_castling_move(&board, mv);
-                            board.play_unchecked(mv);
-                            search.game_history.push(board.hash());
-                        }
-                    }
-
-                    search.nnue.refresh(&board);
-                }
+                "position" => set_position(&mut board, &mut search, &mut board_set, words),
                 "go" => {
                     if board_set {
                         // Static depth search
@@ -295,13 +266,13 @@ pub fn reverse_castling_move(board: &Board, mut mv: Move) -> Move {
 }
 
 fn go(board: &Board, st: SearchType, search: &mut Search) {
-    search.iterative_deepening(board, st);
+    search.iterative_deepening(board, st, false);
     search.reset();
 }
 
 fn time_for_move(time: u64, increment: Option<u64>, moves_to_go: Option<u8>) -> u64 {
     // Account for overhead
-    let time = time - constants::TIME_OVERHEAD;
+    let time = time - TIME_OVERHEAD;
 
     if let Some(n) = moves_to_go {
         time / n.max(1) as u64
@@ -310,4 +281,94 @@ fn time_for_move(time: u64, increment: Option<u64>, moves_to_go: Option<u8>) -> 
     } else {
         time / 20
     }
+}
+
+fn set_position(board: &mut Board, search: &mut Search, board_set: &mut bool, words: Vec<&str>) {
+    if words[1] == "startpos" {
+        *board = Board::default();
+        *board_set = true;
+        search.game_history = vec![board.hash()]
+    } else if words[1] == "fen" {
+        // Put together the split fen string
+        let mut fen = String::new();
+        for word in words.iter().skip(2) {
+            if *word == "moves" {
+                break;
+            }
+            fen.push_str(word);
+            fen.push(' ');
+        }
+
+        if let Ok(b) = Board::from_fen(fen.trim(), false) {
+            *board = b;
+            *board_set = true;
+            search.game_history = vec![board.hash()]
+        }
+    }
+
+    if words.iter().any(|&x| x == "moves") && *board_set {
+        for word in words.iter().skip(words.iter().position(|&x| x == "moves").unwrap() + 1) {
+            let mut mv: Move = word.parse().unwrap();
+            mv = check_castling_move(board, mv);
+            board.play_unchecked(mv);
+            search.game_history.push(board.hash());
+        }
+    }
+
+    if *board_set {
+        search.nnue.refresh(board);
+    }
+}
+
+pub fn pretty_print(
+    depth: i32,
+    seldepth: i32,
+    score: i32,
+    nodes: u64,
+    timer: u128,
+    pv_line: String,
+) {
+    const DEFAULT: &str = "\x1b[0m";
+    const GREY: &str = "\x1b[90m";
+    const GREEN: &str = "\x1b[32m";
+    const BRIGHT_GREEN: &str = "\x1b[92m";
+    const BRIGHT_CYAN: &str = "\x1b[96m";
+    const BRIGHT_YELLOW: &str = "\x1b[93m";
+    const RED: &str = "\x1b[31m";
+    const BRIGHT_RED: &str = "\x1b[91m";
+
+    let t = match timer {
+        t if t > 1000 => {
+            format!("{GREY}{}s{DEFAULT}", timer / 1000)
+        }
+        t if t > 60_000 => {
+            format!("{GREY}{}m{DEFAULT}", timer / 60_000)
+        }
+        t if t > 3_600_000 => {
+            format!("{GREY}{}h{DEFAULT}", timer / 3_600_000)
+        }
+        _ => format!("{GREY}{}ms{DEFAULT}", timer),
+    };
+
+    let mate = ((MATE - score) / 2) + ((MATE - score) & 1);
+    let norm_score = score as f32 / 100.;
+    let s = match score {
+        501..=15_000 => format!("{BRIGHT_CYAN}+{}{DEFAULT}", norm_score),
+        101..=500 => format!("{GREEN}+{}{DEFAULT}", norm_score),
+        11..=100 => format!("{BRIGHT_GREEN}+{}{DEFAULT}", norm_score),
+        -10..=10 => format!("{GREY}{}{DEFAULT}", norm_score),
+        -100..=-11 => format!("{BRIGHT_RED}-{}{DEFAULT}", norm_score),
+        -15000..=-101 => format!("{RED}-{}{DEFAULT}", norm_score),
+
+        15_001..=32_000 => format!("{BRIGHT_YELLOW}#{}{DEFAULT}", mate),
+        -32_000..=-15_001 => format!("{BRIGHT_YELLOW}#-{}{DEFAULT}", mate),
+
+        _ => unreachable!(),
+    };
+
+    let n = format!("{}k", nodes / 1000);
+    let d = format!("{}/{}", depth, seldepth);
+    let knps = format!("{GREY}{:.1}{DEFAULT}", nodes / timer.max(1) as u64);
+
+    println!("{d:+7} {s:+6.2} {n:+8} {knps:+9} {t:+3} {pv}", pv = pv_line);
 }

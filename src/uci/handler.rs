@@ -52,6 +52,8 @@ pub fn uci_loop() {
                 "go" => {
                     if board_set {
                         search.iterative_deepening(&board, SearchType::Infinite, true);
+                    } else {
+                        search.iterative_deepening(&Board::default(), SearchType::Infinite, true);
                     }
                 }
                 _ => (),
@@ -338,27 +340,33 @@ pub fn pretty_print(
     const BRIGHT_RED: &str = "\x1b[91m";
 
     let t = match timer {
-        t if t > 1000 => {
-            format!("{GREY}{}s{DEFAULT}", timer / 1000)
+        0..=999 => {
+            format!("{GREY}{}ms{DEFAULT}", timer as f64)
         }
-        t if t > 60_000 => {
-            format!("{GREY}{}m{DEFAULT}", timer / 60_000)
+        1000..=59_999 => {
+            format!("{GREY}{:.2}s{DEFAULT}", timer as f64 / 1000.)
         }
-        t if t > 3_600_000 => {
-            format!("{GREY}{}h{DEFAULT}", timer / 3_600_000)
+        60_000..=3_599_999 => {
+            format!("{GREY}{:.2}m{DEFAULT}", timer as f64 / 60_000.)
         }
-        _ => format!("{GREY}{}ms{DEFAULT}", timer),
+        3_600_000..=86_399_999 => {
+            format!("{GREY}{:.2}h{DEFAULT}", timer as f64 / 3_600_000.)
+        }
+        86_400_000.. => {
+            format!("{GREY}{:.2}d{DEFAULT}", timer as f64 / 86_400_000.)
+        }
     };
 
     let mate = ((MATE - score) / 2) + ((MATE - score) & 1);
     let norm_score = score as f32 / 100.;
     let s = match score {
-        501..=15_000 => format!("{BRIGHT_CYAN}+{}{DEFAULT}", norm_score),
-        101..=500 => format!("{GREEN}+{}{DEFAULT}", norm_score),
-        11..=100 => format!("{BRIGHT_GREEN}+{}{DEFAULT}", norm_score),
-        -10..=10 => format!("{GREY}{}{DEFAULT}", norm_score),
-        -100..=-11 => format!("{BRIGHT_RED}-{}{DEFAULT}", norm_score),
-        -15000..=-101 => format!("{RED}-{}{DEFAULT}", norm_score),
+        501..=15_000 => format!("{BRIGHT_CYAN}+{:.2}{DEFAULT}", norm_score),
+        101..=500 => format!("{GREEN}+{:.2}{DEFAULT}", norm_score),
+        11..=100 => format!("{BRIGHT_GREEN}+{:.2}{DEFAULT}", norm_score),
+        0..=10 => format!("{GREY}+{:.2}{DEFAULT}", norm_score),
+        -10..=-1 => format!("{GREY}{:.2}{DEFAULT}", norm_score),
+        -100..=-11 => format!("{BRIGHT_RED}{:.2}{DEFAULT}", norm_score),
+        -15000..=-101 => format!("{RED}{:.2}{DEFAULT}", norm_score),
 
         15_001..=32_000 => format!("{BRIGHT_YELLOW}#{}{DEFAULT}", mate),
         -32_000..=-15_001 => format!("{BRIGHT_YELLOW}#-{}{DEFAULT}", mate),
@@ -366,9 +374,17 @@ pub fn pretty_print(
         _ => unreachable!(),
     };
 
-    let n = format!("{}k", nodes / 1000);
     let d = format!("{}/{}", depth, seldepth);
-    let knps = format!("{GREY}{:.1}{DEFAULT}", nodes / timer.max(1) as u64);
 
-    println!("{d:+7} {s:+6.2} {n:+8} {knps:+9} {t:+3} {pv}", pv = pv_line);
+    let knps: String;
+    let n: String;
+    if nodes < 1000 {
+        knps = format!("{GREY}{:.1}no/s{DEFAULT}", nodes / (timer * 1000).max(1) as u64);
+        n = format!("{nodes}");
+    } else {
+        knps = format!("{GREY}{:.1}kn/s{DEFAULT}", nodes / timer.max(1) as u64);
+        n = format!("{}k", nodes / 1000);
+    }
+
+    println!("{d:8} {s:8} {n:8} {knps:8} {t:8} {pv_line:50}");
 }

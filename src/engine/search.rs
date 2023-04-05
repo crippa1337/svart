@@ -1,4 +1,4 @@
-use crate::{constants::*, uci::handler::SearchType};
+use crate::{definitions::*, uci::handler::SearchType};
 use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
 use once_cell::sync::Lazy;
 use std::time::Instant;

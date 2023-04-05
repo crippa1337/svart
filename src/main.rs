@@ -1,4 +1,4 @@
-mod constants;
+mod definitions;
 mod engine;
 mod uci;
 

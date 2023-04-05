@@ -1,4 +1,4 @@
-use crate::constants::MAX_PLY;
+use crate::definitions::MAX_PLY;
 use crate::uci::handler::reverse_castling_move;
 use cozy_chess::{Board, Move};
 
@@ -9,10 +9,7 @@ pub struct PVTable {
 
 impl PVTable {
     pub fn new() -> Self {
-        PVTable {
-            length: 0,
-            table: [None; MAX_PLY as usize],
-        }
+        PVTable { length: 0, table: [None; MAX_PLY as usize] }
     }
 
     pub fn store(&mut self, board: &Board, mv: Move, old: &Self) {

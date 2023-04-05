@@ -1,5 +1,5 @@
 use crate::{
-    constants::{MATE, TIME_OVERHEAD},
+    definitions::MATE,
     engine::{search::Search, tt::TT},
 };
 use cozy_chess::{Board, Color, Move, Piece, Square};
@@ -270,19 +270,6 @@ pub fn reverse_castling_move(board: &Board, mut mv: Move) -> Move {
 fn go(board: &Board, st: SearchType, search: &mut Search) {
     search.iterative_deepening(board, st, false);
     search.reset();
-}
-
-fn time_for_move(time: u64, increment: Option<u64>, moves_to_go: Option<u8>) -> u64 {
-    // Account for overhead
-    let time = time - TIME_OVERHEAD;
-
-    if let Some(n) = moves_to_go {
-        time / n.max(1) as u64
-    } else if let Some(n) = increment {
-        (time / 20) + (n / 2)
-    } else {
-        time / 20
-    }
 }
 
 fn set_position(board: &mut Board, search: &mut Search, board_set: &mut bool, words: Vec<&str>) {

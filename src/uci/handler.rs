@@ -21,7 +21,7 @@ fn id() {
 }
 
 fn options() {
-    println!("option name Hash type spin default 16 min 1 max 1024000");
+    println!("option name Hash type spin default 16 min 1 max 1000000");
 }
 
 pub fn uci_loop() {
@@ -92,7 +92,7 @@ pub fn uci_loop() {
                 "setoption" => {
                     if words[1] == "name" && words[2] == "Hash" && words[3] == "value" {
                         if let Ok(s) = words[4].parse::<u32>() {
-                            if s > 1024000 {
+                            if s > 1_000_000 {
                                 continue;
                             }
                             tt_size = s;

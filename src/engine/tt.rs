@@ -1,4 +1,4 @@
-use crate::constants::*;
+use crate::definitions::*;
 use cozy_chess::Move;
 
 #[derive(Clone, Copy, PartialEq, Debug)]

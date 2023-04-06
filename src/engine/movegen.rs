@@ -1,4 +1,4 @@
-use crate::constants::INFINITY;
+use crate::definitions::INFINITY;
 use cozy_chess::{Board, Color, Move, Piece, Rank, Square};
 
 use super::{position::is_capture, search::Search};

@@ -10,7 +10,7 @@ use std::{
 use cozy_chess::{Board, Color, GameStatus, Piece};
 
 use crate::{
-    constants,
+    definitions,
     engine::{
         movegen,
         position::{is_quiet, play_move},
@@ -215,7 +215,7 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
 
             // filter noisy positions
             let not_in_check = board.checkers().is_empty();
-            let okay_score = score.abs() < constants::TB_WIN_IN_PLY;
+            let okay_score = score.abs() < definitions::TB_WIN_IN_PLY;
             let okay_move = is_quiet(&board, best_move);
             if not_in_check && okay_score && okay_move {
                 // Always report scores from white's perspective

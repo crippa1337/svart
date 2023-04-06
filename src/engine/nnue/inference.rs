@@ -2,7 +2,7 @@
 // A huge thanks to Cosmo and Dede for their help with the implementation.
 //
 // I hope to further improve the network as well as make the code more original in the future.
-use crate::constants::MAX_PLY;
+use crate::definitions::MAX_PLY;
 use cozy_chess::{Board, Color, Piece, Square};
 
 const FEATURES: usize = 768;

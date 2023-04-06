@@ -1,8 +1,115 @@
-Since the release of Svart 2, a few things have been added/improved.
-I have decided to start keeping a changelog so that myself and others
-could more easily keep track of what changes were made when and what
-impact it had on the engine. The idea of doing this was inspired by
-Gedas and his changelog for chess.cpp.
+Since the release of Svart 2 I have decided to start keeping a changelog
+so that myself and others could more easily keep track of what changes
+were made when and what impact it had on the engine.
+The idea of doing this was inspired by Gedas and his changelog for chess.cpp.
+
+====================================================================================
+Release 1 [February 10 2023]
+
+History Heuristic (#10)
+
+    Score of svart-history vs svart-master: 804 - 634 - 445 [0.545] 1883
+    ... svart-history playing White: 431 - 293 - 217 [0.573] 941
+    ... svart-history playing Black: 373 - 341 - 228 [0.517] 942
+    ... White vs Black: 772 - 666 - 445 [0.528] 1883
+    Elo difference: 31.5 +/- 13.7, LOS: 100.0 %, DrawRatio: 23.6 %
+    SPRT: llr 2.96 (100.4%), lbound -2.94, ubound 2.94 - H1 was accepted
+
+====================================================================================
+1.1 [February 11 2023]
+
+Null Move Pruning (#11)
+
+    Score of svart-nmp vs svart-master: 161 - 79 - 70 [0.632] 310
+    ... svart-nmp playing White: 79 - 45 - 32 [0.609] 156
+    ... svart-nmp playing Black: 82 - 34 - 38 [0.656] 154
+    ... White vs Black: 113 - 127 - 70 [0.477] 310
+    Elo difference: 94.1 +/- 35.0, LOS: 100.0 %, DrawRatio: 22.6 %
+    SPRT: llr 2.95 (100.3%), lbound -2.94, ubound 2.94 - H1 was accepted
+
+====================================================================================
+1.2 [February 21 2023]
+
+Reverse Futility Pruning (#13)
+
+    Score of svart-rfp vs svart-master: 209 - 125 - 105 [0.596] 439
+    ... svart-rfp playing White: 99 - 61 - 60 [0.586] 220
+    ... svart-rfp playing Black: 110 - 64 - 45 [0.605] 219
+    ... White vs Black: 163 - 171 - 105 [0.491] 439
+    Elo difference: 67.3 +/- 28.7, LOS: 100.0 %, DrawRatio: 23.9 %
+    SPRT: llr 2.98 (101.2%), lbound -2.94, ubound 2.94 - H1 was accepted
+
+====================================================================================
+1.3 [February 23 2023]
+
+board.status() for mate checking (#14)
+
+    Score of svart-dev vs svart-master: 944 - 780 - 681 [0.534] 2405
+    ... svart-dev playing White: 485 - 380 - 338 [0.544] 1203
+    ... svart-dev playing Black: 459 - 400 - 343 [0.525] 1202
+    ... White vs Black: 885 - 839 - 681 [0.510] 2405
+    Elo difference: 23.7 +/- 11.8, LOS: 100.0 %, DrawRatio: 28.3 %
+    SPRT: llr 2.95 (100.2%), lbound -2.94, ubound 2.94 - H1 was accepted
+
+====================================================================================
+1.4 [February 25 2023]
+
+ ((Another)) History improvement (#15)
+
+    Score of svart-dev vs svart-master: 368 - 284 - 306 [0.544] 958
+    ... svart-dev playing White: 189 - 124 - 165 [0.568] 478
+    ... svart-dev playing Black: 179 - 160 - 141 [0.520] 480
+    ... White vs Black: 349 - 303 - 306 [0.524] 958
+    Elo difference: 30.5 +/- 18.2, LOS: 99.9 %, DrawRatio: 31.9 %
+    SPRT: llr 2.98 (101.3%), lbound -2.94, ubound 2.94 - H1 was accepted
+
+====================================================================================
+1.5 [February 26 2023]
+
+TT usage in QSearch (#17)
+
+    Score of svart-dev vs svart-master: 302 - 217 - 196 [0.559] 715
+    ... svart-dev playing White: 162 - 99 - 96 [0.588] 357
+    ... svart-dev playing Black: 140 - 118 - 100 [0.531] 358
+    ... White vs Black: 280 - 239 - 196 [0.529] 715
+    Elo difference: 41.5 +/- 21.8, LOS: 100.0 %, DrawRatio: 27.4 %
+    SPRT: llr 2.98 (101.2%), lbound -2.94, ubound 2.94 - H1 was accepted
+
+====================================================================================
+1.6 [February 27 2023]
+
+Late Move Reductions (#18)
+
+    Score of svart-dev vs svart-master: 89 - 25 - 58 [0.686] 172
+    ... svart-dev playing White: 42 - 17 - 27 [0.645] 86
+    ... svart-dev playing Black: 47 - 8 - 31 [0.727] 86
+    ... White vs Black: 50 - 64 - 58 [0.459] 172
+    Elo difference: 135.8 +/- 43.9, LOS: 100.0 %, DrawRatio: 33.7 %
+    SPRT: llr 2.96 (100.7%), lbound -2.94, ubound 2.94 - H1 was accepted
+
+====================================================================================
+1.7 [March 1 2023]
+
+TT: Aging and smaller entries (#19)
+
+    Score of svart-dev vs svart-master: 171 - 105 - 194  [0.570] 470
+    ...      svart-dev playing White: 84 - 52 - 99  [0.568] 235
+    ...      svart-dev playing Black: 87 - 53 - 95  [0.572] 235
+    ...      White vs Black: 137 - 139 - 194  [0.498] 470
+    Elo difference: 49.1 +/- 24.1, LOS: 100.0 %, DrawRatio: 41.3 %
+    SPRT: llr 2.96 (100.4%), lbound -2.94, ubound 2.94 - H1 was accepted
+
+====================================================================================
+Release 2 [March 8 2023]
+
+Late Move Pruning (#22)
+
+    Score of svart-dev vs svart-master: 146 - 85 - 189 (0.57)
+    Ptnml: WW WD DD/WL LD LL
+    distr: 22 71 72 36 9
+    LLR: 2.99 (-2.94, 2.94) [0.00, 10.00]
+    Games:420 W:34.8% L:20.2% D:45.0%
+    Elo difference: 50.82 +/- 24.69
 
 ====================================================================================
 2.1 [March 13 2023]
@@ -66,7 +173,7 @@ Improved NMP (#29)
     Elo difference: 18.84 +/- 13.35
 
 ====================================================================================
-3 [April 3 2023]
+Release 3 [April 3 2023]
 
 Introduction of NNUE (#30)
 
@@ -75,5 +182,27 @@ Introduction of NNUE (#30)
     Distr:       357    110     35     10      0
     Stats:  W: 83.5%   L: 4.0%   D: 12.5%   TF: 0
     Elo difference: 376.85 +/- 28.65
+
+====================================================================================
+3.1 [April 6 2023]
+
+Better timeman (#31)
+STC
+
+    Score of dev vs master after 465 rounds: 274 - 169 - 487 (0.56)
+    Ptnml:        WW     WD  DD/WL     LD     LL
+    Distr:        39    144    181     85     16
+    LLR: 3.05 (-2.94, 2.94) [0.00, 5.00]
+    Stats:  W: 29.5%   L: 18.2%   D: 52.4%   TF: 0
+    Elo difference: 39.39 +/- 15.39
+
+LTC
+
+    Score of dev vs master after 220 rounds: 129 - 76 - 235 (0.56)
+    Ptnml:        WW     WD  DD/WL     LD     LL
+    Distr:        19     62     96     39      4
+    LLR: 2.97 (-2.94, 2.94) [0.00, 10.00]
+    Stats:  W: 29.3%   L: 17.3%   D: 53.4%   TF: 0
+    Elo difference: 42.05 +/- 22.13
 
 ====================================================================================

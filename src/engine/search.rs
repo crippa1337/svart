@@ -23,7 +23,7 @@ pub struct Search {
     pub stop: bool,
     pub search_type: SearchType,
     pub timer: Option<Instant>,
-    pub goal_time: Option<u64>,
+    pub max_time: Option<u64>,
     pub nodes: u64,
     pub seldepth: i32,
     pub tt: TT,
@@ -39,7 +39,7 @@ impl Search {
             stop: false,
             search_type: SearchType::Depth(0),
             timer: None,
-            goal_time: None,
+            max_time: None,
             nodes: 0,
             seldepth: 0,
             tt,
@@ -79,8 +79,8 @@ impl Search {
         ply: i32,
     ) -> i32 {
         // Every 1024 nodes, check if it's time to stop
-        if let (Some(timer), Some(goal)) = (self.timer, self.goal_time) {
-            if self.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= goal {
+        if let (Some(timer), Some(max)) = (self.timer, self.max_time) {
+            if self.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= max {
                 self.stop = true;
                 return 0;
             }
@@ -336,8 +336,8 @@ impl Search {
         beta: i32,
         ply: i32,
     ) -> i32 {
-        if let (Some(timer), Some(goal)) = (self.timer, self.goal_time) {
-            if self.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= goal {
+        if let (Some(timer), Some(max)) = (self.timer, self.max_time) {
+            if self.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= max {
                 self.stop = true;
                 return 0;
             }
@@ -425,12 +425,15 @@ impl Search {
 
     pub fn iterative_deepening(&mut self, board: &Board, st: SearchType, pretty: bool) {
         let depth: i32;
+        let mut opt_time: Option<u64> = None;
         let mut goal_nodes: Option<u64> = None;
+
         match st {
-            SearchType::Time(t) => {
+            SearchType::Time(opt, max) => {
                 depth = MAX_PLY;
                 self.timer = Some(Instant::now());
-                self.goal_time = Some(t - TIME_OVERHEAD);
+                self.max_time = Some(max);
+                opt_time = Some(opt);
             }
             SearchType::Infinite => {
                 depth = MAX_PLY;
@@ -444,7 +447,6 @@ impl Search {
 
         let info_timer = Instant::now();
         let mut best_move: Option<Move> = None;
-
         let mut score = 0;
         let mut pv = PVTable::new();
 
@@ -452,12 +454,14 @@ impl Search {
             self.seldepth = 0;
             score = self.aspiration_window(board, &mut pv, score, d);
 
+            // Nodes search type
             if let Some(nodes) = goal_nodes {
                 if self.nodes >= nodes {
                     break;
                 }
             }
 
+            // Max time is up
             if self.stop && d > 1 {
                 break;
             }
@@ -483,6 +487,13 @@ impl Search {
                     info_timer.elapsed().as_millis(),
                     pv.pv_string()
                 );
+            }
+
+            // Optimal time is up
+            if let Some(opt) = opt_time {
+                if info_timer.elapsed().as_millis() as u64 >= opt {
+                    break;
+                }
             }
         }
 
@@ -583,7 +594,7 @@ impl Search {
         self.stop = false;
         self.search_type = SearchType::Depth(0);
         self.timer = None;
-        self.goal_time = None;
+        self.max_time = None;
         self.nodes = 0;
         self.seldepth = 0;
         self.killers = [[None; 2]; MAX_PLY as usize];
@@ -595,7 +606,7 @@ impl Search {
         self.stop = false;
         self.search_type = SearchType::Depth(0);
         self.timer = None;
-        self.goal_time = None;
+        self.max_time = None;
         self.nodes = 0;
         self.seldepth = 0;
         self.killers = [[None; 2]; MAX_PLY as usize];

@@ -4,12 +4,24 @@ use crate::{
 };
 use cozy_chess::{Board, Color, Move, Piece, Square};
 
+use super::timeman::time_for_move;
+
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum SearchType {
-    Time(u64),
+    // opt_time and maxtime
+    Time(u64, u64),
     Nodes(u64),
     Depth(i32),
     Infinite,
+}
+
+fn id() {
+    println!("id name Svart 3.1");
+    println!("id author crippa");
+}
+
+fn options() {
+    println!("option name Hash type spin default 16 min 1 max 1024000");
 }
 
 pub fn uci_loop() {
@@ -118,7 +130,7 @@ pub fn uci_loop() {
                                 [words.iter().position(|&x| x == "movetime").unwrap() + 1]
                                 .parse::<u64>()
                             {
-                                go(&board, SearchType::Time(t), &mut search);
+                                go(&board, SearchType::Time(t, t), &mut search);
                             }
                         // Time search
                         } else if words.iter().any(|&x| x == "wtime" || x == "btime") {
@@ -128,8 +140,7 @@ pub fn uci_loop() {
                                 {
                                     Ok(t) => {
                                         // Increment
-                                        let inc: Option<u64> = if words.iter().any(|&x| x == "winc")
-                                        {
+                                        let inc = if words.iter().any(|&x| x == "winc") {
                                             match words[words
                                                 .iter()
                                                 .position(|&x| x == "winc")
@@ -137,12 +148,13 @@ pub fn uci_loop() {
                                                 + 1]
                                             .parse::<u64>()
                                             {
-                                                Ok(i) => Some(i),
-                                                Err(_) => None,
+                                                Ok(i) => i,
+                                                Err(_) => panic!("Could not parse increment"),
                                             }
                                         } else {
-                                            None
+                                            0
                                         };
+
                                         let mtg = if words.iter().any(|&x| x == "movestogo") {
                                             match words[words
                                                 .iter()
@@ -158,11 +170,9 @@ pub fn uci_loop() {
                                             None
                                         };
 
-                                        go(
-                                            &board,
-                                            SearchType::Time(time_for_move(t, inc, mtg)),
-                                            &mut search,
-                                        );
+                                        let (opt, max) = time_for_move(t, inc, mtg);
+
+                                        go(&board, SearchType::Time(opt, max), &mut search);
                                     }
                                     Err(_) => (),
                                 }
@@ -172,8 +182,7 @@ pub fn uci_loop() {
                                 {
                                     Ok(t) => {
                                         // Increment
-                                        let inc: Option<u64> = if words.iter().any(|&x| x == "binc")
-                                        {
+                                        let inc = if words.iter().any(|&x| x == "binc") {
                                             match words[words
                                                 .iter()
                                                 .position(|&x| x == "binc")
@@ -181,11 +190,11 @@ pub fn uci_loop() {
                                                 + 1]
                                             .parse::<u64>()
                                             {
-                                                Ok(i) => Some(i),
-                                                Err(_) => None,
+                                                Ok(i) => i,
+                                                Err(_) => panic!("Could not parse increment"),
                                             }
                                         } else {
-                                            None
+                                            0
                                         };
 
                                         let mtg = if words.iter().any(|&x| x == "movestogo") {
@@ -203,11 +212,9 @@ pub fn uci_loop() {
                                             None
                                         };
 
-                                        go(
-                                            &board,
-                                            SearchType::Time(time_for_move(t, inc, mtg)),
-                                            &mut search,
-                                        );
+                                        let (opt, max) = time_for_move(t, inc, mtg);
+
+                                        go(&board, SearchType::Time(opt, max), &mut search);
                                     }
                                     Err(_) => (),
                                 }
@@ -230,15 +237,6 @@ pub fn uci_loop() {
             }
         }
     }
-}
-
-fn id() {
-    println!("id name Svart 3");
-    println!("id author crippa");
-}
-
-fn options() {
-    println!("option name Hash type spin default 16 min 1 max 1024000");
 }
 
 fn check_castling_move(board: &Board, mut mv: Move) -> Move {
@@ -309,14 +307,7 @@ fn set_position(board: &mut Board, search: &mut Search, board_set: &mut bool, wo
     }
 }
 
-pub fn pretty_print(
-    depth: i32,
-    seldepth: i32,
-    score: i32,
-    nodes: u64,
-    timer: u128,
-    pv_line: String,
-) {
+pub fn pretty_print(depth: i32, seldepth: i32, score: i32, nodes: u64, timer: u128, pv: String) {
     const DEFAULT: &str = "\x1b[0m";
     const GREY: &str = "\x1b[90m";
     const GREEN: &str = "\x1b[32m";
@@ -373,5 +364,5 @@ pub fn pretty_print(
         n = format!("{}k", nodes / 1000);
     }
 
-    println!("{d:8} {s:8} {n:8} {knps:8} {t:8} {pv_line:50}");
+    println!("{d: <7} {s: <8} {n: <8} {knps: <18} {t: <14} {pv}");
 }

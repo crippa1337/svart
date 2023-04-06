@@ -11,4 +11,4 @@ pub const TB_WIN: i32 = MATE_IN;
 pub const TB_WIN_IN_PLY: i32 = TB_WIN - MAX_PLY;
 pub const TB_LOSS_IN_PLY: i32 = -TB_WIN_IN_PLY;
 
-pub const TIME_OVERHEAD: u64 = 10;
+pub const TIME_OVERHEAD: u64 = 5;

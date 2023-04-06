@@ -205,4 +205,14 @@ LTC
     Stats:  W: 29.3%   L: 17.3%   D: 53.4%   TF: 0
     Elo difference: 42.05 +/- 22.13
 
+Better repeating timeman (b114a9C)
+40/20
+
+    Score of dev vs master: 134 - 78 - 178  [0.572] 390
+    ...      dev playing White: 64 - 40 - 91  [0.562] 195
+    ...      dev playing Black: 70 - 38 - 87  [0.582] 195
+    ...      White vs Black: 102 - 110 - 178  [0.490] 390
+    Elo difference: 50.2 +/- 25.5, LOS: 100.0 %, DrawRatio: 45.6 %
+    SPRT: llr 2.73 (92.8%), lbound -2.94, ubound 2.94
+
 ====================================================================================

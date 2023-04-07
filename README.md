@@ -19,7 +19,21 @@ Svart is not a complete chess program and requires a [UCI-compatible graphical u
 # Compilation
 Compile Svart using [Cargo](https://doc.rust-lang.org/cargo/) in ``./target/release``.
 
-    cargo build --release
+### x86-64-v1
+
+    RUSTFLAGS='-C target-feature=+fxsr,+sse,+sse2' cargo build --release
+
+### x86_64-v2
+
+    RUSTFLAGS='-C target-feature=+fxsr,+sse,+sse2,+cmpxchg16b,+popcnt,+sse3,+sse4.1,+sse4.2,+ssse3' cargo build --release
+
+### x86_64-v3
+
+    RUSTFLAGS='-C target-feature=+fxsr,+sse,+sse2,+cmpxchg16b,+popcnt,+sse3,+sse4.1,+sse4.2,+ssse3,+avx,+avx2,+bmi1,+bmi2,+f16c,+fma,+lzcnt,+movbe' cargo build --release
+
+### Optimized for your system
+
+    RUSTFLAGS='-C target-cpu=native' cargo build --release
 
 # History
 

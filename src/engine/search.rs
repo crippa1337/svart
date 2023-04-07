@@ -82,7 +82,6 @@ impl Search {
         if let (Some(timer), Some(max)) = (self.timer, self.max_time) {
             if self.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= max {
                 self.stop = true;
-                return 0;
             }
         }
 

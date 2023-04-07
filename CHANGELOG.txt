@@ -213,6 +213,6 @@ Better repeating timeman (b114a9C)
     ...      dev playing Black: 70 - 38 - 87  [0.582] 195
     ...      White vs Black: 102 - 110 - 178  [0.490] 390
     Elo difference: 50.2 +/- 25.5, LOS: 100.0 %, DrawRatio: 45.6 %
-    SPRT: llr 2.73 (92.8%), lbound -2.94, ubound 2.94
+    SPRT: llr 2.73 (92.8%), lbound -2.94, ubound 2.94 // lost the last output
 
 ====================================================================================

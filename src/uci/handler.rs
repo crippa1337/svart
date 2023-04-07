@@ -22,6 +22,7 @@ fn id() {
 
 fn options() {
     println!("option name Hash type spin default 16 min 1 max 1000000");
+    println!("option name Threads type spin default 1 min 1 max 1");
 }
 
 pub fn uci_loop() {

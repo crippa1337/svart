@@ -625,7 +625,6 @@ impl Search {
         };
 
         let mut best_move: Option<Move> = None;
-        self.nnue.refresh(board);
 
         let mut score = 0;
         let mut pv = PVTable::new();
@@ -634,17 +633,17 @@ impl Search {
             self.seldepth = 0;
             score = self.aspiration_window(board, &mut pv, score, d);
 
-            if let Some(nodes) = goal_nodes {
-                if self.nodes >= nodes {
-                    break;
-                }
-            }
-
             if self.stop && d > 1 {
                 break;
             }
 
             best_move = pv.table[0];
+
+            if let Some(nodes) = goal_nodes {
+                if self.nodes >= nodes {
+                    break;
+                }
+            }
         }
 
         (score, best_move.unwrap())

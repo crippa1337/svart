@@ -157,7 +157,7 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
 
     'main: for games_played in 0..games_per_thread {
         // Information print from main thread
-        if id == 0 && games_played != 0 && games_played % 75 == 0 {
+        if id == 0 && games_played != 0 && games_played % 64 == 0 {
             let fens = FENS.load(Ordering::Relaxed);
             let elapsed = timer.elapsed().as_secs_f64();
             let fens_per_sec = fens as f64 / elapsed;
@@ -224,7 +224,8 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
                 game_buffer.push((score, format!("{}", board)));
             }
 
-            play_move(&mut board, &mut search.nnue, best_move);
+            board.play_unchecked(best_move);
+            search.nnue.refresh(&board);
         };
 
         // Always report wins from white's perspective
@@ -235,7 +236,7 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
             _ => unreachable!(),
         };
 
-        // Writing the result
+        // Write the result
         FENS.fetch_add(game_buffer.len() as u64, Ordering::SeqCst);
         for (score, fen) in game_buffer.drain(..) {
             writeln!(output_buffer, "{fen} | {score} | {result_output}").unwrap();

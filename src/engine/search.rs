@@ -453,13 +453,6 @@ impl Search {
             self.seldepth = 0;
             score = self.aspiration_window(board, &mut pv, score, d);
 
-            // Nodes search type
-            if let Some(nodes) = goal_nodes {
-                if self.nodes >= nodes {
-                    break;
-                }
-            }
-
             // Max time is up
             if self.stop && d > 1 {
                 break;
@@ -486,6 +479,13 @@ impl Search {
                     info_timer.elapsed().as_millis(),
                     pv.pv_string()
                 );
+            }
+
+            // Nodes search type
+            if let Some(nodes) = goal_nodes {
+                if self.nodes >= nodes {
+                    break;
+                }
             }
 
             // Optimal time is up

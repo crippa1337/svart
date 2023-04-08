@@ -11,12 +11,7 @@ use cozy_chess::{Board, Color, GameStatus, Piece};
 
 use crate::{
     definitions,
-    engine::{
-        movegen,
-        position::{is_quiet, play_move},
-        search::Search,
-        tt::TT,
-    },
+    engine::{movegen, position::is_quiet, search::Search, tt::TT},
     uci::handler::SearchType,
 };
 

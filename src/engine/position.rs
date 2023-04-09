@@ -1,10 +1,6 @@
 use super::nnue::inference::{NNUEState, ACTIVATE, DEACTIVATE};
 use cozy_chess::{Board, File, Move, Piece, Rank, Square};
 
-pub fn board_default() -> (Board, Box<NNUEState>) {
-    (Board::default(), NNUEState::from_board(&Board::default()))
-}
-
 pub fn play_move(board: &mut Board, nnue: &mut Box<NNUEState>, mv: Move) {
     nnue.push();
 

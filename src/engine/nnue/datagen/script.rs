@@ -173,7 +173,7 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
         // Reset everything from previous game
         output_buffer.flush().unwrap();
         board = Board::default();
-        search.hard_reset();
+        search.game_reset();
 
         // Play a new game
         // First we get a 'random' starting position
@@ -205,7 +205,7 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
                 break (status, Some(!board.side_to_move()));
             }
 
-            search.reset();
+            search.go_reset();
             let (mut score, best_move) = search.data_search(&board, options.st);
 
             // filter noisy positions

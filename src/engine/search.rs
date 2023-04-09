@@ -5,7 +5,7 @@ use std::time::Instant;
 
 use super::movegen::Picker;
 use super::nnue::inference::NNUEState;
-use super::position::{board_default, is_capture, is_quiet, play_move};
+use super::position::{is_capture, is_quiet, play_move};
 use super::{
     history::History,
     lmr::LMRTable,
@@ -19,35 +19,43 @@ static LMR: Lazy<LMRTable> = Lazy::new(LMRTable::new);
 const RFP_MARGIN: i32 = 75;
 const LMP_TABLE: [usize; 4] = [0, 5, 8, 18];
 
-pub struct Search {
+pub struct SearchInfo {
     pub stop: bool,
     pub search_type: SearchType,
     pub timer: Option<Instant>,
     pub max_time: Option<u64>,
     pub nodes: u64,
     pub seldepth: i32,
-    pub tt: TT,
     pub game_history: Vec<u64>,
     pub killers: [[Option<Move>; 2]; MAX_PLY as usize],
     pub history: History,
-    pub nnue: Box<NNUEState>,
 }
 
-impl Search {
-    pub fn new(tt: TT) -> Self {
-        Search {
+impl SearchInfo {
+    pub fn new() -> Self {
+        SearchInfo {
             stop: false,
             search_type: SearchType::Depth(0),
             timer: None,
             max_time: None,
             nodes: 0,
             seldepth: 0,
-            tt,
             game_history: vec![],
             killers: [[None; 2]; MAX_PLY as usize],
             history: History::new(),
-            nnue: board_default().1,
         }
+    }
+}
+
+pub struct Search {
+    pub nnue: Box<NNUEState>,
+    pub tt: TT,
+    pub info: SearchInfo,
+}
+
+impl Search {
+    pub fn new(tt: TT) -> Self {
+        Search { tt, nnue: NNUEState::from_board(&Board::default()), info: SearchInfo::new() }
     }
 
     /*
@@ -79,13 +87,13 @@ impl Search {
         ply: i32,
     ) -> i32 {
         // Every 1024 nodes, check if it's time to stop
-        if let (Some(timer), Some(max)) = (self.timer, self.max_time) {
-            if self.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= max {
-                self.stop = true;
+        if let (Some(timer), Some(max)) = (self.info.timer, self.info.max_time) {
+            if self.info.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= max {
+                self.info.stop = true;
             }
         }
 
-        if self.stop && ply > 0 {
+        if self.info.stop && ply > 0 {
             return 0;
         }
 
@@ -97,14 +105,14 @@ impl Search {
 
         let hash_key = board.hash();
         self.tt.prefetch(hash_key);
-        self.seldepth = self.seldepth.max(ply);
+        self.info.seldepth = self.info.seldepth.max(ply);
         depth = depth.max(0);
         let mut old_pv = PVTable::new();
         pv.length = 0;
 
         match board.status() {
             GameStatus::Won => return ply - MATE,
-            GameStatus::Drawn => return 8 - (self.nodes as i32 & 7),
+            GameStatus::Drawn => return 8 - (self.info.nodes as i32 & 7),
             _ => (),
         }
 
@@ -112,7 +120,7 @@ impl Search {
 
         if !root {
             if self.repetition(board, hash_key) {
-                return 8 - (self.nodes as i32 & 7);
+                return 8 - (self.info.nodes as i32 & 7);
             }
 
             // Mate distance pruning
@@ -226,8 +234,8 @@ impl Search {
             play_move(&mut new_b, &mut self.nnue, mv);
 
             moves_played += 1;
-            self.game_history.push(board.hash());
-            self.nodes += 1;
+            self.info.game_history.push(board.hash());
+            self.info.nodes += 1;
             let gives_check = !board.checkers().is_empty();
 
             let mut score: i32;
@@ -272,7 +280,7 @@ impl Search {
                 }
             }
 
-            self.game_history.pop();
+            self.info.game_history.pop();
             self.nnue.pop();
 
             if score <= best_score {
@@ -292,15 +300,15 @@ impl Search {
             if score >= beta {
                 if is_quiet {
                     // Killer moves
-                    self.killers[ply as usize][1] = self.killers[ply as usize][0];
-                    self.killers[ply as usize][0] = Some(mv);
+                    self.info.killers[ply as usize][1] = self.info.killers[ply as usize][0];
+                    self.info.killers[ply as usize][0] = Some(mv);
 
                     // History Heuristic
-                    self.history.update_table::<true>(board, mv, depth);
+                    self.info.history.update_table::<true>(board, mv, depth);
                     let qi = quiet_moves.as_slice();
                     let qi = &qi[..quiet_moves.len() - 1];
                     for qm in qi {
-                        self.history.update_table::<false>(board, qm.unwrap(), depth);
+                        self.info.history.update_table::<false>(board, qm.unwrap(), depth);
                     }
                 }
 
@@ -320,7 +328,7 @@ impl Search {
 
         debug_assert!((-INFINITY..=INFINITY).contains(&best_score));
 
-        if !self.stop {
+        if !self.info.stop {
             self.tt.store(hash_key, best_move, best_score as i16, depth as u8, flag, ply);
         }
 
@@ -335,14 +343,14 @@ impl Search {
         beta: i32,
         ply: i32,
     ) -> i32 {
-        if let (Some(timer), Some(max)) = (self.timer, self.max_time) {
-            if self.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= max {
-                self.stop = true;
+        if let (Some(timer), Some(max)) = (self.info.timer, self.info.max_time) {
+            if self.info.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= max {
+                self.info.stop = true;
                 return 0;
             }
         }
 
-        if self.stop && ply > 0 {
+        if self.info.stop && ply > 0 {
             return 0;
         }
 
@@ -354,7 +362,7 @@ impl Search {
 
         let hash_key = board.hash();
         self.tt.prefetch(hash_key);
-        self.seldepth = self.seldepth.max(ply);
+        self.info.seldepth = self.info.seldepth.max(ply);
 
         let stand_pat = self.nnue.evaluate(stm);
         alpha = alpha.max(stand_pat);
@@ -389,7 +397,7 @@ impl Search {
             let mut new_b = board.clone();
             play_move(&mut new_b, &mut self.nnue, mv);
 
-            self.nodes += 1;
+            self.info.nodes += 1;
 
             let score = -self.qsearch::<PV>(&new_b, -beta, -alpha, ply + 1);
 
@@ -415,7 +423,7 @@ impl Search {
 
         let flag = if best_score >= beta { TTFlag::LowerBound } else { TTFlag::UpperBound };
 
-        if !self.stop {
+        if !self.info.stop {
             self.tt.store(hash_key, best_move, best_score as i16, 0, flag, ply);
         }
 
@@ -430,8 +438,8 @@ impl Search {
         match st {
             SearchType::Time(opt, max) => {
                 depth = MAX_PLY;
-                self.timer = Some(Instant::now());
-                self.max_time = Some(max);
+                self.info.timer = Some(Instant::now());
+                self.info.max_time = Some(max);
                 opt_time = Some(opt);
             }
             SearchType::Infinite => {
@@ -450,11 +458,11 @@ impl Search {
         let mut pv = PVTable::new();
 
         for d in 1..=depth {
-            self.seldepth = 0;
+            self.info.seldepth = 0;
             score = self.aspiration_window(board, &mut pv, score, d);
 
             // Max time is up
-            if self.stop && d > 1 {
+            if self.info.stop && d > 1 {
                 break;
             }
 
@@ -463,9 +471,9 @@ impl Search {
             if pretty {
                 crate::uci::handler::pretty_print(
                     d,
-                    self.seldepth,
+                    self.info.seldepth,
                     score,
-                    self.nodes,
+                    self.info.nodes,
                     info_timer.elapsed().as_millis(),
                     pv.pv_string(),
                 );
@@ -473,9 +481,9 @@ impl Search {
                 println!(
                     "info depth {} seldepth {} score {} nodes {} time {} pv{}",
                     d,
-                    self.seldepth,
-                    self.format_score(score),
-                    self.nodes,
+                    self.info.seldepth,
+                    format_score(score),
+                    self.info.nodes,
                     info_timer.elapsed().as_millis(),
                     pv.pv_string()
                 );
@@ -483,7 +491,7 @@ impl Search {
 
             // Nodes search type
             if let Some(nodes) = goal_nodes {
-                if self.nodes >= nodes {
+                if self.info.nodes >= nodes {
                     break;
                 }
             }
@@ -524,7 +532,7 @@ impl Search {
         loop {
             score = self.pvsearch::<true>(board, pv, alpha, beta, depth, 0);
 
-            if self.stop {
+            if self.info.stop {
                 return 0;
             }
 
@@ -550,22 +558,9 @@ impl Search {
         }
     }
 
-    pub fn format_score(&self, score: i32) -> String {
-        debug_assert!(score < NONE);
-        let print_score: String;
-        if score >= MATE_IN {
-            print_score = format!("mate {}", (((MATE - score) / 2) + ((MATE - score) & 1)));
-        } else if score <= -MATE_IN {
-            print_score = format!("mate {}", -(((MATE + score) / 2) + ((MATE + score) & 1)));
-        } else {
-            print_score = format!("cp {score}");
-        }
-
-        print_score
-    }
-
     fn repetition(&self, board: &Board, hash: u64) -> bool {
         for key in self
+            .info
             .game_history
             .iter()
             .rev()
@@ -589,27 +584,21 @@ impl Search {
             & board.colors(color)
     }
 
-    pub fn reset(&mut self) {
-        self.stop = false;
-        self.search_type = SearchType::Depth(0);
-        self.timer = None;
-        self.max_time = None;
-        self.nodes = 0;
-        self.seldepth = 0;
-        self.killers = [[None; 2]; MAX_PLY as usize];
-        self.history.age_table();
+    pub fn go_reset(&mut self) {
+        self.info.stop = false;
+        self.info.search_type = SearchType::Depth(0);
+        self.info.timer = None;
+        self.info.max_time = None;
+        self.info.nodes = 0;
+        self.info.seldepth = 0;
+        self.info.killers = [[None; 2]; MAX_PLY as usize];
+        self.info.history.age_table();
         self.tt.age();
     }
 
-    pub fn hard_reset(&mut self) {
-        self.stop = false;
-        self.search_type = SearchType::Depth(0);
-        self.timer = None;
-        self.max_time = None;
-        self.nodes = 0;
-        self.seldepth = 0;
-        self.killers = [[None; 2]; MAX_PLY as usize];
+    pub fn game_reset(&mut self) {
         self.tt.reset();
+        self.info = SearchInfo::new();
     }
 
     pub fn data_search(&mut self, board: &Board, st: SearchType) -> (i32, Move) {
@@ -630,17 +619,17 @@ impl Search {
         let mut pv = PVTable::new();
 
         for d in 1..=depth {
-            self.seldepth = 0;
+            self.info.seldepth = 0;
             score = self.aspiration_window(board, &mut pv, score, d);
 
-            if self.stop && d > 1 {
+            if self.info.stop && d > 1 {
                 break;
             }
 
             best_move = pv.table[0];
 
             if let Some(nodes) = goal_nodes {
-                if self.nodes >= nodes {
+                if self.info.nodes >= nodes {
                     break;
                 }
             }
@@ -648,4 +637,18 @@ impl Search {
 
         (score, best_move.unwrap())
     }
+}
+
+pub fn format_score(score: i32) -> String {
+    debug_assert!(score < NONE);
+    let print_score: String;
+    if score >= MATE_IN {
+        print_score = format!("mate {}", (((MATE - score) / 2) + ((MATE - score) & 1)));
+    } else if score <= -MATE_IN {
+        print_score = format!("mate {}", -(((MATE + score) / 2) + ((MATE + score) & 1)));
+    } else {
+        print_score = format!("cp {score}");
+    }
+
+    print_score
 }

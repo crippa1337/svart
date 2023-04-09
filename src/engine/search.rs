@@ -559,21 +559,15 @@ impl Search {
     }
 
     fn repetition(&self, board: &Board, hash: u64) -> bool {
-        for key in self
-            .info
+        self.info
             .game_history
             .iter()
             .rev()
-            .take(board.halfmove_clock() as usize + 1)
+            .take(board.halfmove_clock() as usize)
+            // Skip the current position
             .skip(1)
-            .step_by(2)
-        {
-            if *key == hash {
-                return true;
-            }
-        }
-
-        false
+            // Two fold
+            .any(|&key| key == hash)
     }
 
     fn non_pawn_material(&self, board: &Board, color: Color) -> BitBoard {

@@ -268,14 +268,14 @@ pub fn reverse_castling_move(board: &Board, mut mv: Move) -> Move {
 
 fn go(board: &Board, st: SearchType, search: &mut Search) {
     search.iterative_deepening(board, st, false);
-    search.reset();
+    search.go_reset();
 }
 
 fn set_position(board: &mut Board, search: &mut Search, board_set: &mut bool, words: Vec<&str>) {
     if words[1] == "startpos" {
         *board = Board::default();
         *board_set = true;
-        search.game_history = vec![board.hash()]
+        search.info.game_history = vec![board.hash()]
     } else if words[1] == "fen" {
         // Put together the split fen string
         let mut fen = String::new();
@@ -290,7 +290,7 @@ fn set_position(board: &mut Board, search: &mut Search, board_set: &mut bool, wo
         if let Ok(b) = Board::from_fen(fen.trim(), false) {
             *board = b;
             *board_set = true;
-            search.game_history = vec![board.hash()]
+            search.info.game_history = vec![board.hash()]
         }
     }
 
@@ -299,7 +299,7 @@ fn set_position(board: &mut Board, search: &mut Search, board_set: &mut bool, wo
             let mut mv: Move = word.parse().unwrap();
             mv = check_castling_move(board, mv);
             board.play_unchecked(mv);
-            search.game_history.push(board.hash());
+            search.info.game_history.push(board.hash());
         }
     }
 

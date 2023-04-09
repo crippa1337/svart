@@ -151,13 +151,13 @@ pub fn score_moves(
         return mvvlva(board, mv) + 200_000;
     }
 
-    if search.killers[ply as usize][0] == Some(mv) {
+    if search.info.killers[ply as usize][0] == Some(mv) {
         return 100_000;
-    } else if search.killers[ply as usize][1] == Some(mv) {
+    } else if search.info.killers[ply as usize][1] == Some(mv) {
         return 95_000;
     }
 
-    search.history.get_score(board, mv)
+    search.info.history.get_score(board, mv)
 }
 
 pub struct Picker {

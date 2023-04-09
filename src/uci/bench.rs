@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use super::handler::SearchType;
-use crate::engine::{nnue::inference::NNUEState, search::Search, tt::TT};
+use crate::engine::{search::Search, tt::TT};
 use cozy_chess::Board;
 
 const FENS: [&str; 50] = [
@@ -58,19 +58,18 @@ const FENS: [&str; 50] = [
 ];
 
 pub fn bench() {
-    let mut tt = TT::new(16);
-    let mut search = Search::new(tt);
+    let mut search = Search::new(TT::new(16));
     let mut tot_nodes = 0;
     let timer = Instant::now();
 
     for fen in FENS.iter() {
         let board = Board::from_fen(fen, false).unwrap();
-        search.nnue = NNUEState::from_board(&board);
-        search.iterative_deepening(&board, SearchType::Depth(12), false);
-        tot_nodes += search.nodes;
+        search.nnue.refresh(&board);
 
-        tt = TT::new(16);
-        search = Search::new(tt);
+        search.iterative_deepening(&board, SearchType::Depth(12), false);
+        tot_nodes += search.info.nodes;
+
+        search.game_reset()
     }
 
     println!("nodes {tot_nodes} nps {}", tot_nodes / timer.elapsed().as_secs());

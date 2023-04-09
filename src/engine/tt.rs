@@ -146,12 +146,14 @@ mod tests {
         let mut tt = TT::new(1);
         tt.store(5, None, 1, 3, TTFlag::UpperBound, 22);
         assert_eq!(tt.probe(5).score, 1);
+
         tt.reset();
-        let entry = tt.probe(5);
-        assert_eq!(entry.score, 0);
-        assert_eq!(entry.flag, TTFlag::None);
-        assert_eq!(entry.depth, 0);
-        assert_eq!(entry.key, 0);
-        assert_eq!(entry.mv, None);
+        for entry in tt.entries.iter() {
+            assert_eq!(entry.score, 0);
+            assert_eq!(entry.flag, TTFlag::None);
+            assert_eq!(entry.depth, 0);
+            assert_eq!(entry.key, 0);
+            assert_eq!(entry.mv, None);
+        }
     }
 }

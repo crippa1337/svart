@@ -22,6 +22,9 @@ const GREEN: &str = "\x1b[38;5;40m";
 const RED: &str = "\x1b[38;5;196m";
 
 static FENS: AtomicU64 = AtomicU64::new(0);
+static WHITE_WINS: AtomicU64 = AtomicU64::new(0);
+static BLACK_WINS: AtomicU64 = AtomicU64::new(0);
+static DRAWS: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug)]
 struct Parameters {
@@ -156,16 +159,21 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
             let fens = FENS.load(Ordering::Relaxed);
             let elapsed = timer.elapsed().as_secs_f64();
             let fens_per_sec = fens as f64 / elapsed;
+
+            let ww = WHITE_WINS.load(Ordering::Relaxed);
+            let bw = BLACK_WINS.load(Ordering::Relaxed);
+            let dr = DRAWS.load(Ordering::Relaxed);
+            let tot_games = ww + bw + dr;
             let percentage = (games_played as f64 / games_per_thread as f64) * 100.0;
 
             let time_per_game = elapsed / games_played as f64;
             let etr = (games_per_thread - games_played) as f64 * time_per_game;
 
             println!("\n{GREEN}Generated {DEFAULT}{fens} FENs [{fens_per_sec:.2} FEN/s]");
-            println!("Main thread has played: {games_played} [{percentage:.2}%]");
-            println!(
-                "{GREEN}Time per game: {DEFAULT}{time_per_game:.2}s. {RED}ETL: {etr:.2}s{DEFAULT}"
-            );
+            println!("{GREEN}Time per game: {DEFAULT}{time_per_game:.2}s.");
+            println!("In total: {tot_games} [{percentage:.2}%] games are done.");
+            println!("White wins: {ww}, Black wins: {bw}, Draws: {dr}");
+            println!("Elapsed time: {elapsed:.2}s. {RED}ETR: {etr:.2}s{DEFAULT}");
 
             stdout().flush().unwrap();
         }
@@ -233,7 +241,14 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
         };
 
         // Write the result
-        FENS.fetch_add(game_buffer.len() as u64, Ordering::SeqCst);
+        FENS.fetch_add(game_buffer.len() as u64, Ordering::Relaxed);
+        match result_output.as_str() {
+            "0" => BLACK_WINS.fetch_add(1, Ordering::Relaxed),
+            "0.5" => DRAWS.fetch_add(1, Ordering::Relaxed),
+            "1" => WHITE_WINS.fetch_add(1, Ordering::Relaxed),
+            _ => unreachable!(),
+        };
+
         for (score, fen) in game_buffer.drain(..) {
             writeln!(output_buffer, "{fen} | {score} | {result_output}").unwrap();
         }

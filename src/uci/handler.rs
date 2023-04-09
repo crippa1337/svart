@@ -355,13 +355,14 @@ pub fn pretty_print(depth: i32, seldepth: i32, score: i32, nodes: u64, timer: u1
 
     let d = format!("{}/{}", depth, seldepth);
 
+    let timer = timer.max(1);
     let knps: String;
     let n: String;
     if nodes < 1000 {
-        knps = format!("{GREY}{:.1}no/s{DEFAULT}", nodes / (timer * 1000).max(1) as u64);
+        knps = format!("{GREY}{:.1}no/s{DEFAULT}", nodes / (timer * 1000) as u64);
         n = format!("{nodes}");
     } else {
-        knps = format!("{GREY}{:.1}kn/s{DEFAULT}", nodes / timer.max(1) as u64);
+        knps = format!("{GREY}{:.1}kn/s{DEFAULT}", nodes / timer as u64);
         n = format!("{}k", nodes / 1000);
     }
 

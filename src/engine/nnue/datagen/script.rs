@@ -142,7 +142,7 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
 
     let mut board;
     let mut game_buffer: Vec<(i32, String)> = vec![];
-    let mut hashes: Vec<u64> = vec![];
+    let mut hashes: Vec<u64>;
 
     let mut output_file = File::create(data_dir.join(format!("thread_{id}.txt"))).unwrap();
     let mut output_buffer = BufWriter::new(&mut output_file);
@@ -174,6 +174,7 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
         output_buffer.flush().unwrap();
         board = Board::default();
         search.game_reset();
+        hashes = vec![];
 
         // Play a new game
         // First we get a 'random' starting position

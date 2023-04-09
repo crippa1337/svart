@@ -565,7 +565,7 @@ impl Search {
             .iter()
             .rev()
             .take(board.halfmove_clock() as usize + 1)
-            .skip(2)
+            .skip(1)
             .step_by(2)
         {
             if *key == hash {

@@ -251,7 +251,7 @@ checksum = "1792db035ce95be60c3f8853017b3999209281c24e2ba5bc8e59bf97a0c590c1"
 
 [[package]]
 name = "svart"
-version = "3.1.0"
+version = "3.2.0"
 dependencies = [
  "chrono",
  "cozy-chess",

@@ -15,7 +15,17 @@ Svart is not a complete chess program and requires a [UCI-compatible graphical u
 ### Hash
 > Megabytes of memory allocated for the [Transposition Table](https://en.wikipedia.org/wiki/Transposition_table).
     
-    
+
+# History
+
+| Version  | CCRL Blitz     | CCRL 40/15     | MCERL        |
+| -------- | -------------- | -------------- | ------------ |
+| Svart 3  | 2886±20 [#131] | 2811±64 [#145] |              |
+| Svart 2  | 2463±20 [#281] | 2462±24 [#283] | 2484 [#152]  |
+> Single-CPU lists<br>
+> Updated 230410
+
+
 # Compilation
 Compile Svart using [Cargo](https://doc.rust-lang.org/cargo/) in ``./target/release``.
 
@@ -34,12 +44,7 @@ Compile Svart using [Cargo](https://doc.rust-lang.org/cargo/) in ``./target/rele
 ### Optimized for your system
 
     RUSTFLAGS='-C target-cpu=native' cargo build --release
-
-# History
-
-| Version  | CCRL Blitz | CCRL 40/15 | MCERL |
-| -------- | ---------- | ---------- | ----- |
-| Svart 2  | 2471±20    | 2417±116   | 2484  |
+    
     
 [commits-badge]:https://img.shields.io/github/commits-since/crippa1337/svart/latest?style=for-the-badge
 [commits-link]:https://github.com/crippa1337/svart/commits/master

@@ -186,7 +186,8 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
 
         // Play a new game
         // First we get a 'random' starting position
-        for _ in 0..12 {
+        let random_moves = rng.usize(11..=12);
+        for _ in 0..random_moves {
             let moves = movegen::pure_moves(&board);
             let mv = moves[rng.usize(..moves.len())];
             board.play_unchecked(mv);

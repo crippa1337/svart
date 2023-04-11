@@ -3,7 +3,7 @@ use std::{
     fs::File,
     io::{stdin, stdout, BufWriter, Write},
     path::{Path, PathBuf},
-    sync::atomic::{AtomicU64, Ordering},
+    sync::atomic::{AtomicBool, AtomicU64, Ordering},
     time::Instant,
 };
 
@@ -21,6 +21,7 @@ const ORANGE: &str = "\x1b[38;5;208m";
 const GREEN: &str = "\x1b[38;5;40m";
 const RED: &str = "\x1b[38;5;196m";
 
+static STOP_FLAG: AtomicBool = AtomicBool::new(false);
 static FENS: AtomicU64 = AtomicU64::new(0);
 static WHITE_WINS: AtomicU64 = AtomicU64::new(0);
 static BLACK_WINS: AtomicU64 = AtomicU64::new(0);
@@ -117,6 +118,12 @@ pub fn root() -> Result<(), Box<dyn Error>> {
 }
 
 fn generate_main(params: Parameters) {
+    ctrlc::set_handler(move || {
+        STOP_FLAG.store(true, Ordering::SeqCst);
+        println!("Stopping generation...");
+    })
+    .expect("Failed to set CTRL+C handler.");
+
     let run_id = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
     println!("{RED}ATTENTION: {DEFAULT}This run will be saved to data-{run_id}");
     println!(
@@ -235,23 +242,31 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
 
         // Always report wins from white's perspective
         let result_output = match (game_result, winner) {
-            (GameStatus::Drawn, _) => "0.5".to_string(),
-            (GameStatus::Won, Some(Color::White)) => "1".to_string(),
-            (GameStatus::Won, Some(Color::Black)) => "0".to_string(),
+            (GameStatus::Drawn, _) => {
+                DRAWS.fetch_add(1, Ordering::Relaxed);
+                "0.5".to_string()
+            }
+            (GameStatus::Won, Some(Color::White)) => {
+                WHITE_WINS.fetch_add(1, Ordering::Relaxed);
+                "1".to_string()
+            }
+            (GameStatus::Won, Some(Color::Black)) => {
+                BLACK_WINS.fetch_add(1, Ordering::Relaxed);
+                "0".to_string()
+            }
             _ => unreachable!(),
         };
 
         // Write the result
         FENS.fetch_add(game_buffer.len() as u64, Ordering::Relaxed);
-        match result_output.as_str() {
-            "0" => BLACK_WINS.fetch_add(1, Ordering::Relaxed),
-            "0.5" => DRAWS.fetch_add(1, Ordering::Relaxed),
-            "1" => WHITE_WINS.fetch_add(1, Ordering::Relaxed),
-            _ => unreachable!(),
-        };
-
         for (score, fen) in game_buffer.drain(..) {
             writeln!(output_buffer, "{fen} | {score} | {result_output}").unwrap();
+        }
+
+        // Safely abort with CTRLC handler since otherwise
+        // our files could get truncated and the data get lost.
+        if STOP_FLAG.load(Ordering::SeqCst) {
+            break 'main;
         }
     }
 

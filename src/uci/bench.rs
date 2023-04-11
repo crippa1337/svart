@@ -60,17 +60,22 @@ const FENS: [&str; 50] = [
 pub fn bench() {
     let mut search = Search::new(TT::new(16));
     let mut tot_nodes = 0;
-    let timer = Instant::now();
+    let mut tot_time = 0;
 
     for fen in FENS.iter() {
         let board = Board::from_fen(fen, false).unwrap();
         search.nnue.refresh(&board);
 
+        let timer = Instant::now();
         search.iterative_deepening(&board, SearchType::Depth(12), false);
+        tot_time += timer.elapsed().as_millis();
         tot_nodes += search.info.nodes;
 
         search.game_reset()
     }
 
-    println!("nodes {tot_nodes} nps {}", tot_nodes / timer.elapsed().as_secs());
+    println!(
+        "Bench: {tot_time} ms {tot_nodes} nodes {} nps",
+        tot_nodes / (tot_time as u64 / 1000).max(1)
+    );
 }

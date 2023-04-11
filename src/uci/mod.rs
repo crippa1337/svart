@@ -1,3 +1,3 @@
-mod bench;
+pub mod bench;
 pub mod handler;
 mod timeman;

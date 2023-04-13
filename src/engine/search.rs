@@ -646,3 +646,31 @@ pub fn format_score(score: i32) -> String {
 
     print_score
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn repetitions() {
+        const FENS: [&str; 3] = [
+            "5k2/4q1p1/3P1pQb/1p1B4/pP5p/P1PR4/5PP1/1K6 b - - 0 38",
+            "6k1/6p1/8/6KQ/1r6/q2b4/8/8 w - - 0 32",
+            "5rk1/1rP3pp/p4n2/3Pp3/1P2Pq2/2Q4P/P5P1/R3R1K1 b - - 0 32",
+        ];
+
+        let tt = TT::new(16);
+        let mut search = Search::new(tt);
+
+        for fen in FENS.iter() {
+            let board = Board::from_fen(fen, false).unwrap();
+            search.nnue.refresh(&board);
+
+            let (score, _) = search.data_search(&board, SearchType::Depth(20));
+
+            assert!((-10..=10).contains(&score), "{score}");
+
+            search.game_reset();
+        }
+    }
+}

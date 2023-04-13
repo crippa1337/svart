@@ -215,10 +215,7 @@ Better repeating timeman (b114a9C)
     Elo difference: 50.2 +/- 25.5, LOS: 100.0 %, DrawRatio: 45.6 %
     SPRT: llr 2.73 (92.8%), lbound -2.94, ubound 2.94 // lost the last output
 
-====================================================================================
-3.2 [April 10 2023]
-
-Fix repetitions (#34)
+Fix repetitions (#34) [April 10 2023]
 
     ELO   | 29.02 +- 11.80 (95%)
     SPRT  | 8.0+0.08s Threads=1 Hash=16MB

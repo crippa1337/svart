@@ -6,7 +6,7 @@ use crate::definitions::MAX_PLY;
 use cozy_chess::{Board, Color, Piece, Square};
 
 const FEATURES: usize = 768;
-const HIDDEN: usize = 256;
+const HIDDEN: usize = 512;
 
 // clipped relu bounds
 const CR_MIN: i16 = 0;

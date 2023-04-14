@@ -231,5 +231,14 @@ Svart0005 (#35)
     SPRT  | 8.0+0.08s Threads=1 Hash=16MB
     LLR   | 2.97 (-2.94, 2.94) [0.00, 5.00]
     GAMES | N: 528 W: 271 L: 110 D: 147
+    https://engineprogramming.pythonanywhere.com/test/23/
+
+Svart0006 (#36)
+
+    ELO   | 14.33 +- 8.27 (95%)
+    SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+    LLR   | 3.00 (-2.94, 2.94) [0.00, 5.00]
+    GAMES | N: 4440 W: 1545 L: 1362 D: 1533
+    https://engineprogramming.pythonanywhere.com/test/28/
 
 ====================================================================================

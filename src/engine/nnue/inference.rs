@@ -1,4 +1,4 @@
-// Svart uses a 768->256x2->1 perspective NNUE, largely inspired by Viridithas and Carp.
+// Svart uses a 768->512x2->1 perspective NNUE, largely inspired by Viridithas and Carp.
 // A huge thanks to Cosmo and Dede for their help with the implementation.
 //
 // I hope to further improve the network as well as make the code more original in the future.

@@ -1,8 +1,3 @@
-use crate::{definitions::*, uci::handler::SearchType};
-use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
-use once_cell::sync::Lazy;
-use std::time::Instant;
-
 use super::movegen::Picker;
 use super::nnue::inference::NNUEState;
 use super::position::{is_capture, is_quiet, play_move};
@@ -14,6 +9,10 @@ use super::{
     stat_vec::StaticVec,
     tt::{TTFlag, TT},
 };
+use crate::{definitions::*, uci::handler::SearchType};
+use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
+use once_cell::sync::Lazy;
+use std::time::Instant;
 
 static LMR: Lazy<LMRTable> = Lazy::new(LMRTable::new);
 const RFP_MARGIN: i32 = 75;

@@ -1,7 +1,6 @@
+use super::{position::is_capture, search::Search};
 use crate::definitions::INFINITY;
 use cozy_chess::{Board, Color, Move, Piece, Rank, Square};
-
-use super::{position::is_capture, search::Search};
 
 #[derive(PartialEq)]
 pub struct MoveEntry {

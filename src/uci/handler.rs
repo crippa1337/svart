@@ -1,10 +1,9 @@
+use super::timeman::time_for_move;
 use crate::{
     definitions::MATE,
     engine::{search::Search, tt::TT},
 };
 use cozy_chess::{Board, Color, Move, Piece, Square};
-
-use super::timeman::time_for_move;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum SearchType {

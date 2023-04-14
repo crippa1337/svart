@@ -25,9 +25,10 @@
 |           | drop at 30 | 210M d8                |                  |                             |
 |           | wdl 0.25   | 40M 5kn                |                  |                             |
 +-----------+------------+------------------------+------------------+-----------------------------+
-| svart0006 | lr 0.01    | 410M fens              |                  | thank you ploot for the     |
+| svart0006 | lr 0.01    | 410M fens              | 14.33 +- 8.27    | thank you ploot for the     |
 |           | epochs 60  | ---------              |                  | help genning                |
-|           | drop at 30 | 0005 data injected     |                  |                             |
+|           | drop at 30 | 0005 data interleaved  |                  |                             |
 |           | wdl 0.25   | with 160M 5kn data     |                  | this net changes the hidden |
 |           |            | genned by Plutie       |                  | layer size from 256->512    |
+|           |            |                        |                  | suprised it didnt gain more |
 +-----------+------------+------------------------+------------------+-----------------------------+

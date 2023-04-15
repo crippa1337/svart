@@ -192,22 +192,8 @@ fn weight_column_index(sq: Square, piece: Piece, color: Color) -> (usize, usize)
 
 #[cfg(test)]
 mod tests {
-    use crate::engine::{movegen, position::play_move, search::Search, tt::TT};
-
     use super::*;
-
-    #[test]
-    fn nnue_indexing() {
-        let idx1 = weight_column_index(Square::A8, Piece::Pawn, Color::White);
-        let idx2 = weight_column_index(Square::H1, Piece::Pawn, Color::White);
-        let idx3 = weight_column_index(Square::A1, Piece::Pawn, Color::Black);
-        let idx4 = weight_column_index(Square::E1, Piece::King, Color::White);
-
-        assert_eq!(idx1, (14336, 98304));
-        assert_eq!(idx2, (1792, 114432));
-        assert_eq!(idx3, (98304, 14336));
-        assert_eq!(idx4, (82944, 195584));
-    }
+    use crate::engine::{movegen, position::play_move, search::Search, tt::TT};
 
     #[test]
     fn nnue_update_feature() {

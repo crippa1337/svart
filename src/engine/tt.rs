@@ -272,6 +272,31 @@ mod tests {
         };
 
         assert_eq!(entry.age_flag.age(), 0b0000_0101);
+        assert_eq!(entry.age_flag.age(), 5);
         assert_eq!(entry.age_flag.flag(), TTFlag::Exact);
+
+        let entry = TTEntry {
+            key: 0,
+            mv: PackedMove(NOMOVE),
+            score: 0,
+            depth: 0,
+            age_flag: AgeAndFlag::new(63, TTFlag::UpperBound),
+        };
+
+        assert_eq!(entry.age_flag.age(), 0b0011_1111);
+        assert_eq!(entry.age_flag.age(), 63);
+        assert_eq!(entry.age_flag.flag(), TTFlag::UpperBound);
+
+        let entry = TTEntry {
+            key: 0,
+            mv: PackedMove(NOMOVE),
+            score: 0,
+            depth: 0,
+            age_flag: AgeAndFlag::new(0, TTFlag::LowerBound),
+        };
+
+        assert_eq!(entry.age_flag.age(), 0b0000_0000);
+        assert_eq!(entry.age_flag.age(), 0);
+        assert_eq!(entry.age_flag.flag(), TTFlag::LowerBound);
     }
 }

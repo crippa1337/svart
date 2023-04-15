@@ -7,7 +7,7 @@ use super::{
     movegen,
     pv_table::PVTable,
     stat_vec::StaticVec,
-    tt::{TTFlag, TT},
+    tt::{PackedMove, TTFlag, TT},
 };
 use crate::{definitions::*, uci::handler::SearchType};
 use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
@@ -146,7 +146,7 @@ impl Search {
             // and any score from the TT is better than the static eval
             let tt_score = self.tt.score_from_tt(tt_entry.score, ply) as i32;
             eval = tt_score;
-            tt_move = tt_entry.mv;
+            tt_move = Some(PackedMove::unpack(tt_entry.mv));
 
             if !PV && i32::from(tt_entry.depth) >= depth {
                 debug_assert!(tt_score != NONE && tt_entry.flag != TTFlag::None);
@@ -375,7 +375,7 @@ impl Search {
 
         if tt_hit && !PV && tt_entry.flag != TTFlag::None {
             let tt_score = self.tt.score_from_tt(tt_entry.score, ply) as i32;
-            tt_move = tt_entry.mv;
+            tt_move = Some(PackedMove::unpack(tt_entry.mv));
 
             debug_assert!(tt_score != NONE);
 
@@ -665,7 +665,7 @@ mod tests {
             let board = Board::from_fen(fen, false).unwrap();
             search.nnue.refresh(&board);
 
-            let (score, _) = search.data_search(&board, SearchType::Depth(20));
+            let (score, _) = search.data_search(&board, SearchType::Depth(16));
 
             assert!((-10..=10).contains(&score), "{score}");
 

@@ -12,3 +12,5 @@ pub const TB_WIN_IN_PLY: i32 = TB_WIN - MAX_PLY;
 pub const TB_LOSS_IN_PLY: i32 = -TB_WIN_IN_PLY;
 
 pub const TIME_OVERHEAD: u64 = 5;
+
+pub const NOMOVE: u16 = 0b0000_0000_0000_0000;

@@ -54,7 +54,8 @@ impl PackedMove {
     }
 }
 
-struct AgeAndFlag(u8);
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct AgeAndFlag(pub u8);
 
 impl AgeAndFlag {
     fn new(age: u8, flag: TTFlag) -> Self {
@@ -72,7 +73,7 @@ impl AgeAndFlag {
         self.0 >> 2
     }
 
-    fn flag(&self) -> TTFlag {
+    pub fn flag(&self) -> TTFlag {
         match self.0 & 0b11 {
             0b00 => TTFlag::None,
             0b01 => TTFlag::Exact,
@@ -85,25 +86,25 @@ impl AgeAndFlag {
 
 #[derive(Clone, Copy, Debug)]
 pub struct TTEntry {
-    pub mv: PackedMove, // 2 byte move wrapper (6 + 6 + 3 bits)
-    pub key: u16,       // 2 bytes
-    pub epoch: u16,     // 2 bytes
-    pub score: i16,     // 2 bytes
-    pub depth: u8,      // 1 byte
-    pub flag: TTFlag,   // 1 byte
+    pub mv: PackedMove,       // 2 byte move wrapper (6 sq + 6 sq + 3 promo bits)
+    pub key: u16,             // 2 bytes
+    pub score: i16,           // 2 bytes
+    pub depth: u8,            // 1 byte
+    pub age_flag: AgeAndFlag, // 1 byte wrapper (6 age + 2 flag bits)
 }
 
 impl TTEntry {
     #[must_use]
     fn quality(&self) -> u16 {
-        self.epoch * 2 + self.depth as u16
+        let age = self.age_flag.age();
+        (age * 2 + self.depth) as u16
     }
 }
 
 #[derive(Clone)]
 pub struct TT {
     pub entries: Vec<TTEntry>,
-    pub epoch: u16,
+    pub epoch: u8,
 }
 
 impl TT {
@@ -116,9 +117,8 @@ impl TT {
                 key: 0,
                 mv: PackedMove(NOMOVE),
                 score: 0,
-                epoch: 0,
                 depth: 0,
-                flag: TTFlag::None,
+                age_flag: AgeAndFlag(0),
             });
         }
 
@@ -158,9 +158,8 @@ impl TT {
             key: key as u16,
             mv: PackedMove::new(mv),
             score: self.score_to_tt(score, ply),
-            epoch: self.epoch,
             depth,
-            flag,
+            age_flag: AgeAndFlag::new(self.epoch, flag),
         };
 
         // Only replace entries of similar or higher quality
@@ -209,15 +208,14 @@ impl TT {
                 key: 0,
                 mv: PackedMove(NOMOVE),
                 score: 0,
-                epoch: 0,
                 depth: 0,
-                flag: TTFlag::None,
+                age_flag: AgeAndFlag(0),
             };
         }
     }
 }
 
-const _TT_TEST: () = assert!(std::mem::size_of::<TTEntry>() == 10);
+const _TT_TEST: () = assert!(std::mem::size_of::<TTEntry>() == 8);
 
 #[cfg(test)]
 mod tests {
@@ -233,7 +231,7 @@ mod tests {
         tt.reset();
         for entry in tt.entries.iter() {
             assert_eq!(entry.score, 0);
-            assert_eq!(entry.flag, TTFlag::None);
+            assert_eq!(entry.age_flag, AgeAndFlag(0));
             assert_eq!(entry.depth, 0);
             assert_eq!(entry.key, 0);
             assert_eq!(entry.mv, PackedMove(NOMOVE));
@@ -261,5 +259,19 @@ mod tests {
         let mv = Move { from: Square::D8, to: Square::D7, promotion: Some(Piece::Queen) };
         let packed = PackedMove::new(Some(mv));
         assert_eq!(packed.unpack(), mv);
+    }
+
+    #[test]
+    fn age_flag() {
+        let entry = TTEntry {
+            key: 0,
+            mv: PackedMove(NOMOVE),
+            score: 0,
+            depth: 0,
+            age_flag: AgeAndFlag(0b0000_1101),
+        };
+
+        assert_eq!(entry.age_flag.age(), 0b0000_0011);
+        assert_eq!(entry.age_flag.flag(), TTFlag::Exact);
     }
 }

@@ -7,7 +7,7 @@ use super::{
     movegen,
     pv_table::PVTable,
     stat_vec::StaticVec,
-    tt::{PackedMove, TTFlag, TT},
+    tt::{AgeAndFlag, PackedMove, TTFlag, TT},
 };
 use crate::{definitions::*, uci::handler::SearchType};
 use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
@@ -149,11 +149,12 @@ impl Search {
             tt_move = Some(PackedMove::unpack(tt_entry.mv));
 
             if !PV && i32::from(tt_entry.depth) >= depth {
-                debug_assert!(tt_score != NONE && tt_entry.flag != TTFlag::None);
+                debug_assert!(tt_score != NONE && tt_entry.age_flag != AgeAndFlag(0));
+                let flag = tt_entry.age_flag.flag();
 
-                if (tt_entry.flag == TTFlag::Exact)
-                    || (tt_entry.flag == TTFlag::LowerBound && tt_score >= beta)
-                    || (tt_entry.flag == TTFlag::UpperBound && tt_score <= alpha)
+                if (flag == TTFlag::Exact)
+                    || (flag == TTFlag::LowerBound && tt_score >= beta)
+                    || (flag == TTFlag::UpperBound && tt_score <= alpha)
                 {
                     return tt_score;
                 }
@@ -373,15 +374,16 @@ impl Search {
         let tt_hit = tt_entry.key == hash_key as u16;
         let mut tt_move: Option<Move> = None;
 
-        if tt_hit && !PV && tt_entry.flag != TTFlag::None {
+        if tt_hit && !PV && tt_entry.age_flag != AgeAndFlag(0) {
             let tt_score = self.tt.score_from_tt(tt_entry.score, ply) as i32;
-            tt_move = Some(PackedMove::unpack(tt_entry.mv));
-
             debug_assert!(tt_score != NONE);
 
-            if (tt_entry.flag == TTFlag::Exact)
-                || (tt_entry.flag == TTFlag::LowerBound && tt_score >= beta)
-                || (tt_entry.flag == TTFlag::UpperBound && tt_score <= alpha)
+            tt_move = Some(PackedMove::unpack(tt_entry.mv));
+            let flag = tt_entry.age_flag.flag();
+
+            if (flag == TTFlag::Exact)
+                || (flag == TTFlag::LowerBound && tt_score >= beta)
+                || (flag == TTFlag::UpperBound && tt_score <= alpha)
             {
                 return tt_score;
             }

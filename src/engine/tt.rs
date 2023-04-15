@@ -268,10 +268,10 @@ mod tests {
             mv: PackedMove(NOMOVE),
             score: 0,
             depth: 0,
-            age_flag: AgeAndFlag(0b0000_1101),
+            age_flag: AgeAndFlag::new(5, TTFlag::Exact),
         };
 
-        assert_eq!(entry.age_flag.age(), 0b0000_0011);
+        assert_eq!(entry.age_flag.age(), 0b0000_0101);
         assert_eq!(entry.age_flag.flag(), TTFlag::Exact);
     }
 }

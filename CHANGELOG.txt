@@ -242,3 +242,14 @@ Svart0006 (#36)
     https://engineprogramming.pythonanywhere.com/test/28/
 
 ====================================================================================
+3.3 [April 17 2023]
+
+Check Extensions (#38)
+
+    ELO   | 13.40 +- 7.86 (95%)
+    SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+    LLR   | 2.95 (-2.94, 2.94) [0.00, 5.00]
+    GAMES | N: 4488 W: 1427 L: 1254 D: 1807
+    https://engineprogramming.pythonanywhere.com/test/70/
+
+====================================================================================

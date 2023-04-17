@@ -130,8 +130,10 @@ impl Search {
             }
         }
 
+        let in_check = !board.checkers().is_empty();
+
         // Escape condition
-        if depth == 0 {
+        if depth == 0 && !in_check {
             return self.qsearch::<PV>(board, alpha, beta, ply);
         }
 
@@ -162,8 +164,6 @@ impl Search {
         } else {
             eval = self.nnue.evaluate(stm);
         }
-
-        let in_check = !board.checkers().is_empty();
 
         if !PV && !in_check {
             /*
@@ -215,6 +215,9 @@ impl Search {
             d @ 1..=3 => LMP_TABLE[d as usize],
             _ => MAX_MOVES_POSITION,
         };
+
+        // Check extension
+        depth += i32::from(in_check);
 
         while let Some(mv) = picker.pick_move() {
             let is_quiet = is_quiet(board, mv);

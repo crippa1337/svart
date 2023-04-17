@@ -25,23 +25,33 @@ Svart is not a complete chess program and requires a [UCI-compatible graphical u
 
 
 # Compilation
-Compile Svart using [Cargo](https://doc.rust-lang.org/cargo/) in ``/target/release``.
+Compile Svart using [Cargo](https://doc.rust-lang.org/cargo/).
 
-### x86-64-v1
+```
+$ git clone https://github.com/crippa1337/svart/
+$ cd svart
+$ make
+```
 
-    RUSTFLAGS='-C target-feature=+fxsr,+sse,+sse2' cargo build --release
 
-### x86_64-v2
+# Releases
+Svart's release scheme follows the [microarchitecture levels](https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels).
 
-    RUSTFLAGS='-C target-feature=+fxsr,+sse,+sse2,+cmpxchg16b,+popcnt,+sse3,+sse4.1,+sse4.2,+ssse3' cargo build --release
+**x86_64-v3** is the fastest and recommended on modern systems.<br>
+**x86_64-v2** is less fast but is compatible with CPUs pre-Haswell/Excavator.<br>
+**x86_64-v1** is the slowest but compatible with almost anything.
 
 ### x86_64-v3
 
     RUSTFLAGS='-C target-feature=+fxsr,+sse,+sse2,+cmpxchg16b,+popcnt,+sse3,+sse4.1,+sse4.2,+ssse3,+avx,+avx2,+bmi1,+bmi2,+f16c,+fma,+lzcnt,+movbe' cargo build --release
 
-### Optimized for your system
+### x86_64-v2
 
-    RUSTFLAGS='-C target-cpu=native' cargo build --release
+    RUSTFLAGS='-C target-feature=+fxsr,+sse,+sse2,+cmpxchg16b,+popcnt,+sse3,+sse4.1,+sse4.2,+ssse3' cargo build --release
+
+### x86-64-v1
+
+    RUSTFLAGS='-C target-feature=+fxsr,+sse,+sse2' cargo build --release    
     
     
 [commits-badge]:https://img.shields.io/github/commits-since/crippa1337/svart/latest?style=for-the-badge

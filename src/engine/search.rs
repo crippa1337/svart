@@ -192,6 +192,15 @@ impl Search {
         }
 
         if !PV && !in_check {
+            // Reverse Futility Pruning (RFP)
+            // If static eval plus a margin can beat beta, then we can safely prune this node.
+            // The margin is multiplied by depth to make it harder to prune at higher depths
+            // as pruning there can be inaccurate as it prunes a large amount of potential nodes
+            // and static eval isn't the most accurate.
+            if depth < 9 && eval >= beta + RFP_MARGIN * depth / rfp_divisor {
+                return eval;
+            }
+
             // Null Move Pruning (NMP)
             // If we can give the opponent a free move and still cause a beta cutoff,
             // we can safely prune this node. This does not work in zugzwang positions
@@ -210,15 +219,6 @@ impl Search {
 
                     return score;
                 }
-            }
-
-            // Reverse Futility Pruning (RFP)
-            // If static eval plus a margin can beat beta, then we can safely prune this node.
-            // The margin is multiplied by depth to make it harder to prune at higher depths
-            // as pruning there can be inaccurate as it prunes a large amount of potential nodes
-            // and static eval isn't the most accurate.
-            if depth < 9 && eval >= beta + RFP_MARGIN * depth / rfp_divisor {
-                return eval;
             }
         }
 

@@ -182,7 +182,7 @@ impl Search {
         // then we are improving our position. This is used in some heuristics to improve pruning.
         self.info.stack[ply].eval = eval;
         let mut improving = false;
-        let mut rfp_divisor: i32 = 1;
+        let mut rfp_divisor = 1;
         if ply > 1 {
             improving = !in_check && eval > self.info.stack[ply - 2].eval;
         }

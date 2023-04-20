@@ -75,7 +75,7 @@ pub fn root() -> Result<(), Box<dyn Error>> {
             let mut inp_depth = String::new();
             stdin().read_line(&mut inp_depth).unwrap();
 
-            let depth = inp_depth.trim().parse::<i32>()?;
+            let depth = inp_depth.trim().parse::<usize>()?;
             if !(1..=100).contains(&depth) {
                 panic!("Invalid depth range! {depth}, needs to be between [1, 100]")
             }

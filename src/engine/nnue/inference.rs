@@ -35,7 +35,7 @@ static MODEL: Parameters = Parameters {
 };
 
 pub struct NNUEState {
-    pub accumulators: [Accumulator; MAX_PLY as usize],
+    pub accumulators: [Accumulator; MAX_PLY],
     pub current_acc: usize,
 }
 

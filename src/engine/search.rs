@@ -18,16 +18,27 @@ static LMR: Lazy<LMRTable> = Lazy::new(LMRTable::new);
 const RFP_MARGIN: i32 = 75;
 const LMP_TABLE: [usize; 4] = [0, 5, 8, 18];
 
+pub struct StackEntry {
+    pub eval: i32,
+}
+
+impl Default for StackEntry {
+    fn default() -> Self {
+        StackEntry { eval: NONE }
+    }
+}
+
 pub struct SearchInfo {
     pub stop: bool,
     pub search_type: SearchType,
     pub timer: Option<Instant>,
     pub max_time: Option<u64>,
     pub nodes: u64,
-    pub seldepth: i32,
+    pub seldepth: usize,
     pub game_history: Vec<u64>,
-    pub killers: [[Option<Move>; 2]; MAX_PLY as usize],
+    pub killers: [[Option<Move>; 2]; MAX_PLY],
     pub history: History,
+    pub stack: [StackEntry; MAX_PLY],
 }
 
 impl SearchInfo {
@@ -40,8 +51,9 @@ impl SearchInfo {
             nodes: 0,
             seldepth: 0,
             game_history: vec![],
-            killers: [[None; 2]; MAX_PLY as usize],
+            killers: [[None; 2]; MAX_PLY],
             history: History::new(),
+            stack: std::array::from_fn(|_| StackEntry::default()),
         }
     }
 }
@@ -70,7 +82,7 @@ impl Search {
         alpha: i32,
         beta: i32,
         depth: i32,
-        ply: i32,
+        ply: usize,
     ) -> i32 {
         self.pvsearch::<false>(board, pv, alpha, beta, depth, ply)
     }
@@ -83,7 +95,7 @@ impl Search {
         mut alpha: i32,
         beta: i32,
         mut depth: i32,
-        ply: i32,
+        ply: usize,
     ) -> i32 {
         // Every 1024 nodes, check if it's time to stop
         if let (Some(timer), Some(max)) = (self.info.timer, self.info.max_time) {
@@ -110,7 +122,7 @@ impl Search {
         pv.length = 0;
 
         match board.status() {
-            GameStatus::Won => return ply - MATE,
+            GameStatus::Won => return ply as i32 - MATE,
             GameStatus::Drawn => return 8 - (self.info.nodes as i32 & 7),
             _ => (),
         }
@@ -123,8 +135,8 @@ impl Search {
             }
 
             // Mate distance pruning
-            let mate_alpha = alpha.max(ply - MATE);
-            let mate_beta = beta.min(MATE - (ply + 1));
+            let mate_alpha = alpha.max(ply as i32 - MATE);
+            let mate_beta = beta.min(MATE - (ply as i32 + 1));
             if mate_alpha >= mate_beta {
                 return mate_alpha;
             }
@@ -165,13 +177,25 @@ impl Search {
             eval = self.nnue.evaluate(stm);
         }
 
+        // Improving
+        // If the previous eval from our point of view is worse than what it currently is
+        // then we are improving our position. This is used in some heuristics to improve pruning.
+        self.info.stack[ply].eval = eval;
+        let mut improving = false;
+        let mut rfp_divisor: i32 = 1;
+        if ply > 1 {
+            improving = !in_check && eval > self.info.stack[ply - 2].eval;
+        }
+
+        if improving {
+            rfp_divisor = 2;
+        }
+
         if !PV && !in_check {
-            /*
-                Null Move Pruning (NMP)
-                If we can give the opponent a free move and still cause a beta cutoff,
-                we can safely prune this node. This does not work in zugzwang positions
-                because then it is always better to give a free move, hence some checks for it are needed.
-            */
+            // Null Move Pruning (NMP)
+            // If we can give the opponent a free move and still cause a beta cutoff,
+            // we can safely prune this node. This does not work in zugzwang positions
+            // because then it is always better to give a free move, hence some checks for it are needed.
             if depth >= 3 && eval >= beta && !self.non_pawn_material(board, stm).is_empty() {
                 let r = 3 + depth / 3 + 3.min((eval.saturating_sub(beta)) / 200);
                 let new_b = board.null_move().unwrap();
@@ -188,14 +212,12 @@ impl Search {
                 }
             }
 
-            /*
-                Reverse Futility Pruning (RFP)
-                If static eval plus a margin can beat beta, then we can safely prune this node.
-                The margin is multiplied by depth to make it harder to prune at higher depths
-                as pruning there can be inaccurate as it prunes a large amount of potential nodes
-                and static eval isn't the most accurate.
-            */
-            if depth < 9 && eval >= beta + RFP_MARGIN * depth {
+            // Reverse Futility Pruning (RFP)
+            // If static eval plus a margin can beat beta, then we can safely prune this node.
+            // The margin is multiplied by depth to make it harder to prune at higher depths
+            // as pruning there can be inaccurate as it prunes a large amount of potential nodes
+            // and static eval isn't the most accurate.
+            if depth < 9 && eval >= beta + RFP_MARGIN * depth / rfp_divisor {
                 return eval;
             }
         }
@@ -303,8 +325,8 @@ impl Search {
             if score >= beta {
                 if is_quiet {
                     // Killer moves
-                    self.info.killers[ply as usize][1] = self.info.killers[ply as usize][0];
-                    self.info.killers[ply as usize][0] = Some(mv);
+                    self.info.killers[ply][1] = self.info.killers[ply][0];
+                    self.info.killers[ply][0] = Some(mv);
 
                     // History Heuristic
                     self.info.history.update_table::<true>(board, mv, depth);
@@ -344,7 +366,7 @@ impl Search {
         board: &Board,
         mut alpha: i32,
         beta: i32,
-        ply: i32,
+        ply: usize,
     ) -> i32 {
         if let (Some(timer), Some(max)) = (self.info.timer, self.info.max_time) {
             if self.info.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= max {
@@ -435,7 +457,7 @@ impl Search {
     }
 
     pub fn iterative_deepening(&mut self, board: &Board, st: SearchType, pretty: bool) {
-        let depth: i32;
+        let depth: usize;
         let mut opt_time: Option<u64> = None;
         let mut goal_nodes: Option<u64> = None;
 
@@ -463,7 +485,7 @@ impl Search {
 
         for d in 1..=depth {
             self.info.seldepth = 0;
-            score = self.aspiration_window(board, &mut pv, score, d);
+            score = self.aspiration_window(board, &mut pv, score, d as i32);
 
             // Max time is up
             if self.info.stop && d > 1 {
@@ -589,7 +611,7 @@ impl Search {
         self.info.max_time = None;
         self.info.nodes = 0;
         self.info.seldepth = 0;
-        self.info.killers = [[None; 2]; MAX_PLY as usize];
+        self.info.killers = [[None; 2]; MAX_PLY];
         self.info.history.age_table();
         self.tt.age();
     }
@@ -600,10 +622,10 @@ impl Search {
     }
 
     pub fn data_search(&mut self, board: &Board, st: SearchType) -> (i32, Move) {
-        let depth: i32;
+        let depth: usize;
         let mut goal_nodes: Option<u64> = None;
         match st {
-            SearchType::Depth(d) => depth = d.min(MAX_PLY),
+            SearchType::Depth(d) => depth = (d).min(MAX_PLY),
             SearchType::Nodes(n) => {
                 depth = MAX_PLY;
                 goal_nodes = Some(n);
@@ -618,7 +640,7 @@ impl Search {
 
         for d in 1..=depth {
             self.info.seldepth = 0;
-            score = self.aspiration_window(board, &mut pv, score, d);
+            score = self.aspiration_window(board, &mut pv, score, d as i32);
 
             if self.info.stop && d > 1 {
                 break;

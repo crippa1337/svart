@@ -23,7 +23,7 @@ pub fn all_moves(
     search: &Search,
     board: &Board,
     tt_move: Option<Move>,
-    ply: i32,
+    ply: usize,
 ) -> Vec<MoveEntry> {
     let mut move_list: Vec<Move> = Vec::new();
 
@@ -44,7 +44,7 @@ pub fn capture_moves(
     search: &Search,
     board: &Board,
     tt_move: Option<Move>,
-    ply: i32,
+    ply: usize,
 ) -> Vec<MoveEntry> {
     let enemy_pieces = board.colors(!board.side_to_move());
     let mut captures_list: Vec<Move> = Vec::new();
@@ -133,7 +133,7 @@ pub fn score_moves(
     board: &Board,
     mv: Move,
     tt_move: Option<Move>,
-    ply: i32,
+    ply: usize,
 ) -> i32 {
     if let Some(tmove) = tt_move {
         if mv == tmove {
@@ -150,9 +150,9 @@ pub fn score_moves(
         return mvvlva(board, mv) + 200_000;
     }
 
-    if search.info.killers[ply as usize][0] == Some(mv) {
+    if search.info.killers[ply][0] == Some(mv) {
         return 100_000;
-    } else if search.info.killers[ply as usize][1] == Some(mv) {
+    } else if search.info.killers[ply][1] == Some(mv) {
         return 95_000;
     }
 

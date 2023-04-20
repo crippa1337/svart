@@ -10,7 +10,7 @@ pub enum SearchType {
     // opt_time and maxtime
     Time(u64, u64),
     Nodes(u64),
-    Depth(i32),
+    Depth(usize),
     Infinite,
 }
 
@@ -110,7 +110,7 @@ pub fn uci_loop() {
                         if words.iter().any(|&x| x == "depth") {
                             if let Ok(d) = words
                                 [words.iter().position(|&x| x == "depth").unwrap() + 1]
-                                .parse::<i32>()
+                                .parse::<usize>()
                             {
                                 go(&board, SearchType::Depth(d), &mut search);
                             }
@@ -307,7 +307,14 @@ fn set_position(board: &mut Board, search: &mut Search, board_set: &mut bool, wo
     }
 }
 
-pub fn pretty_print(depth: i32, seldepth: i32, score: i32, nodes: u64, timer: u128, pv: String) {
+pub fn pretty_print(
+    depth: usize,
+    seldepth: usize,
+    score: i32,
+    nodes: u64,
+    timer: u128,
+    pv: String,
+) {
     const DEFAULT: &str = "\x1b[0m";
     const GREY: &str = "\x1b[90m";
     const GREEN: &str = "\x1b[32m";

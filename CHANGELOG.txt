@@ -253,3 +253,14 @@ Check Extensions (#38)
     https://engineprogramming.pythonanywhere.com/test/70/
 
 ====================================================================================
+3.4 [April 20 2023]
+
+Improving in RFP (#39)
+
+    ELO   | 22.42 +- 10.55 (95%)
+    SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+    LLR   | 2.99 (-2.94, 2.94) [0.00, 5.00]
+    GAMES | N: 2560 W: 867 L: 702 D: 991
+    https://engineprogramming.pythonanywhere.com/test/166/
+
+====================================================================================

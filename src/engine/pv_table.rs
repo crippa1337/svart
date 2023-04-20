@@ -4,12 +4,12 @@ use cozy_chess::{Board, Move};
 
 pub struct PVTable {
     pub length: usize,
-    pub table: [Option<Move>; MAX_PLY as usize],
+    pub table: [Option<Move>; MAX_PLY],
 }
 
 impl PVTable {
     pub fn new() -> Self {
-        PVTable { length: 0, table: [None; MAX_PLY as usize] }
+        PVTable { length: 0, table: [None; MAX_PLY] }
     }
 
     pub fn store(&mut self, board: &Board, mv: Move, old: &Self) {

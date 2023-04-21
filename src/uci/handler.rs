@@ -344,7 +344,7 @@ pub fn pretty_print(
 
     let mate = ((MATE - score) / 2) + ((MATE - score) & 1);
     let norm_score = score as f32 / 100.;
-    let s = match score {
+    let sc = match score {
         501..=15_000 => format!("{BRIGHT_CYAN}+{:.2}{DEFAULT}", norm_score),
         101..=500 => format!("{GREEN}+{:.2}{DEFAULT}", norm_score),
         11..=100 => format!("{BRIGHT_GREEN}+{:.2}{DEFAULT}", norm_score),
@@ -372,5 +372,9 @@ pub fn pretty_print(
         n = format!("{}k", nodes / 1000);
     }
 
-    println!("{d: <7} {s: <8} {n: <8} {knps: <18} {t: <14} {pv}");
+    let str = pv.as_str();
+    let pv_width = 125;
+    let pv = if str.len() > pv_width { str[..pv_width].to_string() } else { str.to_string() };
+
+    println!("{d: <7} {sc: <8} {n: <8} {knps: <18} {t: <15} {pv}");
 }

@@ -22,14 +22,14 @@ pub fn print_net_history() {
             network: "svart0002",
             training: "lr 0.01 epochs 30 wdl 0.1",
             data: "-||-",
-            report: "98.96 +/- 26.44 to hce",
+            report: "98.96 +/- 26.44",
             notes: "",
         },
         Net {
             network: "svart0003",
             training: "lr 0.01 epochs 80 drop at 30 wdl 0.3",
             data: "-||-",
-            report: "-63.23 +/- 97.40 to hce",
+            report: "-63.23 +/- 97.40",
             notes: "",
         },
         Net {

@@ -49,7 +49,7 @@ Svart's release scheme follows the [microarchitecture levels](https://en.wikiped
 
     RUSTFLAGS='-C target-feature=+fxsr,+sse,+sse2,+cmpxchg16b,+popcnt,+sse3,+sse4.1,+sse4.2,+ssse3' cargo build --release
 
-### x86-64-v1
+### x86_64-v1
 
     RUSTFLAGS='-C target-feature=+fxsr,+sse,+sse2' cargo build --release    
     

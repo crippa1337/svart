@@ -1,11 +1,11 @@
-╭───────────┬───────────────────────────────────────┬────────────────────────────────────────────────────────────────┬─────────────────────────┬──────────────────────────────╮
-│ network   │ training                              │ data                                                           │ report                  │ notes                        │
-├───────────┼───────────────────────────────────────┼────────────────────────────────────────────────────────────────┼─────────────────────────┼──────────────────────────────┤
-│ svart0001 │ lr 0.01 epochs 45 drop at 30 wdl 0.3  │ 90M D7 fens self-play from UHO_XXL book at varying plies       │ equal to hce            │ how unremarkable             │
-│ svart0002 │ lr 0.01 epochs 30 wdl 0.1             │ -||-                                                           │ 98.96 +/- 26.44 to hce  │                              │
-│ svart0003 │ lr 0.01 epochs 80 drop at 30 wdl 0.3  │ -||-                                                           │ -63.23 +/- 97.40 to hce │                              │
-│ svart0004 │ lr 0.01 epochs 80 drop at 30 wdl 0.1  │ 91M D8 fens generated internally with 12 random opening moves  │ 401.50 +/- 41.91        │ there it is!                 │
-│ svart0005 │ lr 0.01 epochs 45 drop at 30 wdl 0.25 │ 252M | 210M d8 and 40M 5kn                                     │ 109.42 +- 26.52         │ RL looking great             │
-│ svart0006 │ lr 0.01 epochs 60 drop at 30 wdl 0.25 │ 410M fens | svart0005 data interleaved with 160M 5kn by Plutie │ 14.33 +- 8.27           │ hidden layer size 256 -> 512 │
-│ svart0007 │ lr 0.01 epochs 60 drop at 30 wdl 0.25 │ -||-                                                           │ -0.22 +- 3.64           │ CReLu -> SCReLu              │
-╰───────────┴───────────────────────────────────────┴────────────────────────────────────────────────────────────────┴─────────────────────────┴──────────────────────────────╯
+╭───────────┬───────────────────────────────────────┬────────────────────────────────────────────────────────────────┬───────────────────┬──────────────────────────────╮
+│ network   │ training                              │ data                                                           │ report            │ notes                        │
+├───────────┼───────────────────────────────────────┼────────────────────────────────────────────────────────────────┼───────────────────┼──────────────────────────────┤
+│ svart0001 │ lr 0.01 epochs 45 drop at 30 wdl 0.3  │ 90M D7 fens self-play from UHO_XXL book at varying plies       │ equal to hce      │ how unremarkable             │
+│ svart0002 │ lr 0.01 epochs 30 wdl 0.1             │ -||-                                                           │ 98.96 +/- 26.44   │                              │
+│ svart0003 │ lr 0.01 epochs 80 drop at 30 wdl 0.3  │ -||-                                                           │ -63.23 +/- 97.40  │                              │
+│ svart0004 │ lr 0.01 epochs 80 drop at 30 wdl 0.1  │ 91M D8 fens generated internally with 12 random opening moves  │ 401.50 +/- 41.91  │ there it is!                 │
+│ svart0005 │ lr 0.01 epochs 45 drop at 30 wdl 0.25 │ 252M | 210M d8 and 40M 5kn                                     │ 109.42 +- 26.52   │ RL looking great             │
+│ svart0006 │ lr 0.01 epochs 60 drop at 30 wdl 0.25 │ 410M fens | svart0005 data interleaved with 160M 5kn by Plutie │ 14.33 +- 8.27     │ hidden layer size 256 -> 512 │
+│ svart0007 │ lr 0.01 epochs 60 drop at 30 wdl 0.25 │ -||-                                                           │ -0.22 +- 3.64     │ CReLu -> SCReLu              │
+╰───────────┴───────────────────────────────────────┴────────────────────────────────────────────────────────────────┴───────────────────┴──────────────────────────────╯

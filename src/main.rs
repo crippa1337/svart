@@ -6,8 +6,13 @@ use uci::handler::uci_loop;
 
 fn main() {
     #![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
-    if std::env::args().nth(1).as_deref() == Some("bench") {
+    let binding = std::env::args().nth(1);
+    let arg = binding.as_deref();
+    if arg == Some("bench") {
         uci::bench::bench();
+        return;
+    } else if arg == Some("table") {
+        engine::nnue::tables::print_net_history();
         return;
     }
 

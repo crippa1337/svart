@@ -182,13 +182,8 @@ impl Search {
         // then we are improving our position. This is used in some heuristics to improve pruning.
         self.info.stack[ply].eval = eval;
         let mut improving = false;
-        let mut rfp_divisor = 1;
-        if ply > 1 {
+        if ply >= 2 {
             improving = !in_check && eval > self.info.stack[ply - 2].eval;
-        }
-
-        if improving {
-            rfp_divisor = 2;
         }
 
         if !PV && !in_check {
@@ -197,7 +192,7 @@ impl Search {
             // The margin is multiplied by depth to make it harder to prune at higher depths
             // as pruning there can be inaccurate as it prunes a large amount of potential nodes
             // and static eval isn't the most accurate.
-            if depth < 9 && eval >= beta + RFP_MARGIN * depth / rfp_divisor {
+            if depth < 9 && eval >= beta + RFP_MARGIN * depth / (i32::from(improving) + 1) {
                 return eval;
             }
 

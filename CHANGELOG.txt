@@ -272,3 +272,14 @@ Move RFP (#40)
     https://engineprogramming.pythonanywhere.com/test/167/
 
 ====================================================================================
+3.5 [April 23 2023]
+
+Futility Pruning (#42)
+
+    ELO   | 16.69 +- 8.79 (95%)
+    SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+    LLR   | 3.02 (-2.94, 2.94) [0.00, 5.00]
+    GAMES | N: 3520 W: 1115 L: 946 D: 1459
+    https://engineprogramming.pythonanywhere.com/test/221/
+
+====================================================================================

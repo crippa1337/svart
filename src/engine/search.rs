@@ -17,6 +17,9 @@ use std::time::Instant;
 static LMR: Lazy<LMRTable> = Lazy::new(LMRTable::new);
 const RFP_MARGIN: i32 = 75;
 const LMP_TABLE: [usize; 4] = [0, 5, 8, 18];
+const FP_COEFFICIENT: i32 = 100;
+const FP_MARGIN: i32 = 75;
+const FP_DEPTH: i32 = 6;
 
 pub struct StackEntry {
     pub eval: i32,
@@ -149,17 +152,12 @@ impl Search {
             return self.qsearch::<PV>(board, alpha, beta, ply);
         }
 
-        // Static eval used for pruning
-        let eval;
-
         let tt_entry = self.tt.probe(hash_key);
         let tt_hit = tt_entry.key == hash_key as u16;
+        let tt_score = self.tt.score_from_tt(tt_entry.score, ply) as i32;
         let mut tt_move: Option<Move> = None;
+
         if tt_hit {
-            // Use the TT score if available since eval is expensive
-            // and any score from the TT is better than the static eval
-            let tt_score = self.tt.score_from_tt(tt_entry.score, ply) as i32;
-            eval = tt_score;
             tt_move = Some(PackedMove::unpack(tt_entry.mv));
 
             if !PV && i32::from(tt_entry.depth) >= depth {
@@ -173,9 +171,18 @@ impl Search {
                     return tt_score;
                 }
             }
-        } else {
-            eval = self.nnue.evaluate(stm);
         }
+
+        let eval = if tt_hit {
+            // Use the TT score if available since eval is expensive
+            // and any score from the TT is better than the static eval
+            tt_score
+        } else if in_check {
+            // If we're in check, it's unstable to use the static eval
+            -INFINITY
+        } else {
+            self.nnue.evaluate(stm)
+        };
 
         // Improving
         // If the previous eval from our point of view is worse than what it currently is
@@ -226,7 +233,7 @@ impl Search {
         let mut quiet_moves = StaticVec::<Option<Move>, MAX_MOVES_POSITION>::new(None);
         let mut picker = Picker::new(move_list);
 
-        let lmr_depth = if PV { 5 } else { 3 };
+        let lmr_threshold = if PV { 5 } else { 3 };
         let mut quiets_checked = 0;
         let quiets_to_check = match depth {
             d @ 1..=3 => LMP_TABLE[d as usize],
@@ -238,13 +245,25 @@ impl Search {
 
         while let Some(mv) = picker.pick_move() {
             let is_quiet = is_quiet(board, mv);
+            let lmr_reduction = LMR.reduction(depth, moves_played.max(1));
+            let lmr_depth = 0.max(depth - lmr_reduction);
+
             if is_quiet {
                 quiets_checked += 1;
 
-                // Late Move Pruning (LMP)
-                // If we have searched too many moves, we stop searching here
-                if !PV && !in_check && quiets_checked >= quiets_to_check {
-                    break;
+                if !PV && !in_check && best_score > TB_LOSS_IN_PLY {
+                    // Late Move Pruning (LMP)
+                    // If we have searched too many moves, we stop searching here
+                    if quiets_checked >= quiets_to_check {
+                        break;
+                    }
+
+                    // Futility Pruning (FP)
+                    // If static eval plus a margin can't beat alpha, we stop searching here
+                    let fp_margin = lmr_depth * FP_COEFFICIENT + FP_MARGIN;
+                    if lmr_depth < FP_DEPTH && eval + fp_margin <= alpha {
+                        break;
+                    }
                 }
 
                 quiet_moves.push(Some(mv));
@@ -269,7 +288,7 @@ impl Search {
                     and can be searched with a reduced depth, if they beat alpha
                     we do a full re-search.
                 */
-                let r = if depth >= 3 && moves_played > lmr_depth {
+                let r = if depth >= 3 && moves_played > lmr_threshold {
                     // Probe LMR table (src/lmr.rs)
                     let mut r = LMR.reduction(depth, moves_played);
 

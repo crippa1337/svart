@@ -251,17 +251,19 @@ impl Search {
             if is_quiet {
                 quiets_checked += 1;
 
-                // Late Move Pruning (LMP)
-                // If we have searched too many moves, we stop searching here
-                if !PV && !in_check && quiets_checked >= quiets_to_check {
-                    break;
-                }
+                if !PV && !in_check && best_score > TB_LOSS_IN_PLY {
+                    // Late Move Pruning (LMP)
+                    // If we have searched too many moves, we stop searching here
+                    if quiets_checked >= quiets_to_check {
+                        break;
+                    }
 
-                // Futility Pruning (FP)
-                // If static eval plus a margin can't beat alpha, we stop searching here
-                let fp_margin = lmr_depth * FP_COEFFICIENT + FP_MARGIN;
-                if lmr_depth < FP_DEPTH && eval + fp_margin <= alpha {
-                    break;
+                    // Futility Pruning (FP)
+                    // If static eval plus a margin can't beat alpha, we stop searching here
+                    let fp_margin = lmr_depth * FP_COEFFICIENT + FP_MARGIN;
+                    if lmr_depth < FP_DEPTH && eval + fp_margin <= alpha {
+                        break;
+                    }
                 }
 
                 quiet_moves.push(Some(mv));

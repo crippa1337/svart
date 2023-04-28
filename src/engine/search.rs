@@ -282,12 +282,10 @@ impl Search {
                 score =
                     -self.pvsearch::<PV>(&new_b, &mut old_pv, -beta, -alpha, depth - 1, ply + 1);
             } else {
-                /*
-                    Late Move Reduction (LMR)
-                    Assuming our move ordering is good, later moves will be worse
-                    and can be searched with a reduced depth, if they beat alpha
-                    we do a full re-search.
-                */
+                // Late Move Reduction (LMR)
+                // Assuming our move ordering is good, later moves will be worse
+                // and can be searched with a reduced depth, if they beat alpha
+                // we do a full re-search.
                 let r = if depth >= 3 && moves_played > lmr_threshold {
                     // Probe LMR table (src/lmr.rs)
                     let mut r = LMR.reduction(depth, moves_played);
@@ -306,6 +304,20 @@ impl Search {
 
                 score =
                     -self.zw_search(&new_b, &mut old_pv, -alpha - 1, -alpha, depth - r, ply + 1);
+
+                // Three-fold LMR
+                // If the ZW beats alpha, then it might be
+                // worth looking at this good position fully
+                if score > alpha && r > 1 {
+                    score = -self.zw_search(
+                        &new_b,
+                        &mut old_pv,
+                        -alpha - 1,
+                        -alpha,
+                        depth - 1,
+                        ply + 1,
+                    );
+                }
 
                 if alpha < score && score < beta {
                     score = -self.pvsearch::<PV>(

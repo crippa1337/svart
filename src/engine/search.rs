@@ -309,7 +309,7 @@ impl Search {
                 // If the ZW beats alpha, then it might be
                 // worth looking at this good position fully
                 if score > alpha && r > 1 {
-                    score = -self.pvsearch::<PV>(
+                    score = -self.zw_search(
                         &new_b,
                         &mut old_pv,
                         -alpha - 1,

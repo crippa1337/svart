@@ -34,7 +34,11 @@ pub fn uci_loop() {
 
     loop {
         let mut line = String::new();
-        std::io::stdin().read_line(&mut line).unwrap();
+        let bytes_read = std::io::stdin().read_line(&mut line).unwrap();
+        if bytes_read == 0 {
+            // got EOF, exit.
+            break;
+        }
         line = line.trim().to_string();
         let words: Vec<&str> = line.split_whitespace().collect();
         if words.is_empty() {

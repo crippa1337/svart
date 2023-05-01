@@ -718,9 +718,9 @@ mod tests {
             let board = Board::from_fen(fen, false).unwrap();
             search.nnue.refresh(&board);
 
-            let (score, _) = search.data_search(&board, SearchType::Depth(16));
+            let (score, _) = search.data_search(&board, SearchType::Depth(20));
 
-            assert!((-10..=10).contains(&score), "{score}");
+            assert!((-10..=10).contains(&score), "{score} {fen}");
 
             search.game_reset();
         }

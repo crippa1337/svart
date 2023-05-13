@@ -20,8 +20,9 @@ Svart is not a complete chess program and requires a [UCI-compatible graphical u
 
 | Version   | CCRL 40/15     | CCRL Blitz     | MCERL        |
 | --------- | -------------- | -------------- | ------------ |
-| Svart 3.1 | 2860±30 [#132] | 2887±20 [#126] |              |
-| Svart 2   | 2462±24 [#283] | 2463±20 [#281] | 2484 [#152]  |
+| Svart 4   | 3015±38 [#91]  | 3138±17 [#74]  |              |
+| Svart 3.1 | 2880±23 [#123] | 2888±20 [#120] |              |
+| Svart 2   | 2463±24 [#285] | 2461±20 [#286] | 2484 [#152]  |
 
 
 # Compilation

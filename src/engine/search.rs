@@ -184,7 +184,7 @@ impl Search {
             self.nnue.evaluate(stm)
         };
 
-        // IIR
+        // Internal Iterative Reduction (IIR)
         if depth >= 3 && !tt_hit {
             depth -= 1
         }

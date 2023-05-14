@@ -184,6 +184,11 @@ impl Search {
             self.nnue.evaluate(stm)
         };
 
+        // IIR
+        if depth >= 3 && !tt_hit {
+            depth -= 1
+        }
+
         // Improving
         // If the previous eval from our point of view is worse than what it currently is
         // then we are improving our position. This is used in some heuristics to improve pruning.

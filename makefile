@@ -7,4 +7,4 @@ else
 endif
 
 rule:
-	cargo rustc --release -p svart -- -C target-cpu=native --emit link=$(NAME)
+	cargo rustc --release -p engine --bin engine -- -C target-cpu=native --emit link=$(NAME)

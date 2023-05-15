@@ -17,5 +17,5 @@ pub mod definitions {
     pub const NOMOVE: u16 = 0b0000_0000_0000_0000;
 }
 
-pub mod search;
+pub mod body;
 pub mod uci;

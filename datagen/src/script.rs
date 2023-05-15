@@ -10,8 +10,8 @@ use std::{
 use cozy_chess::{Board, Color, GameStatus, Piece};
 
 use engine::{
-    definitions, search::movegen, search::position::is_quiet, search::search::Search,
-    search::tt::TT, uci::handler::SearchType,
+    body::movegen, body::position::is_quiet, body::search::Search, body::tt::TT, definitions,
+    uci::handler::SearchType,
 };
 
 const DEFAULT: &str = "\x1b[0m";

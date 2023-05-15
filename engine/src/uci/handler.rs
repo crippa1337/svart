@@ -1,6 +1,6 @@
 use super::timeman::time_for_move;
+use crate::body::{search::Search, tt::TT};
 use crate::definitions::MATE;
-use crate::search::{search::Search, tt::TT};
 use cozy_chess::{Board, Color, Move, Piece, Square};
 
 #[derive(Debug, PartialEq, Copy, Clone)]

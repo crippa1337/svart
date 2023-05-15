@@ -80,7 +80,7 @@ pub fn is_quiet(board: &Board, mv: Move) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::search::position::{is_capture, is_quiet};
+    use crate::body::position::{is_capture, is_quiet};
 
     #[test]
     fn quiet_moves() {

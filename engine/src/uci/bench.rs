@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use super::handler::SearchType;
-use crate::search::{search::Search, tt::TT};
+use crate::body::{search::Search, tt::TT};
 use cozy_chess::Board;
 
 const FENS: [&str; 50] = [

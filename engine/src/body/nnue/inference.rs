@@ -193,7 +193,7 @@ fn weight_column_index(sq: Square, piece: Piece, color: Color) -> (usize, usize)
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::search::{movegen, position::play_move, search::Search, tt::TT};
+    use crate::body::{movegen, position::play_move, search::Search, tt::TT};
 
     #[test]
     fn nnue_update_feature() {

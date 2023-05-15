@@ -8,9 +8,11 @@ fn main() {
     match arg {
         Some("table") => {
             tables::print_net_history();
+            return;
         }
         Some("datagen") => {
             script::root().unwrap();
+            return;
         }
         _ => {}
     }

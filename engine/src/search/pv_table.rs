@@ -33,3 +33,9 @@ impl PVTable {
         pv
     }
 }
+
+impl Default for PVTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}

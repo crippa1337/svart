@@ -1,9 +1,10 @@
-EXE     = Svart
+EXE = Svart
+
 ifeq ($(OS),Windows_NT)
-NAME := $(EXE).exe
+	NAME := $(EXE).exe
 else
-NAME := $(EXE)
+	NAME := $(EXE)
 endif
 
 rule:
-	cargo rustc --release -- -C target-cpu=native --emit link=$(NAME)
+	cargo rustc --release -p engine --bin engine -- -C target-cpu=native --emit link=$(NAME)

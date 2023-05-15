@@ -1,8 +1,6 @@
 use super::timeman::time_for_move;
-use crate::{
-    definitions::MATE,
-    engine::{search::Search, tt::TT},
-};
+use crate::definitions::MATE;
+use crate::search::{search::Search, tt::TT};
 use cozy_chess::{Board, Color, Move, Piece, Square};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -16,7 +14,7 @@ pub enum SearchType {
 
 fn id() {
     println!("id name Svart 4.2");
-    println!("id author crippa");
+    println!("id author Crippa");
 }
 
 fn options() {
@@ -58,10 +56,6 @@ pub fn uci_loop() {
                 }
                 "bench" => {
                     super::bench::bench();
-                    break;
-                }
-                "datagen" => {
-                    crate::engine::nnue::datagen::script::root().unwrap();
                     break;
                 }
                 "position" => set_position(&mut board, &mut search, &mut board_set, words),

@@ -9,7 +9,10 @@ use super::{
     stat_vec::StaticVec,
     tt::{AgeAndFlag, PackedMove, TTFlag, TT},
 };
-use crate::{definitions::*, uci::handler::SearchType};
+
+use crate::definitions::*;
+use crate::uci::handler::SearchType;
+
 use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
 use once_cell::sync::Lazy;
 use std::time::Instant;
@@ -58,6 +61,12 @@ impl SearchInfo {
             history: History::new(),
             stack: std::array::from_fn(|_| StackEntry::default()),
         }
+    }
+}
+
+impl Default for SearchInfo {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

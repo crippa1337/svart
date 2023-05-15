@@ -9,10 +9,9 @@ use std::{
 
 use cozy_chess::{Board, Color, GameStatus, Piece};
 
-use crate::{
-    definitions,
-    engine::{movegen, position::is_quiet, search::Search, tt::TT},
-    uci::handler::SearchType,
+use engine::{
+    definitions, search::movegen, search::position::is_quiet, search::search::Search,
+    search::tt::TT, uci::handler::SearchType,
 };
 
 const DEFAULT: &str = "\x1b[0m";

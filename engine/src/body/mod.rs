@@ -5,5 +5,6 @@ pub(crate) mod nnue;
 pub mod position;
 pub mod pv_table;
 pub mod search;
+mod see;
 mod stat_vec;
 pub mod tt;

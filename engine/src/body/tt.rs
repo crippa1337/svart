@@ -153,18 +153,27 @@ impl TT {
         ply: usize,
     ) {
         let target_index = self.index(key);
-        let target = self.entries[target_index];
+        let mut target = &mut self.entries[target_index];
+
         let entry = TTEntry {
             key: key as u16,
             mv: PackedMove::new(mv),
-            score: self.score_to_tt(score, ply),
+            score: score_to_tt(score, ply),
             depth,
             age_flag: AgeAndFlag::new(self.epoch, flag),
         };
 
         // Only replace entries of similar or higher quality
         if entry.quality() >= target.quality() {
-            self.entries[target_index] = entry;
+            target.key = entry.key;
+            target.score = entry.score;
+            target.depth = entry.depth;
+            target.age_flag = entry.age_flag;
+
+            // Do not overwrite the move if there was no new best move
+            if mv.is_some() {
+                target.mv = entry.mv;
+            }
         }
     }
 
@@ -180,28 +189,6 @@ impl TT {
         }
     }
 
-    #[must_use]
-    pub fn score_to_tt(&self, score: i16, ply: usize) -> i16 {
-        if score >= TB_WIN_IN_PLY as i16 {
-            score + ply as i16
-        } else if score <= TB_LOSS_IN_PLY as i16 {
-            score - ply as i16
-        } else {
-            score
-        }
-    }
-
-    #[must_use]
-    pub fn score_from_tt(&self, score: i16, ply: usize) -> i16 {
-        if score >= TB_WIN_IN_PLY as i16 {
-            score - ply as i16
-        } else if score <= TB_LOSS_IN_PLY as i16 {
-            score + ply as i16
-        } else {
-            score
-        }
-    }
-
     pub fn reset(&mut self) {
         for entry in self.entries.iter_mut() {
             *entry = TTEntry {
@@ -212,6 +199,28 @@ impl TT {
                 age_flag: AgeAndFlag(0),
             };
         }
+    }
+}
+
+#[must_use]
+pub fn score_to_tt(score: i16, ply: usize) -> i16 {
+    if score >= TB_WIN_IN_PLY as i16 {
+        score + ply as i16
+    } else if score <= TB_LOSS_IN_PLY as i16 {
+        score - ply as i16
+    } else {
+        score
+    }
+}
+
+#[must_use]
+pub fn score_from_tt(score: i16, ply: usize) -> i16 {
+    if score >= TB_WIN_IN_PLY as i16 {
+        score - ply as i16
+    } else if score <= TB_LOSS_IN_PLY as i16 {
+        score + ply as i16
+    } else {
+        score
     }
 }
 

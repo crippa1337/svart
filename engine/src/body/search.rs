@@ -7,7 +7,7 @@ use super::{
     movegen,
     pv_table::PVTable,
     stat_vec::StaticVec,
-    tt::{AgeAndFlag, PackedMove, TTFlag, TT},
+    tt::{score_from_tt, AgeAndFlag, PackedMove, TTFlag, TT},
 };
 
 use crate::definitions::*;
@@ -163,7 +163,7 @@ impl Search {
 
         let tt_entry = self.tt.probe(hash_key);
         let tt_hit = tt_entry.key == hash_key as u16;
-        let tt_score = self.tt.score_from_tt(tt_entry.score, ply) as i32;
+        let tt_score = score_from_tt(tt_entry.score, ply) as i32;
         let mut tt_move: Option<Move> = None;
 
         if tt_hit {
@@ -384,6 +384,7 @@ impl Search {
         } else if best_score != old_alpha {
             TTFlag::Exact
         } else {
+            best_move = None;
             TTFlag::UpperBound
         };
 
@@ -436,7 +437,7 @@ impl Search {
         let mut tt_move: Option<Move> = None;
 
         if tt_hit && !PV && tt_entry.age_flag != AgeAndFlag(0) {
-            let tt_score = self.tt.score_from_tt(tt_entry.score, ply) as i32;
+            let tt_score = score_from_tt(tt_entry.score, ply) as i32;
             debug_assert!(tt_score != NONE);
 
             tt_move = Some(PackedMove::unpack(tt_entry.mv));

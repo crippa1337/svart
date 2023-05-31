@@ -305,3 +305,22 @@ Internal Iterative Reduction (IIR)
     https://chess.swehosting.se/test/757/
 
 ====================================================================================
+4.3 [May 31 2023]
+
+Fail-Hard NMP
+
+    ELO   | 29.81 +- 12.10 (95%)
+    SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+    LLR   | 2.95 (-2.94, 2.94) [0.00, 5.00]
+    GAMES | N: 1776 W: 571 L: 419 D: 786
+    https://chess.swehosting.se/test/1198/
+
+TT Move alpha
+
+    ELO   | 36.49 +- 13.38 (95%)
+    SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+    LLR   | 2.96 (-2.94, 2.94) [0.00, 5.00]
+    GAMES | N: 1424 W: 463 L: 314 D: 647
+    https://chess.swehosting.se/test/1203/
+
+====================================================================================

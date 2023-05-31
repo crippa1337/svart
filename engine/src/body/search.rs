@@ -229,11 +229,7 @@ impl Search {
                     -self.zw_search(&new_b, &mut old_pv, -beta, -beta + 1, depth - r, ply + 1);
 
                 if score >= beta {
-                    if score >= TB_WIN_IN_PLY {
-                        return beta;
-                    }
-
-                    return score;
+                    return beta;
                 }
             }
         }

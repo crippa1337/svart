@@ -581,7 +581,7 @@ impl Search {
                     [best_move.unwrap().to as usize] as f64
                     / self.info.nodes as f64;
 
-                let time_factor = (1.5 - best_move_fraction) * 2.04;
+                let time_factor = (1.5 - best_move_fraction) * 1.5;
                 opt = (self.info.base_optimum.unwrap() as f64 * time_factor) as u64;
                 
 

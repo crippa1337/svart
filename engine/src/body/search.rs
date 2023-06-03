@@ -38,8 +38,10 @@ pub struct SearchInfo {
     pub stop: bool,
     pub search_type: SearchType,
     pub timer: Option<Instant>,
+    pub base_optimum: Option<u64>,
     pub max_time: Option<u64>,
     pub nodes: u64,
+    pub node_table: [[u64; 64]; 64],
     pub seldepth: usize,
     pub game_history: Vec<u64>,
     pub killers: [[Option<Move>; 2]; MAX_PLY],
@@ -53,8 +55,10 @@ impl SearchInfo {
             stop: false,
             search_type: SearchType::Depth(0),
             timer: None,
+            base_optimum: None,
             max_time: None,
             nodes: 0,
+            node_table: [[0; 64]; 64],
             seldepth: 0,
             game_history: vec![],
             killers: [[None; 2]; MAX_PLY],
@@ -285,6 +289,7 @@ impl Search {
             moves_played += 1;
             self.info.game_history.push(board.hash());
             self.info.nodes += 1;
+            let previous_nodes = self.info.nodes;
             let gives_check = !board.checkers().is_empty();
 
             let mut score: i32;
@@ -343,6 +348,12 @@ impl Search {
 
             self.info.game_history.pop();
             self.nnue.pop();
+
+            if root {
+                // Difference in node count
+                self.info.node_table[mv.from as usize][mv.to as usize] +=
+                    self.info.nodes - previous_nodes;
+            }
 
             if score <= best_score {
                 continue;
@@ -503,6 +514,7 @@ impl Search {
                 depth = MAX_PLY;
                 self.info.timer = Some(Instant::now());
                 self.info.max_time = Some(max);
+                self.info.base_optimum = Some(opt);
                 opt_time = Some(opt);
             }
             SearchType::Infinite => {
@@ -559,8 +571,20 @@ impl Search {
                 }
             }
 
-            // Optimal time is up
-            if let Some(opt) = opt_time {
+            // Optimal time check
+            if let Some(mut opt) = opt_time {
+                // Time bound adjustments
+                #[rustfmt::skip]
+                let best_move_fraction = 
+                    self.info.node_table
+                    [best_move.unwrap().from as usize]
+                    [best_move.unwrap().to as usize] as f64
+                    / self.info.nodes as f64;
+
+                let time_factor = (1.5 - best_move_fraction) * 1.35;
+                opt = (self.info.base_optimum.unwrap() as f64 * time_factor) as u64;
+                
+
                 if info_timer.elapsed().as_millis() as u64 >= opt {
                     break;
                 }
@@ -646,7 +670,9 @@ impl Search {
         self.info.search_type = SearchType::Depth(0);
         self.info.timer = None;
         self.info.max_time = None;
+        self.info.base_optimum = None;
         self.info.nodes = 0;
+        self.info.node_table = [[0; 64]; 64];
         self.info.seldepth = 0;
         self.info.killers = [[None; 2]; MAX_PLY];
         self.info.history.age_table();

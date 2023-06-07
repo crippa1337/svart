@@ -38,9 +38,9 @@ $ make [rule / release / data]
 # Releases
 Svart's release scheme follows the [microarchitecture levels](https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels).
 
-**x86_64-v1** is the slowest but compatible with almost anything.
-**x86_64-v2** is faster but is compatible with CPUs pre-Haswell/Excavator.
-**x86_64-v3** is faster still and recommended on modern systems.
+**x86_64-v1** is the slowest but compatible with almost anything.<br>
+**x86_64-v2** is faster but is compatible with CPUs pre-Haswell/Excavator.<br>
+**x86_64-v3** is faster still and recommended on modern systems.<br>
 **x86_64-v4** is the fastest but requires AVX-512 support.
     
     

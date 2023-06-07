@@ -31,28 +31,17 @@ Compile Svart using [Cargo](https://doc.rust-lang.org/cargo/).
 ```
 $ git clone https://github.com/crippa1337/svart/
 $ cd svart
-$ make
+$ make [rule / release / data]
 ```
 
 
 # Releases
 Svart's release scheme follows the [microarchitecture levels](https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels).
 
-**x86_64-v3** is the fastest and recommended on modern systems.<br>
-**x86_64-v2** is less fast but is compatible with CPUs pre-Haswell/Excavator.<br>
 **x86_64-v1** is the slowest but compatible with almost anything.
-
-### x86_64-v3
-
-    RUSTFLAGS='-C target-feature=+fxsr,+sse,+sse2,+cmpxchg16b,+popcnt,+sse3,+sse4.1,+sse4.2,+ssse3,+avx,+avx2,+bmi1,+bmi2,+f16c,+fma,+lzcnt,+movbe' cargo build --release
-
-### x86_64-v2
-
-    RUSTFLAGS='-C target-feature=+fxsr,+sse,+sse2,+cmpxchg16b,+popcnt,+sse3,+sse4.1,+sse4.2,+ssse3' cargo build --release
-
-### x86_64-v1
-
-    RUSTFLAGS='-C target-feature=+fxsr,+sse,+sse2' cargo build --release    
+**x86_64-v2** is faster but is compatible with CPUs pre-Haswell/Excavator.
+**x86_64-v3** is faster still and recommended on modern systems.
+**x86_64-v4** is the fastest but requires AVX-512 support.
     
     
 [commits-badge]:https://img.shields.io/github/commits-since/crippa1337/svart/latest?style=for-the-badge

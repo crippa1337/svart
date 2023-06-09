@@ -14,13 +14,14 @@ fn see(board: &Board, mv: Move, threshold: i32) -> bool {
         board.piece_on(mv.from).unwrap()
     };
 
-    // Best case, no more captures
+    // Assume best case, no more captures
+    // ----------------------------------
     // Fails to beat threshold
     if score < 0 {
         return false;
     }
 
-    // Worst case, the opponent captures the piece back
+    // Assume the worst case, the opponent captures the piece back
     score -= VALUES[next_victim as usize];
 
     // Worst case beats the threshold

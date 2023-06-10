@@ -341,3 +341,20 @@ Node count TM
     https://chess.swehosting.se/test/1276/
 
 ====================================================================================
+5.2 [June 10]
+
+Use more of the increment time
+
+    STC - https://chess.swehosting.se/test/1488/
+    ELO   | 9.41 +- 6.19 (95%)
+    SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+    LLR   | 2.95 (-2.94, 2.94) [0.00, 5.00]
+    GAMES | N: 6576 W: 1877 L: 1699 D: 3000
+
+    LTC - https://chess.swehosting.se/test/1490/
+    ELO   | 4.02 +- 3.22 (95%)
+    SPRT  | 40.0+0.40s Threads=1 Hash=256MB
+    LLR   | 2.98 (-2.94, 2.94) [0.00, 5.00]
+    GAMES | N: 22376 W: 5740 L: 5481 D: 11155
+
+====================================================================================

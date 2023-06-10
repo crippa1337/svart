@@ -17,7 +17,7 @@ pub fn time_for_move(time: u64, inc: u64, moves_to_go: Option<u8>) -> (u64, u64)
         max_time = (5. * opt_time).min(eight);
     // normal TC
     } else {
-        let temp = ((time / 20) + (inc / 2)) as f64;
+        let temp = ((time / 20) + (inc * 3 / 4)) as f64;
         opt_time = 0.6 * temp;
         max_time = (temp * 2.).min(time as f64);
     }

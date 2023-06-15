@@ -334,7 +334,7 @@ impl Search {
                     );
                 }
 
-                if alpha < score && score < beta {
+                if (alpha + 1..beta).contains(&score) {
                     score = -self.pvsearch::<PV>(
                         &new_b,
                         &mut old_pv,

@@ -541,7 +541,7 @@ impl Search {
                 break;
             }
 
-            best_move = pv.table[0];
+            best_move = pv.best_move();
 
             if pretty {
                 crate::uci::handler::pretty_print(
@@ -709,7 +709,7 @@ impl Search {
                 break;
             }
 
-            best_move = pv.table[0];
+            best_move = pv.best_move();
 
             if let Some(nodes) = goal_nodes {
                 if self.info.nodes >= nodes {

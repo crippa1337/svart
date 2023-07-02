@@ -32,6 +32,10 @@ impl PVTable {
 
         pv
     }
+
+    pub fn best_move(&self) -> Option<Move> {
+        self.table[0]
+    }
 }
 
 impl Default for PVTable {

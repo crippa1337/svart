@@ -13,7 +13,7 @@ pub enum SearchType {
 }
 
 fn id() {
-    println!("id name Svart 5.2");
+    println!("id name Svart 5.3");
     println!("id author Crippa");
 }
 

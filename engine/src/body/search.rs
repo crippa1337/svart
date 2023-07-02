@@ -534,7 +534,7 @@ impl Search {
 
         for d in 1..=depth {
             self.info.seldepth = 0;
-            score = self.aspiration_window(board, &mut pv, score, d as i32);
+            score = self.aspiration_window(board, &mut pv, score, d as i32, &mut best_move);
 
             // Max time is up
             if self.info.stop && d > 1 {
@@ -600,6 +600,7 @@ impl Search {
         pv: &mut PVTable,
         prev_eval: i32,
         mut depth: i32,
+        best_move: &mut Option<Move>,
     ) -> i32 {
         let mut score: i32;
         let init_depth = depth;
@@ -634,6 +635,8 @@ impl Search {
                 beta = (INFINITY).min(score + delta);
 
                 depth -= i32::from(score.abs() < MATE_IN);
+
+                *best_move = pv.best_move();
             }
             // Search succeeded
             else {
@@ -703,7 +706,7 @@ impl Search {
 
         for d in 1..=depth {
             self.info.seldepth = 0;
-            score = self.aspiration_window(board, &mut pv, score, d as i32);
+            score = self.aspiration_window(board, &mut pv, score, d as i32, &mut best_move);
 
             if self.info.stop && d > 1 {
                 break;

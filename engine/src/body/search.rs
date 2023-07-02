@@ -636,7 +636,7 @@ impl Search {
 
                 depth -= i32::from(score.abs() < MATE_IN);
 
-                *best_move = pv.table[0];
+                *best_move = pv.best_move();
             }
             // Search succeeded
             else {

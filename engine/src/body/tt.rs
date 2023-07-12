@@ -139,7 +139,7 @@ impl TT {
     }
 
     pub fn age(&mut self) {
-        // // Cap at 63 for wrapping into 6 bits
+        // Cap at 63 for wrapping into 6 bits
         const EPOCH_MAX: u8 = 63;
 
         if self.epoch == EPOCH_MAX {

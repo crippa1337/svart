@@ -9,7 +9,10 @@ pub struct PVTable {
 
 impl PVTable {
     pub fn new() -> Self {
-        PVTable { length: 0, table: [None; MAX_PLY] }
+        PVTable {
+            length: 0,
+            table: [None; MAX_PLY],
+        }
     }
 
     pub fn store(&mut self, board: &Board, mv: Move, old: &Self) {

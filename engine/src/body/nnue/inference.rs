@@ -49,7 +49,10 @@ pub struct Accumulator {
 
 impl Default for Accumulator {
     fn default() -> Self {
-        Self { white: MODEL.feature_bias, black: MODEL.feature_bias }
+        Self {
+            white: MODEL.feature_bias,
+            black: MODEL.feature_bias,
+        }
     }
 }
 

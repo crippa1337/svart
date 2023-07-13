@@ -292,7 +292,10 @@ fn set_position(board: &mut Board, search: &mut Search, board_set: &mut bool, wo
     }
 
     if words.iter().any(|&x| x == "moves") && *board_set {
-        for word in words.iter().skip(words.iter().position(|&x| x == "moves").unwrap() + 1) {
+        for word in words
+            .iter()
+            .skip(words.iter().position(|&x| x == "moves").unwrap() + 1)
+        {
             let mut mv: Move = word.parse().unwrap();
             mv = check_castling_move(board, mv);
             board.play_unchecked(mv);
@@ -363,7 +366,10 @@ pub fn pretty_print(
     let knps: String;
     let n: String;
     if nodes < 1000 {
-        knps = format!("{GREY}{}no/s{DEFAULT}", nodes / (timer as u64 / 1000).max(1));
+        knps = format!(
+            "{GREY}{}no/s{DEFAULT}",
+            nodes / (timer as u64 / 1000).max(1)
+        );
         n = format!("{nodes}");
     } else {
         knps = format!("{GREY}{}kn/s{DEFAULT}", nodes / timer as u64);
@@ -372,7 +378,11 @@ pub fn pretty_print(
 
     let str = pv.as_str();
     let pv_width = 125;
-    let pv = if str.len() > pv_width { str[..pv_width].to_string() } else { str.to_string() };
+    let pv = if str.len() > pv_width {
+        str[..pv_width].to_string()
+    } else {
+        str.to_string()
+    };
 
     println!("{d: <7} {sc: <8} {n: <8} {knps: <18} {t: <15} {pv}");
 }

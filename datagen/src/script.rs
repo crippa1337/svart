@@ -230,7 +230,11 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
             let okay_move = is_quiet(&board, best_move);
             if not_in_check && okay_score && okay_move {
                 // Always report scores from white's perspective
-                score = if board.side_to_move() == Color::White { score } else { -score };
+                score = if board.side_to_move() == Color::White {
+                    score
+                } else {
+                    -score
+                };
 
                 game_buffer.push((score, format!("{}", board)));
             }

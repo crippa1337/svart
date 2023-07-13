@@ -82,7 +82,11 @@ pub struct Search {
 
 impl Search {
     pub fn new(tt: TT) -> Self {
-        Search { tt, nnue: NNUEState::from_board(&Board::default()), info: SearchInfo::new() }
+        Search {
+            tt,
+            nnue: NNUEState::from_board(&Board::default()),
+            info: SearchInfo::new(),
+        }
     }
 
     /*
@@ -380,7 +384,9 @@ impl Search {
                     let qi = quiet_moves.as_slice();
                     let qi = &qi[..quiet_moves.len() - 1];
                     for qm in qi {
-                        self.info.history.update_table::<false>(board, qm.unwrap(), depth);
+                        self.info
+                            .history
+                            .update_table::<false>(board, qm.unwrap(), depth);
                     }
                 }
 
@@ -402,7 +408,14 @@ impl Search {
         debug_assert!((-INFINITY..=INFINITY).contains(&best_score));
 
         if !self.info.stop {
-            self.tt.store(hash_key, best_move, best_score as i16, depth as u8, flag, ply);
+            self.tt.store(
+                hash_key,
+                best_move,
+                best_score as i16,
+                depth as u8,
+                flag,
+                ply,
+            );
         }
 
         best_score
@@ -495,10 +508,15 @@ impl Search {
 
         self.tt.prefetch(hash_key);
 
-        let flag = if best_score >= beta { TTFlag::LowerBound } else { TTFlag::UpperBound };
+        let flag = if best_score >= beta {
+            TTFlag::LowerBound
+        } else {
+            TTFlag::UpperBound
+        };
 
         if !self.info.stop {
-            self.tt.store(hash_key, best_move, best_score as i16, 0, flag, ply);
+            self.tt
+                .store(hash_key, best_move, best_score as i16, 0, flag, ply);
         }
 
         best_score
@@ -575,7 +593,7 @@ impl Search {
             if let Some(mut opt) = opt_time {
                 // Time bound adjustments
                 #[rustfmt::skip]
-                let best_move_fraction = 
+                let best_move_fraction =
                     self.info.node_table
                     [best_move.unwrap().from as usize]
                     [best_move.unwrap().to as usize] as f64
@@ -583,7 +601,6 @@ impl Search {
 
                 let time_factor = (1.5 - best_move_fraction) * 1.35;
                 opt = (self.info.base_optimum.unwrap() as f64 * time_factor) as u64;
-                
 
                 if info_timer.elapsed().as_millis() as u64 >= opt {
                     break;

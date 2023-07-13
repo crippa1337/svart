@@ -8,7 +8,9 @@ pub struct History {
 
 impl History {
     pub fn new() -> History {
-        History { table: [[[0; 64]; 64]; 2] }
+        History {
+            table: [[[0; 64]; 64]; 2],
+        }
     }
 
     #[must_use]
@@ -38,7 +40,11 @@ impl History {
     }
 
     pub fn age_table(&mut self) {
-        self.table.iter_mut().flatten().flatten().for_each(|x| *x /= 2);
+        self.table
+            .iter_mut()
+            .flatten()
+            .flatten()
+            .for_each(|x| *x /= 2);
     }
 }
 

@@ -50,7 +50,11 @@ impl PackedMove {
             _ => unreachable!(),
         };
 
-        Move { from, to, promotion }
+        Move {
+            from,
+            to,
+            promotion,
+        }
     }
 }
 
@@ -233,7 +237,11 @@ mod tests {
     #[test]
     fn tt_reset() {
         let mut tt = TT::new(1);
-        let mv = Move { from: Square::A1, to: Square::A2, promotion: None };
+        let mv = Move {
+            from: Square::A1,
+            to: Square::A2,
+            promotion: None,
+        };
         tt.store(5, Some(mv), 1, 3, TTFlag::UpperBound, 22);
         assert_eq!(tt.probe(5).score, 1);
 
@@ -249,23 +257,43 @@ mod tests {
 
     #[test]
     fn packed_moves() {
-        let mv = Move { from: Square::A1, to: Square::A2, promotion: None };
+        let mv = Move {
+            from: Square::A1,
+            to: Square::A2,
+            promotion: None,
+        };
         let packed = PackedMove::new(Some(mv));
         assert_eq!(packed.unpack(), mv);
 
-        let mv = Move { from: Square::B7, to: Square::A2, promotion: Some(Piece::Knight) };
+        let mv = Move {
+            from: Square::B7,
+            to: Square::A2,
+            promotion: Some(Piece::Knight),
+        };
         let packed = PackedMove::new(Some(mv));
         assert_eq!(packed.unpack(), mv);
 
-        let mv = Move { from: Square::C1, to: Square::A2, promotion: Some(Piece::Bishop) };
+        let mv = Move {
+            from: Square::C1,
+            to: Square::A2,
+            promotion: Some(Piece::Bishop),
+        };
         let packed = PackedMove::new(Some(mv));
         assert_eq!(packed.unpack(), mv);
 
-        let mv = Move { from: Square::H3, to: Square::H4, promotion: Some(Piece::Rook) };
+        let mv = Move {
+            from: Square::H3,
+            to: Square::H4,
+            promotion: Some(Piece::Rook),
+        };
         let packed = PackedMove::new(Some(mv));
         assert_eq!(packed.unpack(), mv);
 
-        let mv = Move { from: Square::D8, to: Square::D7, promotion: Some(Piece::Queen) };
+        let mv = Move {
+            from: Square::D8,
+            to: Square::D7,
+            promotion: Some(Piece::Queen),
+        };
         let packed = PackedMove::new(Some(mv));
         assert_eq!(packed.unpack(), mv);
     }

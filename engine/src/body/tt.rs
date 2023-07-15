@@ -144,7 +144,18 @@ impl TT {
 
     pub fn age(&mut self) {
         // Cap at 63 for wrapping into 6 bits
-        self.epoch = 63.min(self.epoch + 1);
+        const EPOCH_MAX: u8 = 63;
+
+        if self.epoch == EPOCH_MAX {
+            self.epoch = 0;
+            
+            for entry in self.entries.iter_mut() {
+                let flag = entry.age_flag.flag();
+                entry.age_flag = AgeAndFlag::new(0, flag);
+            };
+        }
+        
+        self.epoch += 1;
     }
 
     pub fn store(

@@ -180,13 +180,15 @@ impl TT {
 
         // Only replace entries of similar or higher quality
         if entry.quality() >= target.quality() {
+            let positions_differ = target.key != entry.key;
+
             target.key = entry.key;
             target.score = entry.score;
             target.depth = entry.depth;
             target.age_flag = entry.age_flag;
 
             // Do not overwrite the move if there was no new best move
-            if mv.is_some() {
+            if mv.is_some() || positions_differ {
                 target.mv = entry.mv;
             }
         }

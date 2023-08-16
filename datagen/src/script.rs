@@ -1,3 +1,9 @@
+use engine::{
+    body::{movegen, nnue::inference::NNUEState, position::is_quiet, search::Search, tt::TT},
+    definitions,
+    uci::handler::SearchType,
+};
+
 use std::{
     error::Error,
     fs::File,
@@ -8,11 +14,6 @@ use std::{
 };
 
 use cozy_chess::{Board, Color, GameStatus, Piece};
-
-use engine::{
-    body::movegen, body::position::is_quiet, body::search::Search, body::tt::TT, definitions,
-    uci::handler::SearchType,
-};
 
 const DEFAULT: &str = "\x1b[0m";
 const WHITE: &str = "\x1b[38;5;15m";
@@ -146,7 +147,8 @@ fn generate_main(params: Parameters) {
 
 fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
     let tt = TT::new(16);
-    let mut search = Search::new(tt);
+    let nnue = NNUEState::from_board(&Board::default());
+    let mut search = Search::new(&tt, &nnue, &vec![]);
     let rng = fastrand::Rng::new();
 
     let mut board;
@@ -212,11 +214,15 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
         }
 
         // ... play the rest of the game
+
+        // REMINDER TO SELF
+        // the game history of the search struct might not be taken care of properly?
         let (game_result, winner) = loop {
             let status = board.status();
             if draw(&board, &mut hashes) {
                 break (GameStatus::Drawn, None);
             }
+
             if status != GameStatus::Ongoing {
                 break (status, Some(!board.side_to_move()));
             }

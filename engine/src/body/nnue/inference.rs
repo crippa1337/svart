@@ -34,6 +34,7 @@ static MODEL: Parameters = Parameters {
     output_bias: unsafe { std::mem::transmute(*include_bytes!("net/output_bias.bin")) },
 };
 
+#[derive(Clone)]
 pub struct NNUEState {
     pub accumulators: [Accumulator; MAX_PLY],
     pub current_acc: usize,
@@ -215,10 +216,14 @@ mod tests {
     fn nnue_moves() {
         let board = Board::default();
         let tt = TT::new(16);
-        let mut search = Search::new(tt);
+        let nnue = NNUEState::from_board(&board);
+
+        let mut search = Search::new(&tt, &nnue, &vec![board.hash()]);
+
         let moves = movegen::all_moves(&search, &board, None, 0);
         let initial_white = search.nnue.accumulators[0].white;
         let initial_black = search.nnue.accumulators[0].black;
+
         for mv in moves {
             let mv = mv.mv;
             let mut new_b = board.clone();
@@ -252,7 +257,9 @@ mod tests {
         for fen in fens {
             let mut board = Board::from_fen(fen, false).unwrap();
             let tt = TT::new(16);
-            let mut search = Search::new(tt);
+            let nnue = NNUEState::from_board(&board);
+
+            let mut search = Search::new(&tt, &nnue, &vec![board.hash()]);
             search.nnue.refresh(&board);
             let moves = movegen::all_moves(&search, &board, None, 0);
 

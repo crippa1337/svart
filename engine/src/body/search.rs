@@ -135,7 +135,6 @@ impl Search {
         if let (Some(timer), Some(max)) = (self.info.timer, self.info.max_time) {
             if self.info.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= max {
                 store_stop(true);
-                return 0;
             }
         }
 

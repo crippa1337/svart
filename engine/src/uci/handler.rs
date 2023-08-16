@@ -36,6 +36,7 @@ pub fn uci_loop() {
 
     loop {
         let line = if let Some(si) = stored_input.clone() {
+            stored_input = None;
             si
         } else {
             read_input().unwrap()

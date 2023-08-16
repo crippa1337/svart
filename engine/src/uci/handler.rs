@@ -27,6 +27,7 @@ pub fn uci_loop() {
     let mut uci_set = false;
     let mut board_set = false;
     let mut board = Board::default();
+    let mut stored_input: Option<String> = None;
 
     let mut tt_size = 16;
     let mut tt = TT::new(tt_size);
@@ -34,7 +35,11 @@ pub fn uci_loop() {
     let mut game_history = vec![];
 
     loop {
-        let line = read_input().unwrap();
+        let line = if let Some(si) = stored_input.clone() {
+            si
+        } else {
+            read_input().unwrap()
+        };
 
         let words: Vec<&str> = line.split_whitespace().collect();
         if words.is_empty() {
@@ -120,25 +125,53 @@ pub fn uci_loop() {
                                 [words.iter().position(|&x| x == "depth").unwrap() + 1]
                                 .parse::<usize>()
                             {
-                                go(&board, SearchType::Depth(d), &tt, &nnue, &game_history);
+                                go(
+                                    &board,
+                                    SearchType::Depth(d),
+                                    &tt,
+                                    &nnue,
+                                    &game_history,
+                                    &mut stored_input,
+                                );
                             }
                         } else if words.iter().any(|&x| x == "nodes") {
                             if let Ok(n) = words
                                 [words.iter().position(|&x| x == "nodes").unwrap() + 1]
                                 .parse::<u64>()
                             {
-                                go(&board, SearchType::Nodes(n), &tt, &nnue, &game_history);
+                                go(
+                                    &board,
+                                    SearchType::Nodes(n),
+                                    &tt,
+                                    &nnue,
+                                    &game_history,
+                                    &mut stored_input,
+                                );
                             }
                         // Infinite search
                         } else if words.iter().any(|&x| x == "infinite") {
-                            go(&board, SearchType::Infinite, &tt, &nnue, &game_history);
+                            go(
+                                &board,
+                                SearchType::Infinite,
+                                &tt,
+                                &nnue,
+                                &game_history,
+                                &mut stored_input,
+                            );
                         // Static time search
                         } else if words.iter().any(|&x| x == "movetime") {
                             if let Ok(t) = words
                                 [words.iter().position(|&x| x == "movetime").unwrap() + 1]
                                 .parse::<u64>()
                             {
-                                go(&board, SearchType::Time(t, t), &tt, &nnue, &game_history);
+                                go(
+                                    &board,
+                                    SearchType::Time(t, t),
+                                    &tt,
+                                    &nnue,
+                                    &game_history,
+                                    &mut stored_input,
+                                );
                             }
                         // Time search
                         } else if words.iter().any(|&x| x == "wtime" || x == "btime") {
@@ -186,6 +219,7 @@ pub fn uci_loop() {
                                             &tt,
                                             &nnue,
                                             &game_history,
+                                            &mut stored_input,
                                         );
                                     }
                                     Err(_) => (),
@@ -234,6 +268,7 @@ pub fn uci_loop() {
                                             &tt,
                                             &nnue,
                                             &game_history,
+                                            &mut stored_input,
                                         );
                                     }
                                     Err(_) => (),
@@ -298,7 +333,14 @@ fn read_input() -> Result<String, ()> {
 }
 
 #[allow(clippy::borrowed_box)]
-fn go(board: &Board, st: SearchType, tt: &TT, nnue: &Box<NNUEState>, game_history: &Vec<u64>) {
+fn go(
+    board: &Board,
+    st: SearchType,
+    tt: &TT,
+    nnue: &Box<NNUEState>,
+    game_history: &Vec<u64>,
+    stored_input: &mut Option<String>,
+) {
     let mut search = Search::new(tt, nnue, game_history);
 
     std::thread::scope(|s| {
@@ -306,20 +348,27 @@ fn go(board: &Board, st: SearchType, tt: &TT, nnue: &Box<NNUEState>, game_histor
             search.iterative_deepening(board, st, false);
         });
 
-        handle_stop_and_quit();
+        *stored_input = handle_stop_and_quit();
     });
+
+    crate::body::search::store_stop(false);
 }
 
-fn handle_stop_and_quit() {
+fn handle_stop_and_quit() -> Option<String> {
     loop {
         let line = read_input().unwrap();
 
         match line.as_str().trim() {
-            "stop" => crate::body::search::store_stop(),
+            "stop" => {
+                crate::body::search::store_stop(true);
+                return None;
+            }
             "quit" => std::process::exit(0),
             "isready" => println!("readyok"),
             _ => {
-                continue;
+                if crate::body::search::load_stop() {
+                    return Some(line);
+                }
             }
         }
     }

@@ -75,8 +75,8 @@ impl Default for SearchInfo {
     }
 }
 
-pub fn store_stop() {
-    STOP.store(true, Ordering::Relaxed);
+pub fn store_stop(stop: bool) {
+    STOP.store(stop, Ordering::Relaxed);
 }
 
 pub fn load_stop() -> bool {
@@ -134,7 +134,7 @@ impl Search {
         // Every 1024 nodes, check if it's time to stop
         if let (Some(timer), Some(max)) = (self.info.timer, self.info.max_time) {
             if self.info.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= max {
-                store_stop();
+                store_stop(true);
                 return 0;
             }
         }
@@ -446,7 +446,7 @@ impl Search {
     ) -> i32 {
         if let (Some(timer), Some(max)) = (self.info.timer, self.info.max_time) {
             if self.info.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= max {
-                store_stop();
+                store_stop(true);
                 return 0;
             }
         }
@@ -622,6 +622,8 @@ impl Search {
                 }
             }
         }
+
+        store_stop(true);
 
         println!("bestmove {}", best_move.unwrap());
     }

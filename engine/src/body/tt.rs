@@ -1,5 +1,7 @@
 use crate::definitions::{NOMOVE, TB_LOSS_IN_PLY, TB_WIN_IN_PLY};
+
 use cozy_chess::{Move, Piece, Square};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum TTFlag {
@@ -17,6 +19,7 @@ impl PackedMove {
         if mv.is_none() {
             return Self(NOMOVE);
         }
+
         let mv = mv.unwrap();
         let from = mv.from as u16; // 0..63, 6 bits
         let to = mv.to as u16; // 0..63, 6 bits
@@ -105,9 +108,23 @@ impl TTEntry {
     }
 }
 
-#[derive(Clone)]
+// Thank you to Spamdrew and Cosmo for help in implementing the atomic TT
+impl From<u64> for TTEntry {
+    fn from(data: u64) -> Self {
+        // SAFETY: This is safe because all fields of TTEntry are (at base) integral types, and order is known.
+        unsafe { std::mem::transmute(data) }
+    }
+}
+
+impl From<TTEntry> for u64 {
+    fn from(entry: TTEntry) -> Self {
+        // SAFETY: This is safe because all bitpatterns of `u64` are valid.
+        unsafe { std::mem::transmute(entry) }
+    }
+}
+
 pub struct TT {
-    pub entries: Vec<TTEntry>,
+    pub entries: Vec<AtomicU64>,
     pub epoch: u8,
 }
 
@@ -116,14 +133,9 @@ impl TT {
         let hash_size = mb * 1024 * 1024;
         let size = hash_size / std::mem::size_of::<TTEntry>() as u32;
         let mut entries = Vec::with_capacity(size as usize);
+
         for _ in 0..size {
-            entries.push(TTEntry {
-                key: 0,
-                mv: PackedMove(NOMOVE),
-                score: 0,
-                depth: 0,
-                age_flag: AgeAndFlag(0),
-            });
+            entries.push(AtomicU64::new(0));
         }
 
         Self { entries, epoch: 0 }
@@ -139,7 +151,10 @@ impl TT {
 
     #[must_use]
     pub fn probe(&self, key: u64) -> TTEntry {
-        self.entries[self.index(key)]
+        let atomic = &self.entries[self.index(key)];
+        let entry = atomic.load(Ordering::Relaxed);
+
+        TTEntry::from(entry)
     }
 
     pub fn age(&mut self) {
@@ -148,18 +163,22 @@ impl TT {
 
         if self.epoch == EPOCH_MAX {
             self.epoch = 0;
-            
-            for entry in self.entries.iter_mut() {
-                let flag = entry.age_flag.flag();
-                entry.age_flag = AgeAndFlag::new(0, flag);
-            };
+
+            self.entries.iter_mut().for_each(|a| {
+                let entry = a.load(Ordering::Relaxed);
+                let mut entry = TTEntry::from(entry);
+
+                entry.age_flag = AgeAndFlag::new(0, entry.age_flag.flag());
+
+                a.store(entry.into(), Ordering::Relaxed);
+            })
         }
-        
+
         self.epoch += 1;
     }
 
     pub fn store(
-        &mut self,
+        &self,
         key: u64,
         mv: Option<Move>,
         score: i16,
@@ -168,7 +187,8 @@ impl TT {
         ply: usize,
     ) {
         let target_index = self.index(key);
-        let mut target = &mut self.entries[target_index];
+        let target_atomic = &self.entries[target_index];
+        let mut target: TTEntry = target_atomic.load(Ordering::Relaxed).into();
 
         let entry = TTEntry {
             key: key as u16,
@@ -191,31 +211,27 @@ impl TT {
             if mv.is_some() || positions_differ {
                 target.mv = entry.mv;
             }
+
+            target_atomic.store(target.into(), Ordering::Relaxed);
         }
     }
 
-    // hint to cpu that this memory adress will be accessed soon
-    // by slapping it in the cpu cache
     pub fn prefetch(&self, key: u64) {
-        let index = self.index(key);
-        let entry = &self.entries[index];
         #[cfg(target_arch = "x86_64")]
         unsafe {
             use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
-            _mm_prefetch((entry as *const TTEntry).cast::<i8>(), _MM_HINT_T0);
+
+            let index = self.index(key);
+            let entry = &self.entries[index];
+
+            _mm_prefetch((entry as *const AtomicU64).cast::<i8>(), _MM_HINT_T0);
         }
     }
 
     pub fn reset(&mut self) {
-        for entry in self.entries.iter_mut() {
-            *entry = TTEntry {
-                key: 0,
-                mv: PackedMove(NOMOVE),
-                score: 0,
-                depth: 0,
-                age_flag: AgeAndFlag(0),
-            };
-        }
+        self.entries.iter().for_each(|a| {
+            a.store(0, Ordering::Relaxed);
+        })
     }
 }
 
@@ -259,13 +275,16 @@ mod tests {
         assert_eq!(tt.probe(5).score, 1);
 
         tt.reset();
-        for entry in tt.entries.iter() {
-            assert_eq!(entry.score, 0);
-            assert_eq!(entry.age_flag, AgeAndFlag(0));
-            assert_eq!(entry.depth, 0);
-            assert_eq!(entry.key, 0);
-            assert_eq!(entry.mv, PackedMove(NOMOVE));
-        }
+        tt.entries.iter().for_each(|e| {
+            let e = e.load(Ordering::Relaxed);
+            let e = TTEntry::from(e);
+
+            assert_eq!(e.score, 0);
+            assert_eq!(e.age_flag, AgeAndFlag(0));
+            assert_eq!(e.depth, 0);
+            assert_eq!(e.key, 0);
+            assert_eq!(e.mv, PackedMove(NOMOVE));
+        });
     }
 
     #[test]

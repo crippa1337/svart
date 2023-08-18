@@ -1,7 +1,8 @@
 use super::timeman::time_for_move;
-use crate::body::nnue::inference::NNUEState;
-use crate::body::{search::Search, tt::TT};
+
+use crate::body::{history::History, nnue::inference::NNUEState, search::Search, tt::TT};
 use crate::definitions::MATE;
+
 use cozy_chess::{Board, Color, Move, Piece, Square};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -24,6 +25,7 @@ fn options() {
 }
 
 pub fn uci_loop() {
+    // This should (and will be) made into an object in and of itself later
     let mut uci_set = false;
     let mut board_set = false;
     let mut board = Board::default();
@@ -32,6 +34,7 @@ pub fn uci_loop() {
     let mut tt_size = 16;
     let mut tt = TT::new(tt_size);
     let mut nnue = NNUEState::from_board(&board);
+    let mut history = History::new();
     let mut game_history = vec![];
 
     loop {
@@ -70,7 +73,7 @@ pub fn uci_loop() {
                     words,
                 ),
                 "go" => {
-                    let mut search = Search::new(&tt, &nnue, &game_history);
+                    let mut search = Search::new(&tt, &nnue, &history, &game_history);
 
                     if board_set {
                         search.iterative_deepening(&board, SearchType::Infinite, true);
@@ -86,6 +89,7 @@ pub fn uci_loop() {
                     id();
                     options();
                     println!("uciok");
+
                     continue;
                 }
                 "isready" => {
@@ -95,7 +99,11 @@ pub fn uci_loop() {
                 "ucinewgame" => {
                     board = Board::default();
                     tt = TT::new(tt_size);
+                    nnue.refresh(&board);
+                    history = History::new();
+                    game_history = vec![board.hash()];
                     board_set = true;
+
                     continue;
                 }
                 "setoption" => {
@@ -129,8 +137,9 @@ pub fn uci_loop() {
                                 go(
                                     &board,
                                     SearchType::Depth(d),
-                                    &tt,
+                                    &mut tt,
                                     &nnue,
+                                    &mut history,
                                     &game_history,
                                     &mut stored_input,
                                 );
@@ -143,8 +152,9 @@ pub fn uci_loop() {
                                 go(
                                     &board,
                                     SearchType::Nodes(n),
-                                    &tt,
+                                    &mut tt,
                                     &nnue,
+                                    &mut history,
                                     &game_history,
                                     &mut stored_input,
                                 );
@@ -154,8 +164,9 @@ pub fn uci_loop() {
                             go(
                                 &board,
                                 SearchType::Infinite,
-                                &tt,
+                                &mut tt,
                                 &nnue,
+                                &mut history,
                                 &game_history,
                                 &mut stored_input,
                             );
@@ -168,8 +179,9 @@ pub fn uci_loop() {
                                 go(
                                     &board,
                                     SearchType::Time(t, t),
-                                    &tt,
+                                    &mut tt,
                                     &nnue,
+                                    &mut history,
                                     &game_history,
                                     &mut stored_input,
                                 );
@@ -217,8 +229,9 @@ pub fn uci_loop() {
                                         go(
                                             &board,
                                             SearchType::Time(opt, max),
-                                            &tt,
+                                            &mut tt,
                                             &nnue,
+                                            &mut history,
                                             &game_history,
                                             &mut stored_input,
                                         );
@@ -266,8 +279,9 @@ pub fn uci_loop() {
                                         go(
                                             &board,
                                             SearchType::Time(opt, max),
-                                            &tt,
+                                            &mut tt,
                                             &nnue,
+                                            &mut history,
                                             &game_history,
                                             &mut stored_input,
                                         );
@@ -337,12 +351,13 @@ fn read_input() -> Result<String, ()> {
 fn go(
     board: &Board,
     st: SearchType,
-    tt: &TT,
+    tt: &mut TT,
     nnue: &Box<NNUEState>,
+    history: &mut History,
     game_history: &Vec<u64>,
     stored_input: &mut Option<String>,
 ) {
-    let mut search = Search::new(tt, nnue, game_history);
+    let mut search = Search::new(tt, nnue, history, game_history);
 
     std::thread::scope(|s| {
         s.spawn(|| {
@@ -351,6 +366,10 @@ fn go(
 
         *stored_input = handle_stop_and_quit();
     });
+
+    *history = search.info.history;
+    history.age_table();
+    tt.age();
 
     crate::body::search::store_stop(false);
 }

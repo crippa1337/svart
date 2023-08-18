@@ -217,8 +217,9 @@ mod tests {
         let board = Board::default();
         let tt = TT::new(16);
         let nnue = NNUEState::from_board(&board);
+        let history = crate::body::history::History::new();
 
-        let mut search = Search::new(&tt, &nnue, &vec![board.hash()]);
+        let mut search = Search::new(&tt, &nnue, &history, &vec![board.hash()]);
 
         let moves = movegen::all_moves(&search, &board, None, 0);
         let initial_white = search.nnue.accumulators[0].white;
@@ -258,8 +259,9 @@ mod tests {
             let mut board = Board::from_fen(fen, false).unwrap();
             let tt = TT::new(16);
             let nnue = NNUEState::from_board(&board);
+            let history = crate::body::history::History::new();
 
-            let mut search = Search::new(&tt, &nnue, &vec![board.hash()]);
+            let mut search = Search::new(&tt, &nnue, &history, &vec![board.hash()]);
             search.nnue.refresh(&board);
             let moves = movegen::all_moves(&search, &board, None, 0);
 

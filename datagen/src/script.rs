@@ -148,7 +148,10 @@ fn generate_main(params: Parameters) {
 fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
     let tt = TT::new(16);
     let nnue = NNUEState::from_board(&Board::default());
-    let mut search = Search::new(&tt, &nnue, &vec![]);
+
+    // not implemented properly
+    let history = engine::body::history::History::new();
+    let mut search = Search::new(&tt, &nnue, &history, &vec![]);
     let rng = fastrand::Rng::new();
 
     let mut board;
@@ -228,6 +231,7 @@ fn generate_thread(id: usize, data_dir: &Path, options: &Parameters) {
             }
 
             search.go_reset();
+            //search.tt.age();
             let (mut score, best_move) = search.data_search(&board, options.st);
 
             // filter noisy positions

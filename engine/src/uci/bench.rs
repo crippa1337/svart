@@ -71,9 +71,11 @@ const FENS: [&str; 62] = [
 
 pub fn bench() {
     let tt = TT::new(16);
-    let nnue = NNUEState::from_board(&Board::default());
+    let b = Board::default();
+    let nnue = NNUEState::from_board(&b);
+    let history = crate::body::history::History::new();
 
-    let mut search = Search::new(&tt, &nnue, &vec![]);
+    let mut search = Search::new(&tt, &nnue, &history, &vec![b.hash()]);
     let mut tot_nodes = 0;
     let mut tot_time = 0;
 

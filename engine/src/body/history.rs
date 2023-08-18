@@ -2,6 +2,7 @@ use cozy_chess::{Board, Move};
 
 pub const MAX_HISTORY: i32 = i16::MAX as i32;
 
+#[derive(Clone)]
 pub struct History {
     pub table: [[[i32; 64]; 64]; 2],
 }

@@ -83,21 +83,27 @@ pub fn load_stop() -> bool {
     STOP.load(Ordering::Relaxed)
 }
 
-pub struct Search {
+pub struct Search<'a> {
     pub nnue: Box<NNUEState>,
-    pub tt: TT,
+    pub tt: &'a TT,
     pub info: SearchInfo,
 }
 
-impl Search {
+impl<'a> Search<'a> {
     #[allow(clippy::borrowed_box, clippy::ptr_arg)]
-    pub fn new(tt: &TT, nnue: &Box<NNUEState>, game_history: &Vec<u64>) -> Self {
+    pub fn new(
+        tt: &'a TT,
+        nnue: &Box<NNUEState>,
+        history: &History,
+        game_history: &Vec<u64>,
+    ) -> Self {
         let mut s = Search {
-            tt: tt.clone(),
+            tt,
             nnue: nnue.clone(),
             info: SearchInfo::new(),
         };
 
+        s.info.history = history.clone();
         s.info.game_history = game_history.clone();
 
         s
@@ -712,12 +718,10 @@ impl Search {
         self.info.seldepth = 0;
         self.info.killers = [[None; 2]; MAX_PLY];
         self.info.history.age_table();
-        self.tt.age();
     }
 
     pub fn game_reset(&mut self) {
         STOP.store(false, Ordering::Relaxed);
-        self.tt.reset();
         self.info = SearchInfo::new();
         self.info.game_history = vec![Board::default().hash()];
     }
@@ -788,7 +792,8 @@ mod tests {
 
         let tt = TT::new(16);
         let nnue = NNUEState::from_board(&Board::default());
-        let mut search = Search::new(&tt, &nnue, &vec![]);
+        let history = History::new();
+        let mut search = Search::new(&tt, &nnue, &history, &vec![]);
 
         for fen in FENS.iter() {
             let board = Board::from_fen(fen, false).unwrap();

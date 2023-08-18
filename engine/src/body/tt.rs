@@ -148,13 +148,13 @@ impl TT {
 
         if self.epoch == EPOCH_MAX {
             self.epoch = 0;
-            
+
             for entry in self.entries.iter_mut() {
                 let flag = entry.age_flag.flag();
                 entry.age_flag = AgeAndFlag::new(0, flag);
-            };
+            }
         }
-        
+
         self.epoch += 1;
     }
 
@@ -168,7 +168,7 @@ impl TT {
         ply: usize,
     ) {
         let target_index = self.index(key);
-        let mut target = &mut self.entries[target_index];
+        let target = &mut self.entries[target_index];
 
         let entry = TTEntry {
             key: key as u16,

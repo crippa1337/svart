@@ -70,7 +70,7 @@ const FENS: [&str; 62] = [
 ];
 
 pub fn bench() {
-    let tt = TT::new(16);
+    let mut tt = TT::new(16);
     let b = Board::default();
     let nnue = NNUEState::from_board(&b);
     let history = crate::body::history::History::new();
@@ -88,7 +88,9 @@ pub fn bench() {
         tot_time += timer.elapsed().as_millis();
         tot_nodes += search.info.nodes;
 
-        search.game_reset()
+        search.game_reset();
+        tt.reset();
+        search = Search::new(&tt, &nnue, &history, &vec![board.hash()]);
     }
 
     println!(

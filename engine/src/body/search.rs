@@ -15,9 +15,12 @@ use crate::uci::handler::SearchType;
 
 use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
 use once_cell::sync::Lazy;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
 static LMR: Lazy<LMRTable> = Lazy::new(LMRTable::new);
+static STOP: AtomicBool = AtomicBool::new(false);
+
 const RFP_MARGIN: i32 = 75;
 const LMP_TABLE: [usize; 4] = [0, 5, 8, 18];
 const FP_COEFFICIENT: i32 = 100;
@@ -35,7 +38,6 @@ impl Default for StackEntry {
 }
 
 pub struct SearchInfo {
-    pub stop: bool,
     pub search_type: SearchType,
     pub timer: Option<Instant>,
     pub base_optimum: Option<u64>,
@@ -52,7 +54,6 @@ pub struct SearchInfo {
 impl SearchInfo {
     pub fn new() -> Self {
         SearchInfo {
-            stop: false,
             search_type: SearchType::Depth(0),
             timer: None,
             base_optimum: None,
@@ -74,19 +75,38 @@ impl Default for SearchInfo {
     }
 }
 
-pub struct Search {
+pub fn store_stop(stop: bool) {
+    STOP.store(stop, Ordering::Relaxed);
+}
+
+pub fn load_stop() -> bool {
+    STOP.load(Ordering::Relaxed)
+}
+
+pub struct Search<'a> {
     pub nnue: Box<NNUEState>,
-    pub tt: TT,
+    pub tt: &'a TT,
     pub info: SearchInfo,
 }
 
-impl Search {
-    pub fn new(tt: TT) -> Self {
-        Search {
+impl<'a> Search<'a> {
+    #[allow(clippy::borrowed_box, clippy::ptr_arg)]
+    pub fn new(
+        tt: &'a TT,
+        nnue: &Box<NNUEState>,
+        history: &History,
+        game_history: &Vec<u64>,
+    ) -> Self {
+        let mut s = Search {
             tt,
-            nnue: NNUEState::from_board(&Board::default()),
+            nnue: nnue.clone(),
             info: SearchInfo::new(),
-        }
+        };
+
+        s.info.history = history.clone();
+        s.info.game_history = game_history.clone();
+
+        s
     }
 
     /*
@@ -120,11 +140,11 @@ impl Search {
         // Every 1024 nodes, check if it's time to stop
         if let (Some(timer), Some(max)) = (self.info.timer, self.info.max_time) {
             if self.info.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= max {
-                self.info.stop = true;
+                store_stop(true);
             }
         }
 
-        if self.info.stop && ply > 0 {
+        if load_stop() && ply > 0 {
             return 0;
         }
 
@@ -407,7 +427,7 @@ impl Search {
 
         debug_assert!((-INFINITY..=INFINITY).contains(&best_score));
 
-        if !self.info.stop {
+        if !load_stop() {
             self.tt.store(
                 hash_key,
                 best_move,
@@ -431,12 +451,12 @@ impl Search {
     ) -> i32 {
         if let (Some(timer), Some(max)) = (self.info.timer, self.info.max_time) {
             if self.info.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= max {
-                self.info.stop = true;
+                store_stop(true);
                 return 0;
             }
         }
 
-        if self.info.stop && ply > 0 {
+        if load_stop() && ply > 0 {
             return 0;
         }
 
@@ -514,7 +534,7 @@ impl Search {
             TTFlag::UpperBound
         };
 
-        if !self.info.stop {
+        if !load_stop() {
             self.tt
                 .store(hash_key, best_move, best_score as i16, 0, flag, ply);
         }
@@ -555,7 +575,7 @@ impl Search {
             score = self.aspiration_window(board, &mut pv, score, d as i32, &mut best_move);
 
             // Max time is up
-            if self.info.stop && d > 1 {
+            if load_stop() && d > 1 {
                 break;
             }
 
@@ -608,6 +628,8 @@ impl Search {
             }
         }
 
+        store_stop(true);
+
         println!("bestmove {}", best_move.unwrap());
     }
 
@@ -637,7 +659,7 @@ impl Search {
         loop {
             score = self.pvsearch::<true>(board, pv, alpha, beta, depth, 0);
 
-            if self.info.stop {
+            if load_stop() {
                 return 0;
             }
 
@@ -686,7 +708,7 @@ impl Search {
     }
 
     pub fn go_reset(&mut self) {
-        self.info.stop = false;
+        STOP.store(false, Ordering::Relaxed);
         self.info.search_type = SearchType::Depth(0);
         self.info.timer = None;
         self.info.max_time = None;
@@ -696,12 +718,12 @@ impl Search {
         self.info.seldepth = 0;
         self.info.killers = [[None; 2]; MAX_PLY];
         self.info.history.age_table();
-        self.tt.age();
     }
 
     pub fn game_reset(&mut self) {
-        self.tt.reset();
+        STOP.store(false, Ordering::Relaxed);
         self.info = SearchInfo::new();
+        self.info.game_history = vec![Board::default().hash()];
     }
 
     pub fn data_search(&mut self, board: &Board, st: SearchType) -> (i32, Move) {
@@ -725,7 +747,7 @@ impl Search {
             self.info.seldepth = 0;
             score = self.aspiration_window(board, &mut pv, score, d as i32, &mut best_move);
 
-            if self.info.stop && d > 1 {
+            if load_stop() && d > 1 {
                 break;
             }
 
@@ -769,7 +791,9 @@ mod tests {
         ];
 
         let tt = TT::new(16);
-        let mut search = Search::new(tt);
+        let nnue = NNUEState::from_board(&Board::default());
+        let history = History::new();
+        let mut search = Search::new(&tt, &nnue, &history, &vec![]);
 
         for fen in FENS.iter() {
             let board = Board::from_fen(fen, false).unwrap();

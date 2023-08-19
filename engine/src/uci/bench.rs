@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use super::handler::SearchType;
-use crate::body::{search::Search, tt::TT};
+use crate::body::{nnue::inference::NNUEState, search::Search, tt::TT};
 use cozy_chess::Board;
 
 const FENS: [&str; 62] = [
@@ -70,7 +70,12 @@ const FENS: [&str; 62] = [
 ];
 
 pub fn bench() {
-    let mut search = Search::new(TT::new(16));
+    let mut tt = TT::new(16);
+    let b = Board::default();
+    let nnue = NNUEState::from_board(&b);
+    let history = crate::body::history::History::new();
+
+    let mut search = Search::new(&tt, &nnue, &history, &vec![b.hash()]);
     let mut tot_nodes = 0;
     let mut tot_time = 0;
 
@@ -83,7 +88,9 @@ pub fn bench() {
         tot_time += timer.elapsed().as_millis();
         tot_nodes += search.info.nodes;
 
-        search.game_reset()
+        search.game_reset();
+        tt.reset();
+        search = Search::new(&tt, &nnue, &history, &vec![board.hash()]);
     }
 
     println!(

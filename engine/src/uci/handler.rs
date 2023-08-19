@@ -1,6 +1,8 @@
 use super::timeman::time_for_move;
-use crate::body::{search::Search, tt::TT};
+
+use crate::body::{history::History, nnue::inference::NNUEState, search::Search, tt::TT};
 use crate::definitions::MATE;
+
 use cozy_chess::{Board, Color, Move, Piece, Square};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -13,8 +15,8 @@ pub enum SearchType {
 }
 
 fn id() {
-    println!("id name Svart 5.3");
-    println!("id author Crippa");
+    println!("id name Svart 5.4");
+    println!("id author Cristopher Torgrip");
 }
 
 fn options() {
@@ -23,21 +25,26 @@ fn options() {
 }
 
 pub fn uci_loop() {
-    let mut board = Board::default();
-    let mut tt_size = 16;
-    let mut tt = TT::new(tt_size);
-    let mut search = Search::new(tt);
+    // This should (and will be) made into an object in and of itself later
     let mut uci_set = false;
     let mut board_set = false;
+    let mut board = Board::default();
+    let mut stored_input: Option<String> = None;
+
+    let mut tt_size = 16;
+    let mut tt = TT::new(tt_size);
+    let mut nnue = NNUEState::from_board(&board);
+    let mut history = History::new();
+    let mut game_history = vec![];
 
     loop {
-        let mut line = String::new();
-        let bytes_read = std::io::stdin().read_line(&mut line).unwrap();
-        if bytes_read == 0 {
-            // got EOF, exit.
-            break;
-        }
-        line = line.trim().to_string();
+        let line = if let Some(si) = stored_input.clone() {
+            stored_input = None;
+            si
+        } else {
+            read_input().unwrap()
+        };
+
         let words: Vec<&str> = line.split_whitespace().collect();
         if words.is_empty() {
             continue;
@@ -58,8 +65,16 @@ pub fn uci_loop() {
                     super::bench::bench();
                     break;
                 }
-                "position" => set_position(&mut board, &mut search, &mut board_set, words),
+                "position" => set_position(
+                    &mut board,
+                    &mut nnue,
+                    &mut game_history,
+                    &mut board_set,
+                    words,
+                ),
                 "go" => {
+                    let mut search = Search::new(&tt, &nnue, &history, &game_history);
+
                     if board_set {
                         search.iterative_deepening(&board, SearchType::Infinite, true);
                     } else {
@@ -74,6 +89,7 @@ pub fn uci_loop() {
                     id();
                     options();
                     println!("uciok");
+
                     continue;
                 }
                 "isready" => {
@@ -83,8 +99,11 @@ pub fn uci_loop() {
                 "ucinewgame" => {
                     board = Board::default();
                     tt = TT::new(tt_size);
-                    search = Search::new(tt);
+                    nnue.refresh(&board);
+                    history = History::new();
+                    game_history = vec![board.hash()];
                     board_set = true;
+
                     continue;
                 }
                 "setoption" => {
@@ -95,13 +114,18 @@ pub fn uci_loop() {
                             }
                             tt_size = s;
                             tt = TT::new(tt_size);
-                            search = Search::new(tt);
-                            search.nnue.refresh(&board);
+                            nnue.refresh(&board);
                         }
                     }
                     continue;
                 }
-                "position" => set_position(&mut board, &mut search, &mut board_set, words),
+                "position" => set_position(
+                    &mut board,
+                    &mut nnue,
+                    &mut game_history,
+                    &mut board_set,
+                    words,
+                ),
                 "go" => {
                     if board_set {
                         // Static depth search
@@ -110,25 +134,57 @@ pub fn uci_loop() {
                                 [words.iter().position(|&x| x == "depth").unwrap() + 1]
                                 .parse::<usize>()
                             {
-                                go(&board, SearchType::Depth(d), &mut search);
+                                go(
+                                    &board,
+                                    SearchType::Depth(d),
+                                    &mut tt,
+                                    &nnue,
+                                    &mut history,
+                                    &game_history,
+                                    &mut stored_input,
+                                );
                             }
                         } else if words.iter().any(|&x| x == "nodes") {
                             if let Ok(n) = words
                                 [words.iter().position(|&x| x == "nodes").unwrap() + 1]
                                 .parse::<u64>()
                             {
-                                go(&board, SearchType::Nodes(n), &mut search);
+                                go(
+                                    &board,
+                                    SearchType::Nodes(n),
+                                    &mut tt,
+                                    &nnue,
+                                    &mut history,
+                                    &game_history,
+                                    &mut stored_input,
+                                );
                             }
                         // Infinite search
                         } else if words.iter().any(|&x| x == "infinite") {
-                            go(&board, SearchType::Infinite, &mut search);
+                            go(
+                                &board,
+                                SearchType::Infinite,
+                                &mut tt,
+                                &nnue,
+                                &mut history,
+                                &game_history,
+                                &mut stored_input,
+                            );
                         // Static time search
                         } else if words.iter().any(|&x| x == "movetime") {
                             if let Ok(t) = words
                                 [words.iter().position(|&x| x == "movetime").unwrap() + 1]
                                 .parse::<u64>()
                             {
-                                go(&board, SearchType::Time(t, t), &mut search);
+                                go(
+                                    &board,
+                                    SearchType::Time(t, t),
+                                    &mut tt,
+                                    &nnue,
+                                    &mut history,
+                                    &game_history,
+                                    &mut stored_input,
+                                );
                             }
                         // Time search
                         } else if words.iter().any(|&x| x == "wtime" || x == "btime") {
@@ -170,7 +226,15 @@ pub fn uci_loop() {
 
                                         let (opt, max) = time_for_move(t, inc, mtg);
 
-                                        go(&board, SearchType::Time(opt, max), &mut search);
+                                        go(
+                                            &board,
+                                            SearchType::Time(opt, max),
+                                            &mut tt,
+                                            &nnue,
+                                            &mut history,
+                                            &game_history,
+                                            &mut stored_input,
+                                        );
                                     }
                                     Err(_) => (),
                                 }
@@ -212,7 +276,15 @@ pub fn uci_loop() {
 
                                         let (opt, max) = time_for_move(t, inc, mtg);
 
-                                        go(&board, SearchType::Time(opt, max), &mut search);
+                                        go(
+                                            &board,
+                                            SearchType::Time(opt, max),
+                                            &mut tt,
+                                            &nnue,
+                                            &mut history,
+                                            &game_history,
+                                            &mut stored_input,
+                                        );
                                     }
                                     Err(_) => (),
                                 }
@@ -224,7 +296,7 @@ pub fn uci_loop() {
                     continue;
                 }
                 "eval" => {
-                    println!("{}", search.nnue.evaluate(board.side_to_move()));
+                    println!("{}", nnue.evaluate(board.side_to_move()));
                 }
                 "quit" => {
                     break;
@@ -263,16 +335,76 @@ pub fn reverse_castling_move(board: &Board, mut mv: Move) -> Move {
     mv
 }
 
-fn go(board: &Board, st: SearchType, search: &mut Search) {
-    search.iterative_deepening(board, st, false);
-    search.go_reset();
+fn read_input() -> Result<String, ()> {
+    let mut line = String::new();
+    let bytes_read = std::io::stdin().read_line(&mut line).unwrap();
+
+    if bytes_read == 0 {
+        // EOF
+        return Err(());
+    }
+
+    Ok(line.trim().to_string())
 }
 
-fn set_position(board: &mut Board, search: &mut Search, board_set: &mut bool, words: Vec<&str>) {
+#[allow(clippy::borrowed_box)]
+fn go(
+    board: &Board,
+    st: SearchType,
+    tt: &mut TT,
+    nnue: &Box<NNUEState>,
+    history: &mut History,
+    game_history: &Vec<u64>,
+    stored_input: &mut Option<String>,
+) {
+    let mut search = Search::new(tt, nnue, history, game_history);
+
+    std::thread::scope(|s| {
+        s.spawn(|| {
+            search.iterative_deepening(board, st, false);
+        });
+
+        *stored_input = handle_stop_and_quit();
+    });
+
+    *history = search.info.history;
+    history.age_table();
+    tt.age();
+
+    crate::body::search::store_stop(false);
+}
+
+fn handle_stop_and_quit() -> Option<String> {
+    loop {
+        let line = read_input().unwrap();
+
+        match line.as_str().trim() {
+            "stop" => {
+                crate::body::search::store_stop(true);
+                return None;
+            }
+            "quit" => std::process::exit(0),
+            "isready" => println!("readyok"),
+            _ => {
+                if crate::body::search::load_stop() {
+                    return Some(line);
+                }
+            }
+        }
+    }
+}
+
+fn set_position(
+    board: &mut Board,
+    nnue: &mut NNUEState,
+    game_history: &mut Vec<u64>,
+    board_set: &mut bool,
+    words: Vec<&str>,
+) {
     if words[1] == "startpos" {
         *board = Board::default();
         *board_set = true;
-        search.info.game_history = vec![board.hash()]
+        *game_history = vec![board.hash()]
     } else if words[1] == "fen" {
         // Put together the split fen string
         let mut fen = String::new();
@@ -287,7 +419,7 @@ fn set_position(board: &mut Board, search: &mut Search, board_set: &mut bool, wo
         if let Ok(b) = Board::from_fen(fen.trim(), false) {
             *board = b;
             *board_set = true;
-            search.info.game_history = vec![board.hash()]
+            *game_history = vec![board.hash()]
         }
     }
 
@@ -299,12 +431,12 @@ fn set_position(board: &mut Board, search: &mut Search, board_set: &mut bool, wo
             let mut mv: Move = word.parse().unwrap();
             mv = check_castling_move(board, mv);
             board.play_unchecked(mv);
-            search.info.game_history.push(board.hash());
+            game_history.push(board.hash());
         }
     }
 
     if *board_set {
-        search.nnue.refresh(board);
+        nnue.refresh(board);
     }
 }
 

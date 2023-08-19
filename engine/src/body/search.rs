@@ -194,7 +194,7 @@ impl<'a> Search<'a> {
         let tt_score = score_from_tt(tt_entry.score, ply) as i32;
         let mut tt_move: Option<Move> = None;
 
-        if tt_hit {
+        if tt_hit && u64::from(tt_entry) != 0 {
             tt_move = Some(PackedMove::unpack(tt_entry.mv));
 
             if !PV && i32::from(tt_entry.depth) >= depth {
@@ -480,18 +480,20 @@ impl<'a> Search<'a> {
         let tt_hit = tt_entry.key == hash_key as u16;
         let mut tt_move: Option<Move> = None;
 
-        if tt_hit && !PV && tt_entry.age_flag != AgeAndFlag(0) {
-            let tt_score = score_from_tt(tt_entry.score, ply) as i32;
-            debug_assert!(tt_score != NONE);
-
+        if tt_hit && u64::from(tt_entry) != 0 {
             tt_move = Some(PackedMove::unpack(tt_entry.mv));
-            let flag = tt_entry.age_flag.flag();
 
-            if (flag == TTFlag::Exact)
-                || (flag == TTFlag::LowerBound && tt_score >= beta)
-                || (flag == TTFlag::UpperBound && tt_score <= alpha)
-            {
-                return tt_score;
+            if !PV {
+                let tt_score = score_from_tt(tt_entry.score, ply) as i32;
+                let flag = tt_entry.age_flag.flag();
+                debug_assert!(tt_score != NONE && tt_entry.age_flag != AgeAndFlag(0));
+
+                if (flag == TTFlag::Exact)
+                    || (flag == TTFlag::LowerBound && tt_score >= beta)
+                    || (flag == TTFlag::UpperBound && tt_score <= alpha)
+                {
+                    return tt_score;
+                }
             }
         }
 

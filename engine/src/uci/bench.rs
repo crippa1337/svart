@@ -84,7 +84,7 @@ pub fn bench() {
         search.nnue.refresh(&board);
 
         let timer = Instant::now();
-        search.iterative_deepening(&board, SearchType::Depth(12), false);
+        search.iterative_deepening::<true>(&board, SearchType::Depth(12), false);
         tot_time += timer.elapsed().as_millis();
         tot_nodes += search.info.nodes;
 

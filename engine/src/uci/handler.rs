@@ -14,6 +14,26 @@ pub enum SearchType {
     Infinite,
 }
 
+struct UCIOptions {
+    hash: u32,
+    threads: u32,
+}
+
+impl UCIOptions {
+    fn new() -> Self {
+        Self {
+            hash: 16,
+            threads: 1,
+        }
+    }
+}
+
+impl Default for UCIOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 fn id() {
     println!("id name Svart 5.4");
     println!("id author Cristopher Torgrip");
@@ -31,8 +51,9 @@ pub fn uci_loop() {
     let mut board = Board::default();
     let mut stored_input: Option<String> = None;
 
-    let mut tt_size = 16;
-    let mut tt = TT::new(tt_size);
+    let mut uci_options = UCIOptions::default();
+    let mut tt = TT::new(uci_options.hash);
+
     let mut nnue = NNUEState::from_board(&board);
     let mut history = History::new();
     let mut game_history = vec![];
@@ -76,9 +97,13 @@ pub fn uci_loop() {
                     let mut search = Search::new(&tt, &nnue, &history, &game_history);
 
                     if board_set {
-                        search.iterative_deepening(&board, SearchType::Infinite, true);
+                        search.iterative_deepening::<true>(&board, SearchType::Infinite, true);
                     } else {
-                        search.iterative_deepening(&Board::default(), SearchType::Infinite, true);
+                        search.iterative_deepening::<true>(
+                            &Board::default(),
+                            SearchType::Infinite,
+                            true,
+                        );
                     }
                 }
                 _ => (),
@@ -98,7 +123,7 @@ pub fn uci_loop() {
                 }
                 "ucinewgame" => {
                     board = Board::default();
-                    tt = TT::new(tt_size);
+                    tt = TT::new(uci_options.hash);
                     nnue.refresh(&board);
                     history = History::new();
                     game_history = vec![board.hash()];
@@ -112,11 +137,22 @@ pub fn uci_loop() {
                             if s > 1_000_000 {
                                 continue;
                             }
-                            tt_size = s;
-                            tt = TT::new(tt_size);
-                            nnue.refresh(&board);
+
+                            uci_options.hash = s;
+                            tt = TT::new(uci_options.hash);
                         }
                     }
+
+                    if words[1] == "name" && words[2] == "Threads" && words[3] == "value" {
+                        if let Ok(t) = words[4].parse::<u32>() {
+                            if t < 1 {
+                                continue;
+                            }
+
+                            uci_options.threads = t;
+                        }
+                    }
+
                     continue;
                 }
                 "position" => set_position(
@@ -142,6 +178,7 @@ pub fn uci_loop() {
                                     &mut history,
                                     &game_history,
                                     &mut stored_input,
+                                    &uci_options,
                                 );
                             }
                         } else if words.iter().any(|&x| x == "nodes") {
@@ -157,6 +194,7 @@ pub fn uci_loop() {
                                     &mut history,
                                     &game_history,
                                     &mut stored_input,
+                                    &uci_options,
                                 );
                             }
                         // Infinite search
@@ -169,6 +207,7 @@ pub fn uci_loop() {
                                 &mut history,
                                 &game_history,
                                 &mut stored_input,
+                                &uci_options,
                             );
                         // Static time search
                         } else if words.iter().any(|&x| x == "movetime") {
@@ -184,6 +223,7 @@ pub fn uci_loop() {
                                     &mut history,
                                     &game_history,
                                     &mut stored_input,
+                                    &uci_options,
                                 );
                             }
                         // Time search
@@ -234,6 +274,7 @@ pub fn uci_loop() {
                                             &mut history,
                                             &game_history,
                                             &mut stored_input,
+                                            &uci_options,
                                         );
                                     }
                                     Err(_) => (),
@@ -284,6 +325,7 @@ pub fn uci_loop() {
                                             &mut history,
                                             &game_history,
                                             &mut stored_input,
+                                            &uci_options,
                                         );
                                     }
                                     Err(_) => (),
@@ -347,7 +389,7 @@ fn read_input() -> Result<String, ()> {
     Ok(line.trim().to_string())
 }
 
-#[allow(clippy::borrowed_box)]
+#[allow(clippy::borrowed_box, clippy::too_many_arguments)]
 fn go(
     board: &Board,
     st: SearchType,
@@ -356,13 +398,25 @@ fn go(
     history: &mut History,
     game_history: &Vec<u64>,
     stored_input: &mut Option<String>,
+    uci_options: &UCIOptions,
 ) {
     let mut search = Search::new(tt, nnue, history, game_history);
+    let mut secondary_searchers = vec![];
+
+    for _ in 0..uci_options.threads {
+        secondary_searchers.push(Search::new(tt, nnue, history, game_history));
+    }
 
     std::thread::scope(|s| {
         s.spawn(|| {
-            search.iterative_deepening(board, st, false);
+            search.iterative_deepening::<true>(board, st, false);
         });
+
+        for searcher in secondary_searchers.iter_mut() {
+            s.spawn(|| {
+                searcher.iterative_deepening::<false>(board, st, false);
+            });
+        }
 
         *stored_input = handle_stop_and_quit();
     });

@@ -403,7 +403,7 @@ fn go(
     let mut search = Search::new(tt, nnue, history, game_history);
     let mut secondary_searchers = vec![];
 
-    for _ in 0..uci_options.threads {
+    for _ in 0..uci_options.threads - 1 {
         secondary_searchers.push(Search::new(tt, nnue, history, game_history));
     }
 

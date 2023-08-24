@@ -41,7 +41,7 @@ fn id() {
 
 fn options() {
     println!("option name Hash type spin default 16 min 1 max 1000000");
-    println!("option name Threads type spin default 1 min 1 max 1");
+    println!("option name Threads type spin default 1 min 1 max 256");
 }
 
 pub fn uci_loop() {
@@ -145,7 +145,7 @@ pub fn uci_loop() {
 
                     if words[1] == "name" && words[2] == "Threads" && words[3] == "value" {
                         if let Ok(t) = words[4].parse::<u32>() {
-                            if t < 1 {
+                            if !(1..=256).contains(&t) {
                                 continue;
                             }
 

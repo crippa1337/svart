@@ -15,11 +15,12 @@ use crate::uci::handler::SearchType;
 
 use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
 use once_cell::sync::Lazy;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Instant;
 
 static LMR: Lazy<LMRTable> = Lazy::new(LMRTable::new);
 static STOP: AtomicBool = AtomicBool::new(false);
+static NODES: AtomicU64 = AtomicU64::new(0);
 
 const RFP_MARGIN: i32 = 75;
 const LMP_TABLE: [usize; 4] = [0, 5, 8, 18];
@@ -43,6 +44,7 @@ pub struct SearchInfo {
     pub base_optimum: Option<u64>,
     pub max_time: Option<u64>,
     pub nodes: u64,
+    prev_nodes: u64,
     pub node_table: [[u64; 64]; 64],
     pub seldepth: usize,
     pub game_history: Vec<u64>,
@@ -59,6 +61,7 @@ impl SearchInfo {
             base_optimum: None,
             max_time: None,
             nodes: 0,
+            prev_nodes: 0,
             node_table: [[0; 64]; 64],
             seldepth: 0,
             game_history: vec![],
@@ -76,11 +79,19 @@ impl Default for SearchInfo {
 }
 
 pub fn store_stop(stop: bool) {
-    STOP.store(stop, Ordering::Relaxed);
+    STOP.store(stop, Ordering::SeqCst);
 }
 
 pub fn load_stop() -> bool {
-    STOP.load(Ordering::Relaxed)
+    STOP.load(Ordering::SeqCst)
+}
+
+fn add_nodes(nodes: u64) {
+    NODES.fetch_add(nodes, Ordering::SeqCst);
+}
+
+fn load_nodes() -> u64 {
+    NODES.load(Ordering::SeqCst)
 }
 
 pub struct Search<'a> {
@@ -115,6 +126,7 @@ impl<'a> Search<'a> {
         (https://www.chessprogramming.org/Null_Window)
     */
     #[must_use]
+    #[allow(clippy::too_many_arguments)]
     fn zw_search(
         &mut self,
         main_thread: bool,
@@ -129,6 +141,7 @@ impl<'a> Search<'a> {
     }
 
     #[must_use]
+    #[allow(clippy::too_many_arguments)]
     pub fn pvsearch<const PV: bool>(
         &mut self,
         main_thread: bool,
@@ -151,6 +164,11 @@ impl<'a> Search<'a> {
 
         if load_stop() && ply > 0 {
             return 0;
+        }
+
+        if self.info.nodes % 2048 == 0 {
+            add_nodes(self.info.nodes - self.info.prev_nodes);
+            self.info.prev_nodes = self.info.nodes;
         }
 
         let stm = board.side_to_move();
@@ -488,6 +506,11 @@ impl<'a> Search<'a> {
             return 0;
         }
 
+        if self.info.nodes % 2048 == 0 {
+            add_nodes(self.info.nodes - self.info.prev_nodes);
+            self.info.prev_nodes = self.info.nodes;
+        }
+
         let stm = board.side_to_move();
 
         if ply >= MAX_PLY {
@@ -639,23 +662,29 @@ impl<'a> Search<'a> {
 
             best_move = pv.best_move();
 
+            let mut n = load_nodes();
+            if n == 0 {
+                n = self.info.nodes;
+            }
+
             if pretty {
                 crate::uci::handler::pretty_print(
                     d,
                     self.info.seldepth,
                     score,
-                    self.info.nodes,
+                    load_nodes(),
                     info_timer.elapsed().as_millis(),
                     pv.pv_string(),
                 );
             } else {
                 println!(
-                    "info depth {} seldepth {} score {} nodes {} time {} pv{}",
+                    "info depth {} seldepth {} score {} nodes {} time {} nps {} pv{}",
                     d,
                     self.info.seldepth,
                     format_score(score),
-                    self.info.nodes,
+                    n,
                     info_timer.elapsed().as_millis(),
+                    n / info_timer.elapsed().as_secs().max(1),
                     pv.pv_string()
                 );
             }

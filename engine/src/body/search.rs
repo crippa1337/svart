@@ -15,11 +15,12 @@ use crate::uci::handler::SearchType;
 
 use cozy_chess::{BitBoard, Board, Color, GameStatus, Move, Piece};
 use once_cell::sync::Lazy;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Instant;
 
 static LMR: Lazy<LMRTable> = Lazy::new(LMRTable::new);
 static STOP: AtomicBool = AtomicBool::new(false);
+static NODES: AtomicU64 = AtomicU64::new(0);
 
 const RFP_MARGIN: i32 = 75;
 const LMP_TABLE: [usize; 4] = [0, 5, 8, 18];
@@ -43,6 +44,7 @@ pub struct SearchInfo {
     pub base_optimum: Option<u64>,
     pub max_time: Option<u64>,
     pub nodes: u64,
+    prev_nodes: u64,
     pub node_table: [[u64; 64]; 64],
     pub seldepth: usize,
     pub game_history: Vec<u64>,
@@ -59,6 +61,7 @@ impl SearchInfo {
             base_optimum: None,
             max_time: None,
             nodes: 0,
+            prev_nodes: 0,
             node_table: [[0; 64]; 64],
             seldepth: 0,
             game_history: vec![],
@@ -76,11 +79,19 @@ impl Default for SearchInfo {
 }
 
 pub fn store_stop(stop: bool) {
-    STOP.store(stop, Ordering::Relaxed);
+    STOP.store(stop, Ordering::SeqCst);
 }
 
 pub fn load_stop() -> bool {
-    STOP.load(Ordering::Relaxed)
+    STOP.load(Ordering::SeqCst)
+}
+
+fn add_nodes(nodes: u64) {
+    NODES.fetch_add(nodes, Ordering::SeqCst);
+}
+
+fn load_nodes() -> u64 {
+    NODES.load(Ordering::SeqCst)
 }
 
 pub struct Search<'a> {
@@ -115,8 +126,10 @@ impl<'a> Search<'a> {
         (https://www.chessprogramming.org/Null_Window)
     */
     #[must_use]
+    #[allow(clippy::too_many_arguments)]
     fn zw_search(
         &mut self,
+        main_thread: bool,
         board: &Board,
         pv: &mut PVTable,
         alpha: i32,
@@ -124,12 +137,14 @@ impl<'a> Search<'a> {
         depth: i32,
         ply: usize,
     ) -> i32 {
-        self.pvsearch::<false>(board, pv, alpha, beta, depth, ply)
+        self.pvsearch::<false>(main_thread, board, pv, alpha, beta, depth, ply)
     }
 
     #[must_use]
+    #[allow(clippy::too_many_arguments)]
     pub fn pvsearch<const PV: bool>(
         &mut self,
+        main_thread: bool,
         board: &Board,
         pv: &mut PVTable,
         mut alpha: i32,
@@ -139,13 +154,21 @@ impl<'a> Search<'a> {
     ) -> i32 {
         // Every 1024 nodes, check if it's time to stop
         if let (Some(timer), Some(max)) = (self.info.timer, self.info.max_time) {
-            if self.info.nodes % 1024 == 0 && timer.elapsed().as_millis() as u64 >= max {
+            if main_thread
+                && self.info.nodes % 1024 == 0
+                && timer.elapsed().as_millis() as u64 >= max
+            {
                 store_stop(true);
             }
         }
 
         if load_stop() && ply > 0 {
             return 0;
+        }
+
+        if self.info.nodes % 2048 == 0 {
+            add_nodes(self.info.nodes - self.info.prev_nodes);
+            self.info.prev_nodes = self.info.nodes;
         }
 
         let stm = board.side_to_move();
@@ -253,8 +276,15 @@ impl<'a> Search<'a> {
                 let r = 3 + depth / 3 + 3.min((eval.saturating_sub(beta)) / 200);
                 let new_b = board.null_move().unwrap();
 
-                let score =
-                    -self.zw_search(&new_b, &mut old_pv, -beta, -beta + 1, depth - r, ply + 1);
+                let score = -self.zw_search(
+                    main_thread,
+                    &new_b,
+                    &mut old_pv,
+                    -beta,
+                    -beta + 1,
+                    depth - r,
+                    ply + 1,
+                );
 
                 if score >= beta {
                     return beta;
@@ -318,8 +348,15 @@ impl<'a> Search<'a> {
 
             let mut score: i32;
             if moves_played == 1 {
-                score =
-                    -self.pvsearch::<PV>(&new_b, &mut old_pv, -beta, -alpha, depth - 1, ply + 1);
+                score = -self.pvsearch::<PV>(
+                    main_thread,
+                    &new_b,
+                    &mut old_pv,
+                    -beta,
+                    -alpha,
+                    depth - 1,
+                    ply + 1,
+                );
             } else {
                 // Late Move Reduction (LMR)
                 // Assuming our move ordering is good, later moves will be worse
@@ -341,14 +378,22 @@ impl<'a> Search<'a> {
                     1
                 };
 
-                score =
-                    -self.zw_search(&new_b, &mut old_pv, -alpha - 1, -alpha, depth - r, ply + 1);
+                score = -self.zw_search(
+                    main_thread,
+                    &new_b,
+                    &mut old_pv,
+                    -alpha - 1,
+                    -alpha,
+                    depth - r,
+                    ply + 1,
+                );
 
                 // Three-fold LMR
                 // If the ZW beats alpha, then it might be
                 // worth looking at this good position fully
                 if score > alpha && r > 1 {
                     score = -self.zw_search(
+                        main_thread,
                         &new_b,
                         &mut old_pv,
                         -alpha - 1,
@@ -360,6 +405,7 @@ impl<'a> Search<'a> {
 
                 if (alpha + 1..beta).contains(&score) {
                     score = -self.pvsearch::<PV>(
+                        main_thread,
                         &new_b,
                         &mut old_pv,
                         -beta,
@@ -460,6 +506,11 @@ impl<'a> Search<'a> {
             return 0;
         }
 
+        if self.info.nodes % 2048 == 0 {
+            add_nodes(self.info.nodes - self.info.prev_nodes);
+            self.info.prev_nodes = self.info.nodes;
+        }
+
         let stm = board.side_to_move();
 
         if ply >= MAX_PLY {
@@ -544,7 +595,12 @@ impl<'a> Search<'a> {
         best_score
     }
 
-    pub fn iterative_deepening(&mut self, board: &Board, st: SearchType, pretty: bool) {
+    pub fn iterative_deepening<const MAIN_THREAD: bool>(
+        &mut self,
+        board: &Board,
+        st: SearchType,
+        pretty: bool,
+    ) {
         let depth: usize;
         let mut opt_time: Option<u64> = None;
         let mut goal_nodes: Option<u64> = None;
@@ -567,6 +623,29 @@ impl<'a> Search<'a> {
             }
         };
 
+        // SMP - might clean up in the future
+        if !MAIN_THREAD {
+            let mut s = 0;
+            let mut phony_bm: Option<Move> = None;
+
+            for d in 1..=depth {
+                s = self.aspiration_window(
+                    false,
+                    board,
+                    &mut PVTable::new(),
+                    s,
+                    d as i32,
+                    &mut phony_bm,
+                );
+
+                if load_stop() {
+                    break;
+                }
+            }
+
+            return;
+        }
+
         let info_timer = Instant::now();
         let mut best_move: Option<Move> = None;
         let mut score = 0;
@@ -574,7 +653,7 @@ impl<'a> Search<'a> {
 
         for d in 1..=depth {
             self.info.seldepth = 0;
-            score = self.aspiration_window(board, &mut pv, score, d as i32, &mut best_move);
+            score = self.aspiration_window(true, board, &mut pv, score, d as i32, &mut best_move);
 
             // Max time is up
             if load_stop() && d > 1 {
@@ -583,23 +662,29 @@ impl<'a> Search<'a> {
 
             best_move = pv.best_move();
 
+            let mut n = load_nodes();
+            if n == 0 {
+                n = self.info.nodes;
+            }
+
             if pretty {
                 crate::uci::handler::pretty_print(
                     d,
                     self.info.seldepth,
                     score,
-                    self.info.nodes,
+                    load_nodes(),
                     info_timer.elapsed().as_millis(),
                     pv.pv_string(),
                 );
             } else {
                 println!(
-                    "info depth {} seldepth {} score {} nodes {} time {} pv{}",
+                    "info depth {} seldepth {} score {} nodes {} time {} nps {} pv{}",
                     d,
                     self.info.seldepth,
                     format_score(score),
-                    self.info.nodes,
+                    n,
                     info_timer.elapsed().as_millis(),
+                    n / info_timer.elapsed().as_secs().max(1),
                     pv.pv_string()
                 );
             }
@@ -637,6 +722,7 @@ impl<'a> Search<'a> {
 
     fn aspiration_window(
         &mut self,
+        main_thread: bool,
         board: &Board,
         pv: &mut PVTable,
         prev_eval: i32,
@@ -659,7 +745,7 @@ impl<'a> Search<'a> {
         }
 
         loop {
-            score = self.pvsearch::<true>(board, pv, alpha, beta, depth, 0);
+            score = self.pvsearch::<true>(main_thread, board, pv, alpha, beta, depth, 0);
 
             if load_stop() {
                 return 0;
@@ -747,7 +833,7 @@ impl<'a> Search<'a> {
 
         for d in 1..=depth {
             self.info.seldepth = 0;
-            score = self.aspiration_window(board, &mut pv, score, d as i32, &mut best_move);
+            score = self.aspiration_window(true, board, &mut pv, score, d as i32, &mut best_move);
 
             if load_stop() && d > 1 {
                 break;

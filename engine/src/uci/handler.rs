@@ -35,7 +35,7 @@ impl Default for UCIOptions {
 }
 
 fn id() {
-    println!("id name Svart 5.4");
+    println!("id name Svart 6");
     println!("id author Cristopher Torgrip");
 }
 

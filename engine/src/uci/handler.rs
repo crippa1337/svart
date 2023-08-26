@@ -1,6 +1,11 @@
 use super::timeman::time_for_move;
 
-use crate::body::{history::History, nnue::inference::NNUEState, search::Search, tt::TT};
+use crate::body::{
+    history::History,
+    nnue::inference::NNUEState,
+    search::{clear_nodes, clear_stop, Search},
+    tt::TT,
+};
 use crate::definitions::MATE;
 
 use cozy_chess::{Board, Color, Move, Piece, Square};
@@ -406,6 +411,9 @@ fn go(
     for _ in 0..uci_options.threads - 1 {
         secondary_searchers.push(Search::new(tt, nnue, history, game_history));
     }
+
+    clear_stop();
+    clear_nodes();
 
     std::thread::scope(|s| {
         s.spawn(|| {

@@ -234,107 +234,95 @@ pub fn uci_loop() {
                         // Time search
                         } else if words.iter().any(|&x| x == "wtime" || x == "btime") {
                             if board.side_to_move() == Color::White {
-                                match words[words.iter().position(|&x| x == "wtime").unwrap() + 1]
-                                    .parse::<u64>()
-                                {
-                                    Ok(t) => {
-                                        // Increment
-                                        let inc = if words.iter().any(|&x| x == "winc") {
-                                            match words[words
-                                                .iter()
-                                                .position(|&x| x == "winc")
-                                                .unwrap()
-                                                + 1]
-                                            .parse::<u64>()
-                                            {
-                                                Ok(i) => i,
-                                                Err(_) => panic!("Could not parse increment"),
-                                            }
-                                        } else {
-                                            0
-                                        };
+                                if let Ok(t) = words[words.iter().position(|&x| x == "wtime").unwrap() + 1].parse::<u64>() {
+                                    // Increment
+                                    let inc = if words.iter().any(|&x| x == "winc") {
+                                        match words[words
+                                            .iter()
+                                            .position(|&x| x == "winc")
+                                            .unwrap()
+                                            + 1]
+                                        .parse::<u64>()
+                                        {
+                                            Ok(i) => i,
+                                            Err(_) => panic!("Could not parse increment"),
+                                        }
+                                    } else {
+                                        0
+                                    };
 
-                                        let mtg = if words.iter().any(|&x| x == "movestogo") {
-                                            match words[words
-                                                .iter()
-                                                .position(|&x| x == "movestogo")
-                                                .unwrap()
-                                                + 1]
-                                            .parse::<u8>()
-                                            {
-                                                Ok(m) => Some(m),
-                                                Err(_) => None,
-                                            }
-                                        } else {
-                                            None
-                                        };
+                                    let mtg = if words.iter().any(|&x| x == "movestogo") {
+                                        match words[words
+                                            .iter()
+                                            .position(|&x| x == "movestogo")
+                                            .unwrap()
+                                            + 1]
+                                        .parse::<u8>()
+                                        {
+                                            Ok(m) => Some(m),
+                                            Err(_) => None,
+                                        }
+                                    } else {
+                                        None
+                                    };
 
-                                        let (opt, max) = time_for_move(t, inc, mtg);
+                                    let (opt, max) = time_for_move(t, inc, mtg);
 
-                                        go(
-                                            &board,
-                                            SearchType::Time(opt, max),
-                                            &mut tt,
-                                            &nnue,
-                                            &mut history,
-                                            &game_history,
-                                            &mut stored_input,
-                                            &uci_options,
-                                        );
-                                    }
-                                    Err(_) => (),
+                                    go(
+                                        &board,
+                                        SearchType::Time(opt, max),
+                                        &mut tt,
+                                        &nnue,
+                                        &mut history,
+                                        &game_history,
+                                        &mut stored_input,
+                                        &uci_options,
+                                    );
                                 }
-                            } else {
-                                match words[words.iter().position(|&x| x == "btime").unwrap() + 1]
+                            } else if let Ok(t) = words[words.iter().position(|&x| x == "btime").unwrap() + 1].parse::<u64>() {
+                                // Increment
+                                let inc = if words.iter().any(|&x| x == "binc") {
+                                    match words[words
+                                        .iter()
+                                        .position(|&x| x == "binc")
+                                        .unwrap()
+                                        + 1]
                                     .parse::<u64>()
-                                {
-                                    Ok(t) => {
-                                        // Increment
-                                        let inc = if words.iter().any(|&x| x == "binc") {
-                                            match words[words
-                                                .iter()
-                                                .position(|&x| x == "binc")
-                                                .unwrap()
-                                                + 1]
-                                            .parse::<u64>()
-                                            {
-                                                Ok(i) => i,
-                                                Err(_) => panic!("Could not parse increment"),
-                                            }
-                                        } else {
-                                            0
-                                        };
-
-                                        let mtg = if words.iter().any(|&x| x == "movestogo") {
-                                            match words[words
-                                                .iter()
-                                                .position(|&x| x == "movestogo")
-                                                .unwrap()
-                                                + 1]
-                                            .parse::<u8>()
-                                            {
-                                                Ok(m) => Some(m),
-                                                Err(_) => None,
-                                            }
-                                        } else {
-                                            None
-                                        };
-
-                                        let (opt, max) = time_for_move(t, inc, mtg);
-
-                                        go(
-                                            &board,
-                                            SearchType::Time(opt, max),
-                                            &mut tt,
-                                            &nnue,
-                                            &mut history,
-                                            &game_history,
-                                            &mut stored_input,
-                                            &uci_options,
-                                        );
+                                    {
+                                        Ok(i) => i,
+                                        Err(_) => panic!("Could not parse increment"),
                                     }
-                                    Err(_) => (),
-                                }
+                                } else {
+                                    0
+                                };
+
+                                let mtg = if words.iter().any(|&x| x == "movestogo") {
+                                    match words[words
+                                        .iter()
+                                        .position(|&x| x == "movestogo")
+                                        .unwrap()
+                                        + 1]
+                                    .parse::<u8>()
+                                    {
+                                        Ok(m) => Some(m),
+                                        Err(_) => None,
+                                    }
+                                } else {
+                                    None
+                                };
+
+                                let (opt, max) = time_for_move(t, inc, mtg);
+
+                                go(
+                                    &board,
+                                    SearchType::Time(opt, max),
+                                    &mut tt,
+                                    &nnue,
+                                    &mut history,
+                                    &game_history,
+                                    &mut stored_input,
+                                    &uci_options,
+                                );
                             };
                         } else {
                             continue;

@@ -86,6 +86,10 @@ pub fn load_stop() -> bool {
     STOP.load(Ordering::SeqCst)
 }
 
+pub fn clear_nodes() {
+    NODES.store(0, Ordering::SeqCst);
+}
+
 fn add_nodes(nodes: u64) {
     NODES.fetch_add(nodes, Ordering::SeqCst);
 }
@@ -797,6 +801,7 @@ impl<'a> Search<'a> {
 
     pub fn go_reset(&mut self) {
         STOP.store(false, Ordering::Relaxed);
+        NODES.store(0, Ordering::Relaxed);
         self.info.search_type = SearchType::Depth(0);
         self.info.timer = None;
         self.info.max_time = None;
@@ -810,6 +815,7 @@ impl<'a> Search<'a> {
 
     pub fn game_reset(&mut self) {
         STOP.store(false, Ordering::Relaxed);
+        NODES.store(0, Ordering::Relaxed);
         self.info = SearchInfo::new();
         self.info.game_history = vec![Board::default().hash()];
     }

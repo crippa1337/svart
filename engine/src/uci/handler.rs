@@ -3,7 +3,7 @@ use super::timeman::time_for_move;
 use crate::body::{
     history::History,
     nnue::inference::NNUEState,
-    search::{clear_nodes, clear_stop, Search},
+    search::{clear_nodes, store_stop, Search},
     tt::TT,
 };
 use crate::definitions::MATE;
@@ -400,9 +400,6 @@ fn go(
         secondary_searchers.push(Search::new(tt, nnue, history, game_history));
     }
 
-    clear_stop();
-    clear_nodes();
-
     std::thread::scope(|s| {
         s.spawn(|| {
             search.iterative_deepening::<true>(board, st, false);
@@ -421,7 +418,8 @@ fn go(
     history.age_table();
     tt.age();
 
-    crate::body::search::store_stop(false);
+    store_stop(false);
+    clear_nodes();
 }
 
 fn handle_stop_and_quit() -> Option<String> {

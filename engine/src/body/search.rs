@@ -78,10 +78,6 @@ impl Default for SearchInfo {
     }
 }
 
-pub fn clear_stop() {
-    STOP.store(false, Ordering::SeqCst);
-}
-
 pub fn store_stop(stop: bool) {
     STOP.store(stop, Ordering::SeqCst);
 }

@@ -234,15 +234,15 @@ pub fn uci_loop() {
                         // Time search
                         } else if words.iter().any(|&x| x == "wtime" || x == "btime") {
                             if board.side_to_move() == Color::White {
-                                if let Ok(t) = words[words.iter().position(|&x| x == "wtime").unwrap() + 1].parse::<u64>() {
+                                if let Ok(t) = words
+                                    [words.iter().position(|&x| x == "wtime").unwrap() + 1]
+                                    .parse::<u64>()
+                                {
                                     // Increment
                                     let inc = if words.iter().any(|&x| x == "winc") {
-                                        match words[words
-                                            .iter()
-                                            .position(|&x| x == "winc")
-                                            .unwrap()
-                                            + 1]
-                                        .parse::<u64>()
+                                        match words
+                                            [words.iter().position(|&x| x == "winc").unwrap() + 1]
+                                            .parse::<u64>()
                                         {
                                             Ok(i) => i,
                                             Err(_) => panic!("Could not parse increment"),
@@ -279,15 +279,15 @@ pub fn uci_loop() {
                                         &uci_options,
                                     );
                                 }
-                            } else if let Ok(t) = words[words.iter().position(|&x| x == "btime").unwrap() + 1].parse::<u64>() {
+                            } else if let Ok(t) = words
+                                [words.iter().position(|&x| x == "btime").unwrap() + 1]
+                                .parse::<u64>()
+                            {
                                 // Increment
                                 let inc = if words.iter().any(|&x| x == "binc") {
-                                    match words[words
-                                        .iter()
-                                        .position(|&x| x == "binc")
-                                        .unwrap()
-                                        + 1]
-                                    .parse::<u64>()
+                                    match words
+                                        [words.iter().position(|&x| x == "binc").unwrap() + 1]
+                                        .parse::<u64>()
                                     {
                                         Ok(i) => i,
                                         Err(_) => panic!("Could not parse increment"),
@@ -297,12 +297,9 @@ pub fn uci_loop() {
                                 };
 
                                 let mtg = if words.iter().any(|&x| x == "movestogo") {
-                                    match words[words
-                                        .iter()
-                                        .position(|&x| x == "movestogo")
-                                        .unwrap()
-                                        + 1]
-                                    .parse::<u8>()
+                                    match words
+                                        [words.iter().position(|&x| x == "movestogo").unwrap() + 1]
+                                        .parse::<u8>()
                                     {
                                         Ok(m) => Some(m),
                                         Err(_) => None,

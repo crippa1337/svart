@@ -20,7 +20,7 @@ pub enum SearchType {
 }
 
 struct UCIOptions {
-    hash: u32,
+    hash: u64,
     threads: u32,
 }
 
@@ -46,7 +46,7 @@ fn id() {
 
 fn options() {
     println!("option name Hash type spin default 16 min 1 max 1000000");
-    println!("option name Threads type spin default 1 min 1 max 256");
+    println!("option name Threads type spin default 1 min 1 max 1024");
 }
 
 pub fn uci_loop() {
@@ -138,7 +138,7 @@ pub fn uci_loop() {
                 }
                 "setoption" => {
                     if words[1] == "name" && words[2] == "Hash" && words[3] == "value" {
-                        if let Ok(s) = words[4].parse::<u32>() {
+                        if let Ok(s) = words[4].parse::<u64>() {
                             if s > 1_000_000 {
                                 continue;
                             }
@@ -150,7 +150,7 @@ pub fn uci_loop() {
 
                     if words[1] == "name" && words[2] == "Threads" && words[3] == "value" {
                         if let Ok(t) = words[4].parse::<u32>() {
-                            if !(1..=256).contains(&t) {
+                            if !(1..=1024).contains(&t) {
                                 continue;
                             }
 

@@ -129,9 +129,9 @@ pub struct TT {
 }
 
 impl TT {
-    pub fn new(mb: u32) -> Self {
+    pub fn new(mb: u64) -> Self {
         let hash_size = mb * 1024 * 1024;
-        let size = hash_size / std::mem::size_of::<TTEntry>() as u32;
+        let size = hash_size / std::mem::size_of::<TTEntry>() as u64;
         let mut entries = Vec::with_capacity(size as usize);
 
         for _ in 0..size {

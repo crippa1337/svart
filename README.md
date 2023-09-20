@@ -13,17 +13,31 @@ Svart is not a complete chess program and requires a [UCI-compatible graphical u
 
 # UCI Options
 ### Hash
-> Megabytes of memory allocated for the [Transposition Table](https://en.wikipedia.org/wiki/Transposition_table).
+>``1 ≤ X ≤ 1000000``
+>
+>Default 16
+>
+>Megabytes of memory allocated for the [Transposition Table](https://en.wikipedia.org/wiki/Transposition_table).
+
+
+
+### Threads
+>``1 ≤ X ≤ 1024``
+>
+>Default 1
+>
+>Amount of threads used, including the UCI handler.
     
 
 # History
 
 | Version   | CCRL 40/15     | CCRL Blitz     | MCERL        | CEGT 4/40      |
 | --------- | -------------- | -------------- | ------------ | -------------- |
-| Svart 5   | 3188±26 [#55]  | 3261±20 [#58]  |              | 3129±10 [#614] |
-| Svart 4   | 3015±38 [#91]  | 3138±17 [#74]  |              |                |
-| Svart 3.1 | 2880±23 [#123] | 2888±20 [#120] | 2921 [#127]  |                |
-| Svart 2   | 2463±24 [#285] | 2461±20 [#286] | 2484 [#152]  |                |
+| Svart 6   | 3187±23 [#71]  | 3255±19        |              |                |
+| Svart 5   | 3171±19        | 3259±17 [#73]  | 3229 [#93]   | 3130±9 [#64]   |
+| Svart 4   | 3043±21        | 3138±17        | 3147 [#119]  |                |
+| Svart 3.1 | 2883±21        | 2888±20        | 2921 [#169]  |                |
+| Svart 2   | 2462±24        | 2461±20        | 2528 [#226]  |                |
 
 
 # Compilation
